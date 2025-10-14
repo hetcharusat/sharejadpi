@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShareJadPi - Local File Sharing</title>
+    <style>
+        :root {
+            --bg: #0f1320;
+            --card: #14192b;
+            --muted: #9aa4b2;
+            --text: #e7ecf3;
+            --primary: #22c55e;
+            --primary-600: #16a34a;
+            --accent: #7c3aed;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --border: #233046;
+            --shadow: 0 10px 30px rgba(0,0,0,.25);
+            --radius: 14px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
+            /* Softer, uniform background to avoid glare */
+            background: linear-gradient(180deg, #0d1220 0%, #0b0f1a 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: clamp(16px, 2.5vw, 28px);
+            line-height: 1.5;
+        }
+
+        .container { max-width: 980px; margin: 0 auto; }
+
+    /* Top navbar */
+    .nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 18px; }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .logo { width:36px; height:36px; border-radius:9px; background:linear-gradient(180deg,#22c55e,#16a34a); box-shadow:0 6px 18px rgba(34,197,94,.25); display:flex; align-items:center; justify-content:center; font-weight:900; color:#0b1a12; letter-spacing:.5px; }
+    .brand-text { display:flex; flex-direction:column; min-width:0; }
+    .brand-text .title { font-weight:900; letter-spacing:.3px; font-size: clamp(18px, 3.2vw, 22px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .brand-text .tagline { color: var(--muted); font-size: 12px; }
+    .icon-btn { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; text-decoration:none; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); color:var(--text); font-size:18px; }
+    .icon-btn:hover { filter:brightness(1.05); }
+
+        .card {
+            background: rgba(20, 24, 43, .88); /* more opaque to avoid glow */
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: clamp(20px, 2.6vw, 28px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.35); /* darker, softer */
+            background-clip: padding-box; /* prevent halo on rounded corners */
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 1.5px dashed rgba(255,255,255,.18);
+            border-radius: 12px;
+            padding: clamp(32px, 3.4vw, 44px);
+            text-align: center;
+            cursor: pointer;
+            background: rgba(20, 25, 43, .55);
+            transition: border-color .2s, background .2s, transform .15s;
+        }
+        .upload-area:hover { background: rgba(20,25,43,.7); border-color: rgba(255,255,255,.28); }
+        .upload-area.uploading { background: rgba(245, 158, 11, .15); border-color: var(--warn); }
+        .upload-icon { font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px; }
+        .upload-area h3 { color: var(--primary); margin-bottom: 6px; font-size: clamp(18px, 2.4vw, 22px); }
+        .upload-area p { color: var(--muted); font-size: clamp(13px, 1.8vw, 15px); }
+
+        #fileInput { display: none; }
+
+        .btn {
+            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            color: #0c1610;
+            border: 1px solid rgba(255,255,255,.1);
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(34,197,94,.25);
+            transition: transform .06s ease, filter .15s ease;
+            min-height: 42px; /* larger tap target */
+        }
+        .btn:hover { filter: brightness(1.05); }
+        .btn:active { transform: translateY(1px); }
+        .btn[disabled] { opacity: .6; cursor: not-allowed; }
+
+    .files-section { margin-top: 16px; }
+    .files-header { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .files-header h2 { font-size: clamp(18px, 2.4vw, 20px); font-weight: 700; }
+
+        .file-count {
+            background: rgba(124, 58, 237, .15);
+            color: #c4b5fd;
+            padding: 6px 12px;
+            border: 1px solid rgba(124, 58, 237, .35);
+            border-radius: 999px;
+            font-size: 12px;
+        }
+
+        .file-item {
+            background: rgba(255,255,255,.02);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+            transition: background .15s;
+        }
+        .file-item:hover { background: rgba(255,255,255,.04); }
+
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { display:flex; align-items:center; gap:8px; margin-bottom: 6px; }
+    .file-title { flex:1; min-width:0; font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-badges { display:flex; align-items:center; gap:2px; flex:none; }
+    .file-badge { display:inline-flex; align-items:center; justify-content:center; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:800; letter-spacing:.3px; border:1px solid rgba(255,255,255,.18); line-height:1; height:20px; }
+        .file-meta { color: var(--muted); font-size: 12px; }
+
+    .file-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-download, .btn-delete {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.1);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .btn-download { background: rgba(34, 197, 94, .15); color: #86efac; }
+        .btn-download:hover { background: rgba(34, 197, 94, .25); }
+        .btn-delete { background: rgba(239, 68, 68, .15); color: #fecaca; }
+        .btn-delete:hover { background: rgba(239, 68, 68, .25); }
+
+        .empty-state { text-align: center; padding: 38px 16px; color: var(--muted); }
+        .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+
+        .notification {
+            position: fixed; top: 16px; right: 16px;
+            padding: 12px 16px; border-radius: 12px; color: white; font-weight: 700;
+            box-shadow: var(--shadow); z-index: 1000; max-width: min(90vw, 320px);
+        }
+        .notification.success { background: #16a34a; }
+        .notification.error { background: #dc2626; }
+
+        .qr-section { text-align: center; padding: 18px; background: rgba(255,255,255,.02); border-radius: 12px; }
+        .qr-section h3 { color: var(--primary); margin-bottom: 12px; }
+        .qr-code { max-width: 220px; margin: 0 auto; padding: 10px; background: #0b0f1a; border-radius: 10px; border: 1px solid var(--border); }
+        .qr-code img { width: 100%; display: block; }
+
+    /* Clipboard share */
+    .clip-wrap { display:flex; flex-direction:column; gap:14px; }
+    .clip-row { display:flex; gap:12px; flex-wrap:wrap; }
+    .clip-text { width:100%; min-height:120px; resize:vertical; padding:12px; border-radius:10px; border:1px solid var(--border); background:#0b0f1a; color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; line-height:1.5; }
+    .btn-secondary { background:linear-gradient(180deg,#94a3b8,#64748b); color:#0b0f1a; border:1px solid rgba(255,255,255,.1); }
+
+    /* Transfers */
+    .transfers { margin: 12px 0 0 0; }
+    .transfer-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .transfer-name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--muted); font-size:13px; }
+    .transfer-meta { font-size:12px; color:#cbd5e1; }
+    .transfer-bar { background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 8px; overflow:hidden; height: 10px; }
+    .transfer-bar > div { height:100%; width:0%; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .15s; }
+
+    /* Speed test */
+        #speedStatus { color: var(--muted); font-size: 14px; }
+        #speedBar { background: linear-gradient(90deg, #22c55e, #7c3aed); }
+    .progress { background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 8px; overflow:hidden; height: 12px; }
+    .speedtest { margin-top: 14px; }
+    .speed-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+
+        /* Responsive */
+        @media (max-width: 720px) {
+            .container { max-width: 100%; }
+            .files-header { flex-direction: column; align-items: stretch; }
+            .file-item { flex-direction: column; align-items: stretch; }
+            .file-actions { width: 100%; justify-content: flex-end; margin-top: 8px; }
+            .btn-download, .btn-delete { flex: 1; }
+            .clip-row .btn { flex: 1 1 calc(50% - 6px); }
+        }
+        @media (max-width: 420px) {
+            .header h1 { font-size: 24px; }
+            .upload-area { padding: 22px; }
+            .card { padding: 16px; }
+            .file-item { padding: 12px; }
+            .clip-row .btn { flex: 1 1 100%; }
+        }
+        /* Desktop-only tiny vertical nudge to compensate font metrics differences */
+        @media (min-width: 721px) {
+            .file-badge { position: relative; top: 1px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <div class="brand">
+                <div class="logo">SJ</div>
+                <div class="brand-text">
+                    <div class="title">ShareJadPi</div>
+                    <div class="tagline">share to local just two clocks from pc</div>
+                </div>
+            </div>
+            <a href="/settings" class="icon-btn" title="Settings" aria-label="Settings">⚙️</a>
+        </div>
+
+        <div class="card qr-section">
+            <h3>📷 Scan to Connect from Mobile</h3>
+            <div class="qr-code">
+                <img id="qrImg" src="/qr" alt="QR Code">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <h3>Drop files here or click to upload</h3>
+                <p>Share files quickly between your devices</p>
+                <input type="file" id="fileInput" multiple>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">Choose Files</button>
+            </div>
+        </div>
+
+        
+
+       
+
+        <div class="card files-section">
+            <div class="files-header" style="gap:10px;">
+                <h2 style="flex:1;">Shared Items (Single-Use)</h2>
+                <button class="btn" style="background:#ff9800;" onclick="clearCache()">Clear Cache</button>
+                <span class="file-count" id="fileCount">0 files</span>
+            </div>
+            <div id="filesList"></div>
+            <div class="transfers" id="transfers" style="display:none"></div>
+        </div>
+
+        <!-- Separate Clipboard card -->
+        <div class="card">
+            <div class="clip-wrap">
+                <h3 style="color:var(--primary)">📋 Shared Clipboard</h3>
+                <textarea id="clipText" class="clip-text" placeholder="Paste text here…"></textarea>
+                <div class="clip-row">
+                    <button class="btn-secondary btn" onclick="pasteFromClipboard()">Paste from Clipboard</button>
+                    <button class="btn" onclick="shareClip()">Share</button>
+                    <button class="btn" onclick="copyClip()">Copy</button>
+                    <button class="btn" style="background:linear-gradient(180deg,#ef4444,#dc2626);color:#fff" onclick="clearClip()">Clear</button>
+                </div>
+                <div style="color:var(--muted);font-size:12px">Tip: This clipboard is shared across devices on your LAN. Paste updates appear within ~1s.</div>
+            </div>
+        </div>
+
+        <!-- Separate Speed Test card -->
+        <div class="card">
+            <div class="speedtest">
+                <div class="speed-header">
+                    <h3>Network Speed Test</h3>
+                    <button id="runSpeedBtn" class="btn" style="background:linear-gradient(180deg,#7c3aed,#6d28d9);color:#eae4ff" onclick="runCombinedTest()">▶ 5s Combined Test</button>
+                </div>
+                <div id="speedStatus" style="margin-bottom:8px">Idle</div>
+                <div class="progress" style="margin-bottom:8px"><div id="speedBar" style="width:0%;height:100%;transition:width .2s"></div></div>
+                <div id="speedOutput" style="font-size:0.95em"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const filesList = document.getElementById('filesList');
+        const fileCount = document.getElementById('fileCount');
+        const qrImg = document.getElementById('qrImg');
+        const uploadingQueue = [];
+        let uploading = false;
+    // No dedupe set so selecting same filename again re-uploads immediately
+
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('drag-over');
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+            // Allow same file re-selection
+            this.value = '';
+        });
+
+        uploadArea.addEventListener('click', function(e) {
+            // Intentionally empty: only the explicit button triggers file dialog now
+        });
+
+        function handleFiles(files) {
+            for (const f of files) {
+                uploadingQueue.push(f);
+            }
+            processQueue();
+        }
+
+        function processQueue() {
+            if (uploading) return;
+            const next = uploadingQueue.shift();
+            if (!next) return;
+            uploadFile(next).then(() => {
+                processQueue();
+            });
+        }
+
+        async function uploadFile(file) {
+            uploading = true;
+            uploadArea.classList.add('uploading');
+            const transfers = document.getElementById('transfers');
+            transfers.style.display = 'block';
+            transfers.innerHTML = `
+                <div class="transfer-row">
+                  <div class="transfer-name">⬆ ${file.name}</div>
+                  <div class="transfer-meta" id="ulMeta">0%</div>
+                </div>
+                <div class="transfer-bar"><div id="ulBar"></div></div>
+            `;
+            const t0 = performance.now();
+            let lastTime = t0; let lastLoaded = 0;
+            try {
+                await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/upload');
+                    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('HTTP '+xhr.status));
+                    xhr.onerror = () => reject(new Error('Network error'));
+                    xhr.upload.onprogress = (e) => {
+                        if (!e.lengthComputable) return;
+                        const pct = (e.loaded / e.total) * 100;
+                        document.getElementById('ulBar').style.width = pct.toFixed(1) + '%';
+                        const now = performance.now();
+                        const dt = (now - lastTime) / 1000; lastTime = now;
+                        const delta = e.loaded - lastLoaded; lastLoaded = e.loaded;
+                        const speed = dt > 0 ? (delta * 8 / dt / 1e6) : 0; // Mbps between ticks
+                        document.getElementById('ulMeta').textContent = `${pct.toFixed(0)}% • ${speed.toFixed(2)} Mbps`;
+                    };
+                    const form = new FormData(); form.append('file', file);
+                    xhr.send(form);
+                });
+                showNotification('✓ Uploaded ' + file.name, 'success');
+                await fetchFiles();
+            } catch (e) {
+                showNotification('✗ Upload failed: ' + e, 'error');
+            } finally {
+                uploadArea.classList.remove('uploading');
+                uploading = false;
+                setTimeout(() => { transfers.style.display = 'none'; transfers.innerHTML = ''; }, 1200);
+            }
+        }
+
+        async function downloadFile(id, name) {
+            const transfers = document.getElementById('transfers');
+            transfers.style.display = 'block';
+            transfers.innerHTML = `
+                <div class="transfer-row">
+                  <div class="transfer-name">⬇ ${name}</div>
+                  <div class="transfer-meta" id="dlMeta">0%</div>
+                </div>
+                <div class="transfer-bar"><div id="dlBar"></div></div>
+            `;
+            const t0 = performance.now();
+            let received = 0;
+            try {
+                const res = await fetch('/download/' + encodeURIComponent(id) + '?dl=1');
+                if (!res.ok || !res.body) throw new Error('HTTP '+res.status);
+                const total = parseInt(res.headers.get('Content-Length')||'0',10);
+                const contentType = res.headers.get('Content-Type')||'application/octet-stream';
+                const reader = res.body.getReader();
+                const chunks = [];
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    received += value.byteLength;
+                    if (total > 0) {
+                        const pct = (received/total)*100;
+                        document.getElementById('dlBar').style.width = pct.toFixed(1)+'%';
+                        const dt = (performance.now()-t0)/1000;
+                        const speed = received * 8 / Math.max(dt, 0.001) / 1e6;
+                        document.getElementById('dlMeta').textContent = `${pct.toFixed(0)}% • ${speed.toFixed(2)} Mbps`;
+                    }
+                }
+                const blob = new Blob(chunks, {type: contentType});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(()=>URL.revokeObjectURL(url), 2000);
+                showNotification('⬇ Downloaded ' + name, 'success');
+                await fetchFiles();
+            } catch (e) {
+                showNotification('✗ Download failed: ' + e, 'error');
+            } finally {
+                setTimeout(() => { transfers.style.display = 'none'; transfers.innerHTML = ''; }, 1200);
+            }
+        }
+
+        async function deleteFile(id, name) {
+            if (!confirm('Delete ' + name + '?')) {
+                return;
+            }
+            try {
+                const res = await fetch('/delete/' + encodeURIComponent(id), { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('✓ File deleted', 'success');
+                    await fetchFiles();
+                } else {
+                    showNotification('✗ Delete failed: ' + data.error, 'error');
+                }
+            } catch (e) {
+                showNotification('✗ Delete failed: ' + e, 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        async function fetchFiles() {
+            try {
+                const res = await fetch('/api/files');
+                const data = await res.json();
+                const list = data.files;
+                fileCount.textContent = list.length + ' files';
+                if (!list.length) {
+                    filesList.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📂</div><p>No files shared yet. Upload your first file!</p></div>`;
+                    return;
+                }
+                filesList.innerHTML = list.map(f => {
+                    const safeName = f.name.replace(/'/g, "&#39;");
+                    const ext = (f.name.includes('.') ? f.name.split('.').pop() : '').toLowerCase();
+                    function badgeForExt(e){
+                        const img = ['jpg','jpeg','png','gif','webp','bmp','svg'];
+                        const vid = ['mp4','mov','mkv','avi','webm'];
+                        const aud = ['mp3','wav','m4a','flac','ogg'];
+                        const arc = ['zip','rar','7z','tar','gz'];
+                        const doc = ['pdf'];
+                        const off = ['doc','docx','ppt','pptx','xls','xlsx'];
+                        const code = ['txt','md','py','js','ts','json','csv','html','css'];
+                        if (img.includes(e)) return {label:e.toUpperCase(), color:'#22c55e'};
+                        if (vid.includes(e)) return {label:e.toUpperCase(), color:'#ff5722'};
+                        if (aud.includes(e)) return {label:e.toUpperCase(), color:'#3f51b5'};
+                        if (doc.includes(e)) return {label:'PDF', color:'#e53935'};
+                        if (off.includes(e)) return {label:e.toUpperCase(), color:'#009688'};
+                        if (arc.includes(e)) return {label:e.toUpperCase(), color:'#7c3aed'};
+                        if (code.includes(e)) return {label:e.toUpperCase(), color:'#607d8b'};
+                        return {label: e ? e.toUpperCase() : 'FILE', color:'#607d8b'};
+                    }
+                    const badge = badgeForExt(ext);
+                    return `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <div class="file-title">📄 ${safeName}</div>
+                                <div class="file-badges">
+                                  <span class="file-badge" style=\"background:${badge.color};color:#fff;\">${badge.label}</span>
+                                </div>
+                            </div>
+                            <div class="file-meta">${f.size} • ${f.added}</div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn-download" onclick="downloadFile('${f.id}','${safeName}')">⬇ Download</button>
+                            <button class="btn-delete" onclick="deleteFile('${f.id}','${safeName}')">🗑 Delete</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to fetch files', e);
+            }
+        }
+
+        function refreshQR() {
+            qrImg.src = '/qr?t=' + Date.now();
+        }
+
+        async function clearCache() {
+            if (!confirm('Clear all shared items?')) return;
+            try {
+                const res = await fetch('/api/clear', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('✓ Cache cleared', 'success');
+                    await fetchFiles();
+                } else {
+                    showNotification('✗ Clear failed', 'error');
+                }
+            } catch (e) { showNotification('✗ Clear failed: ' + e, 'error'); }
+        }
+
+        // Initial load
+        fetchFiles();
+        refreshQR();
+        // Periodic refresh
+    setInterval(fetchFiles, 1000);
+
+    // Speed test helpers
+    function fmtMbps(bytes, seconds) {
+        if (seconds <= 0) return '—';
+        const bits = bytes * 8;
+        const mbps = bits / seconds / 1e6;
+        return mbps.toFixed(2) + ' Mbps';
+    }
+    async function runCombinedTest(){
+        const out = document.getElementById('speedOutput');
+        const bar = document.getElementById('speedBar');
+        const status = document.getElementById('speedStatus');
+        const btn = document.getElementById('runSpeedBtn');
+        // Reset UI
+        out.textContent='';
+        bar.style.width='0%';
+        btn.disabled = true; btn.style.opacity='0.7';
+        let recv = 0, sent = 0;
+        const kb = 64*1024; // 64KB chunks
+        const chunk = new Uint8Array(kb);
+        crypto.getRandomValues(chunk);
+        const t0 = performance.now();
+        status.textContent = 'Running 5s test…';
+        // live UI updater
+        const uiTimer = setInterval(()=>{
+            const dt = (performance.now()-t0)/1000;
+            bar.style.width = Math.min(100, (dt/5)*100) + '%';
+            const dNow = fmtMbps(recv, Math.max(dt, 0.001));
+            const uNow = fmtMbps(sent, Math.max(dt, 0.001));
+            status.textContent = `Running… ${dt.toFixed(1)}s  •  ↓ ${dNow}  •  ↑ ${uNow}`;
+        }, 200);
+
+        try {
+            // Download task
+            const doDownload = (async () => {
+                try{
+                    const res = await fetch('/api/speedtest/down?bytes='+(500*1024*1024)+'&t='+Date.now());
+                    const reader = res.body.getReader();
+                    while(true){
+                        const dt = (performance.now()-t0)/1000;
+                        if(dt>=5){ try{ await reader.cancel(); }catch(_e){} break; }
+                        const {done, value} = await reader.read();
+                        if(done) break; recv += value.byteLength;
+                    }
+                }catch(_e){ /* ignore */ }
+            })();
+
+            // Upload task
+            const doUpload = (async () => {
+                try{
+                    const stream = new ReadableStream({
+                        start(controller){
+                            function push(){
+                                const dt=(performance.now()-t0)/1000;
+                                if(dt>=5){ controller.close(); return; }
+                                controller.enqueue(chunk);
+                                sent += kb;
+                                setTimeout(push, 0);
+                            }
+                            push();
+                        }
+                    });
+                    const resp = await fetch('/api/speedtest/upraw', {method:'POST', body: stream});
+                    await resp.json();
+                }catch(_streamErr){
+                    // Fallback: small repeated POSTs until 5s
+                    async function postOnce(){
+                        const resp = await fetch('/api/speedtest/upraw', {method:'POST', body: chunk});
+                        await resp.json();
+                    }
+                    while(true){
+                        const dt=(performance.now()-t0)/1000;
+                        if(dt>=5) break;
+                        await postOnce(); sent += kb;
+                    }
+                }
+            })();
+
+            // Wait for both
+            await Promise.all([doDownload, doUpload]);
+            const totalSec = Math.max(5, (performance.now()-t0)/1000);
+            const dMbps = fmtMbps(recv, totalSec);
+            const uMbps = fmtMbps(sent, totalSec);
+            status.textContent = 'Done';
+            out.innerHTML = `<div><strong>Download:</strong> ${dMbps}</div><div><strong>Upload:</strong> ${uMbps}</div>`;
+        } catch (e) {
+            status.textContent = 'Error';
+            out.textContent = 'Speed test failed: ' + e;
+        } finally {
+            clearInterval(uiTimer);
+            btn.disabled = false; btn.style.opacity='1';
+        }
+    }
+
+    // Shared Clipboard
+    let clipLast = 0;
+    async function loadClip(){
+        try{
+            const r = await fetch('/api/clipboard');
+            const d = await r.json();
+            if (d && typeof d.updated === 'number' && d.updated !== clipLast) {
+                clipLast = d.updated;
+                document.getElementById('clipText').value = d.text || '';
+            }
+        }catch(e){ /* ignore */ }
+    }
+    setInterval(loadClip, 1000);
+    loadClip();
+
+    async function pasteFromClipboard(){
+        try{
+            const txt = await navigator.clipboard.readText();
+            document.getElementById('clipText').value = txt;
+        }catch(e){ showNotification('✗ Clipboard read blocked by browser', 'error'); }
+    }
+    async function shareClip(){
+        const v = document.getElementById('clipText').value;
+        if(!v || !v.trim()) { showNotification('✗ Nothing to share', 'error'); return; }
+        try{
+            const res = await fetch('/api/clipboard', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text: v})});
+            const d = await res.json();
+            if(!res.ok || !d.success) throw new Error(d.error||('HTTP '+res.status));
+            showNotification('✓ Clipboard updated', 'success');
+        }catch(e){ showNotification('✗ Share failed: '+e, 'error'); }
+    }
+    async function copyClip(){
+        const ta = document.getElementById('clipText');
+        const v = ta.value || '';
+        // Primary API
+        try{
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(v);
+                showNotification('✓ Copied to clipboard', 'success');
+                return;
+            }
+        } catch(_e) { /* fallthrough to legacy */ }
+        // Legacy fallback for mobile/HTTP: programmatic selection + execCommand
+        try {
+            const prevReadOnly = ta.readOnly;
+            ta.readOnly = false; // some browsers require editable to select
+            const prevSelectionStart = ta.selectionStart, prevSelectionEnd = ta.selectionEnd;
+            ta.focus(); ta.select();
+            const ok = document.execCommand && document.execCommand('copy');
+            // Restore selection and flags
+            if (typeof prevSelectionStart === 'number' && typeof prevSelectionEnd === 'number') {
+                ta.setSelectionRange(prevSelectionStart, prevSelectionEnd);
+            }
+            ta.readOnly = prevReadOnly;
+            if (ok) { showNotification('✓ Copied to clipboard', 'success'); return; }
+            throw new Error('execCommand returned false');
+        } catch(e) {
+            // Final hint for users/browsers that block programmatic copy
+            showNotification('Copy blocked by browser. Long-press the text then tap Copy.', 'error');
+        }
+    }
+    async function clearClip(){
+        try{
+            const res = await fetch('/api/clipboard', {method:'DELETE'});
+            if(!res.ok) throw new Error('HTTP '+res.status);
+            document.getElementById('clipText').value = '';
+            showNotification('✓ Clipboard cleared', 'success');
+        }catch(e){ showNotification('✗ Clear failed: '+e, 'error'); }
+    }
+    </script>
+</body>
+</html>

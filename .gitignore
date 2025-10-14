@@ -1,0 +1,19 @@
+# Build artifacts
+dist/
+build/
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+
+# Runtime data
+uploads/
+shared_files/
+static/qr_code.png
+
+# OS/editor
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
