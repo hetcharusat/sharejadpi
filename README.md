@@ -47,8 +47,10 @@ ShareJadPi turns your Windows PC into a local file server that you can access fr
 ### Option 1: Standalone Executable (Recommended)
 1. **Download** `ShareJadPi-3.0.0.exe` from [Releases](https://github.com/hetcharusat/sharejadpi/releases)
 2. **Run** the executable - double-click or run from command line
-3. **Scan QR** - A window will pop up with a QR code
-4. **Done!** - Your phone can now access files at the URL
+3. **Allow network access** - When Windows Firewall prompts, click **"Allow access"**
+   - ⚠️ If you miss this prompt, mobile won't connect! Run `fix_firewall.ps1` to fix.
+4. **Scan QR** - Right-click the tray icon → "Show QR"
+5. **Done!** - Your phone can now access files at the URL
 
 ### Option 2: Run from Source
 ```bash
@@ -201,6 +203,21 @@ python sharejadpi.py share "C:\path\to\file.txt"
 
 ## 🐛 Troubleshooting
 
+### ⚠️ Mobile Can't Connect ("Site Can't Be Reached")
+
+**This is the #1 most common issue!** Here's the quick fix:
+
+1. **Right-click** `fix_firewall.ps1` → **"Run with PowerShell (Admin)"**
+2. **Quit ShareJadPi** (right-click tray icon → Quit)
+3. **Run ShareJadPi** again
+4. **Try mobile** connection again
+
+**Why this happens:** Windows Firewall blocks network access by default. When you first run ShareJadPi, Windows shows a prompt asking "Allow network access?" If you accidentally click Cancel or close it, Windows blocks all connections.
+
+**See full troubleshooting guide:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+---
+
 ### App won't start
 - **Antivirus blocking?** - Add exception for ShareJadPi.exe
 - **Port 5000 in use?** - Close other apps or change PORT in code
@@ -208,8 +225,9 @@ python sharejadpi.py share "C:\path\to\file.txt"
 
 ### Can't connect from phone
 - **Same WiFi?** - PC and phone must be on same network
-- **Firewall?** - Allow Python/ShareJadPi through Windows Firewall
+- **Firewall?** - Run `fix_firewall.ps1` as Administrator
 - **Correct URL?** - Use the URL from QR code (with token)
+- **Network type?** - WiFi must be set to "Private" not "Public"
 
 ### Context menu not appearing
 - Right-click tray icon → **Install Context Menu**
