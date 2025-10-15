@@ -2,11 +2,12 @@ import os
 import sys
 import socket
 import secrets
+import urllib.parse
 import qrcode
 import webbrowser
 import threading
 import time
-from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect, make_response
+from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect, make_response, g, abort
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
@@ -24,8 +25,10 @@ except ImportError:
     pystray = None
 import stat
 import ctypes
+import re
+import uuid
 
-# Configuration
+# Configuration and app setup (restored)
 def resource_path(*paths: str) -> str:
     """Return an absolute path to resource, supporting PyInstaller (_MEIPASS)."""
     base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))  # type: ignore[attr-defined]
@@ -46,7 +49,7 @@ os.makedirs(UPLOADS_CORE_DIR, exist_ok=True)
 
 # Legacy variable retained
 UPLOAD_FOLDER = SHARED_DIR
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+MAX_FILE_SIZE = 50 * 1024 * 1024 * 1024  # 50GB
 MAX_CLIP_SIZE = 1 * 1024 * 1024  # 1MB for text clips
 PORT = 5000
 
@@ -62,6 +65,7 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 CLIPBOARD_TEXT = ''
 CLIPBOARD_UPDATED = 0.0
 SECRET_TOKEN = os.environ.get('SHAREJADPI_TOKEN') or secrets.token_urlsafe(24)
+OPEN_MODE = str(os.environ.get('SJ_OPEN', '0')).lower() in ('1','true','yes','on')
 
 RUN_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_RUN_NAME = "ShareJadPi"
@@ -162,6 +166,8 @@ def install_context_menu_user() -> bool:
     ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY + "\\command", "", cmd)
     return ok
 
+ 
+
 def uninstall_context_menu_user() -> bool:
     if platform.system() != 'Windows' or not winreg:
         return False
@@ -224,29 +230,66 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
-def get_access_url(with_token: bool = True) -> str:
-    """Return an http URL using a preferred LAN IPv4 if available, optionally with access token."""
+def _get_all_local_ips():
+    """Return a set of local IPs (IPv4/IPv6) for the host machine, incl. loopbacks."""
+    ips = set(["127.0.0.1", "::1"])
     try:
-        # pick a non-loopback IPv4 if available
-        ips = [ip for ip in _get_all_local_ips() if ip != '127.0.0.1' and ':' not in ip]
-        host_ip = ips[0] if ips else '127.0.0.1'
+        hostname = socket.gethostname()
+        for family in (socket.AF_INET, socket.AF_INET6):
+            try:
+                infos = socket.getaddrinfo(hostname, None, family, socket.SOCK_STREAM)
+                for info in infos:
+                    ip = info[4][0]
+                    if ip:
+                        ips.add(str(ip))
+            except Exception:
+                pass
     except Exception:
-        host_ip = '127.0.0.1'
-    url = f"http://{host_ip}:{PORT}"
+        pass
+    # Primary outbound IPv4 via UDP connect trick
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ips.add(s.getsockname()[0])
+        s.close()
+    except Exception:
+        pass
+    return list(ips)
+
+def get_access_url(with_token: bool = True) -> str:
+    """Return an http URL using the active outbound IP (Ethernet/Wi‑Fi), with optional token."""
+    host_ip = get_local_ip() or '127.0.0.1'
+    base = f"http://{host_ip}:{PORT}/"
     if with_token:
-        # append as query on root; other pages will set cookie and redirect
-        return url + f"/?k={SECRET_TOKEN}"
-    return url
+        return base + f"?k={SECRET_TOKEN}"
+    return base
 
 def generate_qr_code(url):
     """Generate QR code"""
-    qr = qrcode.QRCode(version=1, box_size=10, border=2)
-    qr.add_data(url)
-    qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="black", back_color="white")
-    qr_path = os.path.join(STATIC_DIR, "qr_code.png")
-    qr_img.save(qr_path)  # type: ignore[arg-type]
-    return qr_path
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=2)
+        qr.add_data(url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        qr_path = os.path.join(STATIC_DIR, "qr_code.png")
+        
+        # Ensure directory exists
+        os.makedirs(STATIC_DIR, exist_ok=True)
+        
+        # Remove existing file if locked
+        if os.path.exists(qr_path):
+            try:
+                os.chmod(qr_path, stat.S_IWRITE)
+                os.remove(qr_path)
+            except Exception:
+                pass
+        
+        qr_img.save(qr_path)  # type: ignore[arg-type]
+        return qr_path
+    except Exception as e:
+        print(f"[QR] Warning: Could not generate QR code: {e}")
+        # Return a placeholder path so app doesn't crash
+        return os.path.join(STATIC_DIR, "qr_code.png")
 
 def show_qr_popup(url):
     """Open the dynamic /popup route in default browser."""
@@ -266,6 +309,10 @@ REGISTRY_LOCK = Lock()
 ENTRIES = {}  # id -> entry dict
 EXPIRY_MINUTES = 10  # default 10 minutes; can be changed in Settings (0 = disabled)
 
+# Live zip job tracking
+ZIP_JOBS = {}
+ZIP_JOBS_LOCK = Lock()
+
 # Dedicated uploads dir (single-use)
 UPLOADS_DIR = UPLOADS_CORE_DIR
 
@@ -282,6 +329,7 @@ def register_entry(path, kind):
         'size': st.st_size,
         'mtime': st.st_mtime,
         'kind': kind,
+        'pinned': False,
         'downloads': 0,
         'added_at': time.time()
     }
@@ -314,12 +362,14 @@ def purge_expired():
     threshold = time.time() - (EXPIRY_MINUTES * 60)
     removed = 0
     for e in list_entries():
+        if e.get('pinned'):
+            continue
         if e['added_at'] < threshold:
             ent = remove_entry(e['id'])
             if ent and ent['kind'] in ('upload','zip','copy'):
                 try:
                     if os.path.exists(ent['path']):
-                        os.remove(ent['path'])
+                        _force_delete(ent['path'])
                 except Exception:
                     pass
             removed += 1
@@ -343,19 +393,16 @@ def create_tray_image():
 
 def tray_open_share(icon, item):  # noqa: ARG001
     try:
-        local_ip = get_local_ip()
-        webbrowser.open(f'http://{local_ip}:{PORT}')
+        webbrowser.open(get_access_url(with_token=True))
     except Exception:
         pass
 
 def tray_show_qr(icon, item):  # noqa: ARG001
-    local_ip = get_local_ip()
-    url = f"http://{local_ip}:{PORT}"
+    url = get_access_url(with_token=True)
     show_qr_popup(url)
 
 def tray_open_settings(icon, item):  # noqa: ARG001
-    local_ip = get_local_ip()
-    webbrowser.open(f'http://{local_ip}:{PORT}/settings')
+    webbrowser.open(get_access_url(with_token=True) + 'settings')
 
 def tray_quit(icon, item):  # noqa: ARG001
     global tray_icon
@@ -455,8 +502,7 @@ def share_file_or_folder(path):
         else:
             print("[SHARE] Path not found or inaccessible")
         if created:
-            local_ip = get_local_ip()
-            url = f"http://{local_ip}:{PORT}"
+            url = get_access_url(with_token=True)
             print(f"\n[SUCCESS] {len(created)} item(s) shared! URL: {url}")
             show_qr_popup(url)
         else:
@@ -520,25 +566,247 @@ except Exception:
     MoveFileExW = None
 
 def _force_delete(fp):
+    """Try to delete a file with retry logic for locked files."""
     try:
         if not os.path.exists(fp):
             return True, None
-        try:
-            os.chmod(fp, stat.S_IWRITE)
-        except Exception:
-            pass
-        os.remove(fp)
-        return True, None
-    except Exception as e:
-        # Try schedule delete on reboot (Windows)
+        
+        # Retry logic for locked files
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Try to make file writable
+                try:
+                    os.chmod(fp, stat.S_IWRITE)
+                except Exception:
+                    pass
+                
+                # Attempt deletion
+                os.remove(fp)
+                if attempt > 0:
+                    print(f"[CLEANUP] Deleted {fp} on attempt {attempt + 1}")
+                return True, None
+            except PermissionError as e:
+                if attempt < max_retries - 1:
+                    # Wait a bit and retry
+                    time.sleep(0.5)
+                    continue
+                else:
+                    # Last attempt failed
+                    err_msg = f"[WinError 32] File locked: {e}"
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    time.sleep(0.5)
+                    continue
+                else:
+                    err_msg = str(e)
+        
+        # All retries failed, try schedule delete on reboot (Windows)
         try:
             if MoveFileExW is not None:
                 res = MoveFileExW(ctypes.c_wchar_p(fp), None, MOVEFILE_DELAY_UNTIL_REBOOT)
                 if res:
-                    return False, f"Scheduled for delete on reboot: {e}"
+                    print(f"[CLEANUP] Scheduled for reboot deletion: {fp}")
+                    return False, f"Scheduled for delete on reboot"
         except Exception as e2:
-            return False, f"{e}; schedule failed: {e2}"
+            return False, f"{err_msg}; schedule failed: {e2}"
+        
+        return False, err_msg
+    except Exception as e:
         return False, str(e)
+
+def _zip_job_worker(job_id: str, job_dir: str, zip_path: str):
+    """Background worker to zip a staged folder into SHARED_DIR with live progress."""
+    start = time.time()
+    try:
+        import zipfile
+        compression = zipfile.ZIP_STORED  # fastest, no compression
+        os.makedirs(os.path.dirname(zip_path), exist_ok=True)
+        processed = 0
+        files_done = 0
+
+        # Pre-compute total bytes if missing
+        with ZIP_JOBS_LOCK:
+            job = ZIP_JOBS.get(job_id, {})
+            total = job.get('total_bytes') or 0
+
+        # Build list of files to include with relative paths
+        file_list = []
+        for root, _, files in os.walk(job_dir):
+            for fn in files:
+                full = os.path.join(root, fn)
+                rel = os.path.relpath(full, job_dir).replace('\\','/')
+                file_list.append((full, rel))
+
+        with zipfile.ZipFile(zip_path, 'w', compression=compression, allowZip64=True) as zf:
+            for full, rel in file_list:
+                try:
+                    with open(full, 'rb') as src, zf.open(rel, 'w') as dst:
+                        # Larger chunks for throughput (1MB)
+                        buf = memoryview(bytearray(1024 * 1024))
+                        while True:
+                            n = src.readinto(buf)
+                            if not n:
+                                break
+                            dst.write(buf[:n])
+                            processed += n
+                            # Periodically update job speed/eta
+                            if processed % (8 * 1024 * 1024) == 0:  # every 8MB
+                                elapsed = max(0.001, time.time() - start)
+                                speed = processed / elapsed
+                                eta = None
+                                if total and speed:
+                                    eta = max(0.0, (total - processed) / speed)
+                                with ZIP_JOBS_LOCK:
+                                    j = ZIP_JOBS.get(job_id)
+                                    if j:
+                                        j.update({'processed_bytes': processed, 'speed_bps': speed, 'eta_sec': eta, 'files_done': files_done})
+                    files_done += 1
+                    # Update after each file
+                    elapsed = max(0.001, time.time() - start)
+                    speed = processed / elapsed
+                    eta = None
+                    if total and speed:
+                        eta = max(0.0, (total - processed) / speed)
+                    with ZIP_JOBS_LOCK:
+                        j = ZIP_JOBS.get(job_id)
+                        if j:
+                            j.update({'processed_bytes': processed, 'speed_bps': speed, 'eta_sec': eta, 'files_done': files_done})
+                except Exception as ex:
+                    print(f"[ZIP] Failed {rel}: {ex}")
+                    continue
+
+        # Register entry
+        entry = register_entry(zip_path, 'zip')
+        with ZIP_JOBS_LOCK:
+            j = ZIP_JOBS.get(job_id)
+            if j:
+                j.update({'status': 'done', 'entry_id': entry['id']})
+        print(f"[ZIP] ✓ Job {job_id} complete -> {entry['name']} in {time.time()-start:.1f}s")
+    except Exception as e:
+        print(f"[ZIP] Job {job_id} error: {e}")
+        with ZIP_JOBS_LOCK:
+            j = ZIP_JOBS.get(job_id)
+            if j:
+                j.update({'status': 'error', 'error': str(e)})
+        # Cleanup partial zip
+        try:
+            if os.path.exists(zip_path):
+                _force_delete(zip_path)
+        except Exception:
+            pass
+    finally:
+        # Remove staging directory
+        try:
+            if os.path.exists(job_dir):
+                shutil.rmtree(job_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+@app.route('/api/zip_jobs/<job_id>', methods=['GET'])
+def api_zip_job(job_id):
+    with ZIP_JOBS_LOCK:
+        job = ZIP_JOBS.get(job_id)
+        if not job:
+            return jsonify({'error': 'not-found'}), 404
+        # derive percent
+        total = job.get('total_bytes') or 0
+        done = job.get('processed_bytes') or 0
+        pct = (done / total * 100.0) if total > 0 else 0.0
+        out = dict(job)
+        out['percent'] = pct
+        # Reduce float noise
+        if out.get('speed_bps'):
+            out['speed_bps'] = float(out['speed_bps'])
+        if out.get('eta_sec') is not None:
+            out['eta_sec'] = float(out['eta_sec'])
+        return jsonify(out)
+
+def _is_authorized() -> bool:
+    """Check if the current request is authorized (host or valid token/cookie)."""
+    # Host PC always authorized
+    if is_request_from_host():
+        return True
+    # Check cookie
+    c = request.cookies.get('sjk')
+    if c and secrets.compare_digest(c, SECRET_TOKEN):
+        return True
+    # Check query token
+    qtok = request.args.get('k')
+    if qtok and secrets.compare_digest(qtok, SECRET_TOKEN):
+        return True
+    return False
+
+@app.before_request
+def _token_gate():
+    """Token gate: always allow HTML to render, but block unauthorized API/action requests."""
+    # Open mode: disable token gate entirely (for debug/troubleshooting)
+    if OPEN_MODE:
+        return
+    
+    # Handle token in URL: set cookie and redirect to clean URL
+    qtok = request.args.get('k')
+    if qtok and secrets.compare_digest(qtok, SECRET_TOKEN):
+        try:
+            # Strip k from current URL
+            pu = urllib.parse.urlparse(request.full_path if request.query_string else request.path)
+            qs = urllib.parse.parse_qs(pu.query)
+            qs.pop('k', None)
+            pairs = []
+            for k, vals in qs.items():
+                if isinstance(vals, list):
+                    for vv in vals:
+                        pairs.append((k, vv))
+                else:
+                    pairs.append((k, vals))
+            new_query = urllib.parse.urlencode(pairs)
+            clean_url = pu.path + (('?' + new_query) if new_query else '')
+        except Exception:
+            clean_url = request.path
+        resp = make_response(redirect(clean_url or '/'))
+        resp.set_cookie('sjk', SECRET_TOKEN, max_age=7*24*3600, httponly=True, samesite='Lax', path='/')
+        return resp
+    
+    # Public endpoints that don't require authorization (so UI can load and check status)
+    public_paths = ['/', '/qr', '/popup', '/health', '/favicon.ico', '/api/status', '/api/is_host']
+    if request.path.startswith('/static'):
+        public_paths.append(request.path)
+    
+    # Allow download endpoints (they handle auth internally and need to return files, not JSON)
+    if request.path.startswith('/download/'):
+        return  # Let download endpoint handle authorization
+    
+    if request.path in public_paths:
+        return  # Allow these to proceed
+    
+    # All other endpoints require authorization
+    if not _is_authorized():
+        return jsonify({'error': 'Unauthorized', 'message': 'Valid token required'}), 401
+
+@app.after_request
+def _security_headers(resp):
+    # Security headers
+    resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    resp.headers.setdefault('X-Frame-Options', 'DENY')
+    resp.headers.setdefault('Referrer-Policy', 'same-origin')
+    resp.headers.setdefault('Permissions-Policy', "geolocation=(), microphone=(), camera=(), display-capture=(), usb=()")
+    resp.headers.setdefault('Content-Security-Policy',
+        "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'")
+    
+    # Aggressive cache-busting for HTML to prevent stale cached pages
+    # This fixes the issue where phones with cached versions take 40-50 seconds to load
+    if request.path == '/' or request.path.endswith('.html'):
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+    
+    # If we flagged to set the token cookie, attach it now
+    try:
+        if getattr(g, 'set_token_cookie', False):
+            resp.set_cookie('sjk', SECRET_TOKEN, max_age=7*24*3600, httponly=True, samesite='Lax', path='/')
+    except Exception:
+        pass
+    return resp
 
 # Flask routes
 @app.route('/')
@@ -576,17 +844,30 @@ def upload_file():
             candidate = f"{base}_{idx}{ext}"
             filepath = os.path.join(UPLOADS_DIR, candidate)
             idx += 1
-        file.save(filepath)
+        
+        # Save file with error handling for large files
+        try:
+            file.save(filepath)
+        except Exception as save_err:
+            print(f"[ERROR] Failed to save file {filename}: {save_err}")
+            return jsonify({'error': f'Failed to save file: {str(save_err)}'}), 500
+            
         entry = register_entry(filepath, 'upload')
         print(f"[UPLOAD] ✓ Registered upload: {entry['name']} -> {entry['id']}")
         return jsonify({'success': True, 'id': entry['id'], 'name': entry['name']}), 200
         
     except Exception as e:
         print(f"[ERROR] Upload failed: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+# (Old upload_folder implementation removed; superseded by background job version below)
 
 @app.route('/download/<entry_id>', methods=['GET', 'HEAD'])
 def download_entry(entry_id):
+    # Downloads are public - if you know the ID, you can download
+    # (The file list itself is protected, so unauthorized users won't know IDs)
     e = get_entry(entry_id)
     if not e:
         return jsonify({'error': 'Not found'}), 404
@@ -596,19 +877,32 @@ def download_entry(entry_id):
     # Important: some mobile browsers issue a HEAD request before GET to probe size.
     # Do not mark/download or delete on HEAD, only return headers.
     if request.method == 'HEAD':
-        return send_file(e['path'], as_attachment=True, download_name=e['name'])
+        # Use context manager to ensure file is closed
+        with open(e['path'], 'rb') as f:
+            return send_file(f, as_attachment=True, download_name=e['name'])
     # Real download (GET)
     mark_download(entry_id)
-    response = send_file(e['path'], as_attachment=True, download_name=e['name'])
+    
+    # Open file and send it, ensuring it's closed after
+    with open(e['path'], 'rb') as f:
+        response = send_file(
+            f,
+            as_attachment=True,
+            download_name=e['name'],
+            mimetype='application/octet-stream'
+        )
+    
+    # Delete upload files after download (but not on Range requests)
     if e['kind'] == 'upload':
         # Only delete when it's a user-initiated download (dl=1) and not a Range probe.
         if request.args.get('dl') == '1' and 'Range' not in request.headers:
             removed = remove_entry(entry_id)
             if removed:
-                try:
-                    os.remove(removed['path'])
-                except Exception:
-                    pass
+                # Use force delete with retry
+                ok, err = _force_delete(removed['path'])
+                if not ok:
+                    print(f"[CLEANUP] Could not delete {removed['path']}: {err}")
+    
     return response
 
 @app.route('/delete/<entry_id>', methods=['POST'])
@@ -619,9 +913,11 @@ def delete_entry(entry_id):
     if e['kind'] in ('upload','zip','copy'):
         try:
             if os.path.exists(e['path']):
-                os.remove(e['path'])
-        except Exception:
-            pass
+                ok, err = _force_delete(e['path'])
+                if not ok and err:
+                    print(f"[DELETE] Could not delete {e['path']}: {err}")
+        except Exception as de:
+            print(f"[DELETE] Error deleting {e['path']}: {de}")
     return jsonify({'success': True}), 200
 
 @app.route('/api/clear', methods=['POST'])
@@ -661,11 +957,14 @@ def clear_all():
 def qr_code():
     return send_from_directory(STATIC_DIR, 'qr_code.png')
 
+@app.route('/health')
+def health():
+    return jsonify({'ok': True, 'ip': get_local_ip(), 'port': PORT})
+
 @app.route('/popup')
 def popup():
     """Serve dynamic QR popup page."""
-    local_ip = get_local_ip()
-    url = f"http://{local_ip}:{PORT}"
+    url = get_access_url(with_token=True)
     # QR will be served from /qr with cache buster in img tag
     return f"""<!DOCTYPE html>
 <html><head><meta charset='utf-8'><title>ShareJadPi QR</title>
@@ -700,16 +999,101 @@ def api_files():
         if not os.path.exists(e['path']):
             to_remove.append(e['id'])
             continue
+        # compute minutes until expiry (rounded up), 0 if disabled
+        if EXPIRY_MINUTES > 0:
+            elapsed = max(0, int((time.time() - e['added_at']) // 60))
+            rem = max(0, EXPIRY_MINUTES - elapsed)
+        else:
+            rem = 0
         rows.append({
             'id': e['id'],
             'name': e['name'],
             'size': format_file_size(e['size']),
             'kind': e['kind'],
-            'added': datetime.fromtimestamp(e['added_at']).strftime('%Y-%m-%d %H:%M:%S')
+            'added': datetime.fromtimestamp(e['added_at']).strftime('%Y-%m-%d %H:%M:%S'),
+            'pinned': bool(e.get('pinned', False)),
+            'expires_in': rem,
+            'is_new': (time.time() - e['added_at']) < 120
         })
     for rid in to_remove:
         remove_entry(rid)
     return jsonify({'files': rows})
+
+@app.route('/delete_bulk', methods=['POST'])
+def delete_bulk():
+    try:
+        data = request.get_json(silent=True) or {}
+        ids = data.get('ids') or []
+        if not isinstance(ids, list) or not all(isinstance(x, str) for x in ids):
+            return jsonify({'error': 'ids must be a list of strings'}), 400
+        deleted = 0
+        errs = []
+        for rid in ids:
+            ent = remove_entry(rid)
+            if ent and ent['kind'] in ('upload','zip','copy'):
+                ok, err = _force_delete(ent['path'])
+                if ok:
+                    deleted += 1
+                elif err:
+                    errs.append(f"{ent['path']}: {err}")
+        return jsonify({'success': True, 'deleted': deleted, 'errors': errs})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/zip_selected', methods=['POST'])
+def zip_selected():
+    try:
+        data = request.get_json(silent=True) or {}
+        ids = data.get('ids') or []
+        if not isinstance(ids, list) or not all(isinstance(x, str) for x in ids):
+            return jsonify({'error': 'ids must be a list of strings'}), 400
+        items = []
+        for rid in ids:
+            e = get_entry(rid)
+            if e and os.path.exists(e['path']):
+                items.append(e)
+        if not items:
+            return jsonify({'error': 'no valid items'}), 400
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        zip_name = f"selected_{ts}.zip"
+        zip_path = os.path.join(SHARED_DIR, zip_name)
+        import zipfile
+        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for e in items:
+                zf.write(e['path'], arcname=e['name'])
+        entry = register_entry(zip_path, 'zip')
+        return jsonify({'success': True, 'id': entry['id'], 'name': entry['name']})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pin', methods=['POST'])
+def api_pin():
+    try:
+        data = request.get_json(silent=True) or {}
+        ids = data.get('ids') or []
+        pinned = bool(data.get('pinned', True))
+        if not isinstance(ids, list) or not all(isinstance(x, str) for x in ids):
+            return jsonify({'error': 'ids must be a list of strings'}), 400
+        count = 0
+        with REGISTRY_LOCK:
+            for rid in ids:
+                e = ENTRIES.get(rid)
+                if e:
+                    e['pinned'] = pinned
+                    count += 1
+        return jsonify({'success': True, 'updated': count, 'pinned': pinned})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/status')
+def api_status():
+    # Return host and authorization status for Connected badge
+    is_host = is_request_from_host()
+    authorized = is_host
+    if not is_host:
+        c = request.cookies.get('sjk')
+        authorized = bool(c and secrets.compare_digest(c, SECRET_TOKEN))
+    return jsonify({'host': is_host, 'authorized': authorized})
 
 @app.route('/api/autostart', methods=['GET', 'POST'])
 def api_autostart():
@@ -1065,78 +1449,95 @@ def speedtest_down():
 
 @app.route('/api/speedtest/up', methods=['POST'])
 def speedtest_up():
-    # Consume an uploaded file without storing
+    # Accept upload data and discard it (just measure upload speed)
     try:
-        total = 0
-        for _, f in request.files.items():
-            # read stream fully
+        # Read all data from request body to measure upload speed
+        total_bytes = 0
+        chunk_size = 1024 * 1024  # 1MB chunks
+        while True:
+            chunk = request.stream.read(chunk_size)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+        return jsonify({'ok': True, 'bytes': total_bytes}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/upload_folder', methods=['POST'])
+def upload_folder():
+    token = request.cookies.get('sjk') or request.headers.get('X-Auth-Token')
+    if token != SECRET_TOKEN:
+        abort(403)
+    # Expect a set of files with webkitdirectory-style names (path info)
+    files = []
+    # Support both 'files' and 'files[]' field names
+    files.extend(request.files.getlist('files'))
+    files.extend(request.files.getlist('files[]'))
+    # Also consider any other keys (browser quirks)
+    if not files:
+        for key in request.files:
+            files.extend(request.files.getlist(key))
+    folder_name = request.form.get('folder_name') or f"folder_{int(time.time())}"
+    if not files:
+        return jsonify({'error': 'No files provided'}), 400
+    # Stage into a temp folder before zipping
+    staging_dir = os.path.join(UPLOADS_CORE_DIR, f"staging_{uuid.uuid4().hex}")
+    os.makedirs(staging_dir, exist_ok=True)
+
+    total_bytes = 0
+    file_count = 0
+    for f in files:
+        # Each file has f.filename as a relative path like sub/dir/file.txt
+        rel_path = (getattr(f, 'filename', '') or '').replace('\\', '/')
+        # Ignore empty folder markers
+        if not rel_path or rel_path.endswith('/'):
+            continue
+        dst_path = os.path.join(staging_dir, rel_path)
+        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+        # Stream to disk
+        with open(dst_path, 'wb') as out:
             while True:
-                buf = f.stream.read(1024 * 1024)
-                if not buf:
+                chunk = f.stream.read(1024 * 1024)
+                if not chunk:
                     break
-                total += len(buf)
-        return jsonify({'received': total})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+                out.write(chunk)
+                total_bytes += len(chunk)
+        file_count += 1
 
-@app.route('/api/speedtest/upraw', methods=['POST'])
-def speedtest_upraw():
-    """Consume raw request body and report size. Used for timed upload tests with small chunks."""
-    try:
-        data = request.get_data(cache=False, as_text=False)
-        return jsonify({'received': len(data) if data is not None else 0})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    # Prepare zip destination path
+    safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', folder_name).strip('_') or f"folder_{int(time.time())}"
+    # Ensure unique zip name
+    base_zip = f"{safe_name}.zip"
+    zip_path = os.path.join(SHARED_DIR, base_zip)
+    if os.path.exists(zip_path):
+        i = 1
+        while True:
+            candidate = os.path.join(SHARED_DIR, f"{safe_name}_{i}.zip")
+            if not os.path.exists(candidate):
+                zip_path = candidate
+                break
+            i += 1
 
-@app.after_request
-def add_no_cache_headers(resp):
-    """Prevent caching for dynamic resources so updates show immediately."""
-    if request.path in ['/qr', '/api/files', '/api/expiry', '/api/autostart', '/api/share', '/api/paths', '/api/cache_status', '/api/open_path', '/api/reset_cache', '/api/recreate_dirs', '/api/speedtest/down', '/api/speedtest/up', '/api/speedtest/upraw', '/api/clip', '/api/clipboard', '/api/is_host', '/popup', '/']:
-        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-        resp.headers['Pragma'] = 'no-cache'
-        resp.headers['Expires'] = '0'
-    return resp
+    # Create job and launch background worker
+    job_id = uuid.uuid4().hex
+    with ZIP_JOBS_LOCK:
+        ZIP_JOBS[job_id] = {
+            'id': job_id,
+            'status': 'running',
+            'folder_name': safe_name,
+            'staging_dir': staging_dir,
+            'zip_path': zip_path,
+            'total_bytes': total_bytes,
+            'processed_bytes': 0,
+            'files_total': file_count,
+            'files_done': 0,
+            'started_at': time.time()
+        }
+    t = threading.Thread(target=_zip_job_worker, args=(job_id, staging_dir, zip_path), daemon=True)
+    t.start()
 
-def _get_all_local_ips() -> set[str]:
-    """Get a set of local IP addresses (IPv4/IPv6) for this machine.
-    Uses only stdlib to avoid extra dependencies.
-    """
-    ips: set[str] = set()
-    # Always include loopbacks
-    ips.update({'127.0.0.1', '::1'})
-    try:
-        hostname = socket.gethostname()
-        # IPv4 addresses bound to hostname
-        try:
-            _, _, addrs = socket.gethostbyname_ex(hostname)
-            ips.update(addrs)
-        except Exception:
-            pass
-        # Primary outbound IPv4 (common LAN IP)
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(('8.8.8.8', 80))
-            ips.add(s.getsockname()[0])
-            s.close()
-        except Exception:
-            pass
-        # Collect any other addresses via getaddrinfo
-        try:
-            for fam in (socket.AF_INET, socket.AF_INET6):
-                try:
-                    infos = socket.getaddrinfo(hostname, None, fam, socket.SOCK_STREAM)
-                    for info in infos:
-                        ip = info[4][0]
-                        if ip:
-                            ips.add(str(ip))
-                except Exception:
-                    continue
-        except Exception:
-            pass
-    except Exception:
-        pass
-    return ips
-
+    # Return 202 with job id for client-side polling
+    return jsonify({'ok': True, 'job_id': job_id}), 202
 
 @app.route('/api/is_host')
 def api_is_host():
@@ -1209,8 +1610,7 @@ def main():
         sys.exit(0)
     
     # Start server mode
-    local_ip = get_local_ip()
-    url = f"http://{local_ip}:{PORT}"
+    url = get_access_url(with_token=True)
     
     # Generate initial QR code
     generate_qr_code(url)
@@ -1219,7 +1619,14 @@ def main():
     print("🚀 ShareJadPi - Local File Sharing Server")
     print("="*60)
     print(f"\n📱 Access from mobile: {url}")
-    print(f"💻 Access from this PC: http://127.0.0.1:{PORT}")
+    print(f"💻 Access from this PC: http://127.0.0.1:{PORT}/?k={SECRET_TOKEN}")
+    try:
+        ips = sorted([ip for ip in _get_all_local_ips() if ':' not in ip])
+        print("\n🌐 Detected local IPv4s:")
+        for ip in ips:
+            print(f"   - http://{ip}:{PORT}")
+    except Exception:
+        pass
     print(f"\n✅ Server is running!")
     # Show key paths to help user find data folder
     print("\n📂 Data folders:")

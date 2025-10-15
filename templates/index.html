@@ -2,711 +2,2179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f1320">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>ShareJadPi - Local File Sharing</title>
     <style>
         :root {
+
             --bg: #0f1320;
             --card: #14192b;
-            --muted: #9aa4b2;
             --text: #e7ecf3;
+            --muted: #9aa4b2;
+            --border: #233046;
             --primary: #22c55e;
             --primary-600: #16a34a;
-            --accent: #7c3aed;
-            --warn: #f59e0b;
             --danger: #ef4444;
-            --border: #233046;
+            --warning: #f59e0b;
+            --blue: #3b82f6;
+            --purple: #a78bfa;
             --shadow: 0 10px 30px rgba(0,0,0,.25);
-            --radius: 14px;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html, body { height: 100%; }
+        
+        * { box-sizing: border-box; }
+        
         body {
-            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
-            /* Softer, uniform background to avoid glare */
-            background: linear-gradient(180deg, #0d1220 0%, #0b0f1a 100%);
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: radial-gradient(1200px 800px at 20% -10%, #1b2140 0%, var(--bg) 40%),
+                        radial-gradient(1000px 600px at 100% 0%, #191a2b 0%, transparent 50%);
             color: var(--text);
+            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: clamp(16px, 2.5vw, 28px);
-            line-height: 1.5;
+            padding: 12px;
         }
-
-        .container { max-width: 980px; margin: 0 auto; }
-
-    /* Top navbar */
-    .nav { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 18px; }
-    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
-    .logo { width:36px; height:36px; border-radius:9px; background:linear-gradient(180deg,#22c55e,#16a34a); box-shadow:0 6px 18px rgba(34,197,94,.25); display:flex; align-items:center; justify-content:center; font-weight:900; color:#0b1a12; letter-spacing:.5px; }
-    .brand-text { display:flex; flex-direction:column; min-width:0; }
-    .brand-text .title { font-weight:900; letter-spacing:.3px; font-size: clamp(18px, 3.2vw, 22px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .brand-text .tagline { color: var(--muted); font-size: 12px; }
-    .icon-btn { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; text-decoration:none; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); color:var(--text); font-size:18px; }
-    .icon-btn:hover { filter:brightness(1.05); }
-
-        .card {
-            background: rgba(20, 24, 43, .88); /* more opaque to avoid glow */
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: clamp(20px, 2.6vw, 28px);
-            box-shadow: 0 8px 24px rgba(0,0,0,.35); /* darker, softer */
-            background-clip: padding-box; /* prevent halo on rounded corners */
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        /* Authorization Banner */
+        #authBanner {
+            display: none;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
             margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,.2);
         }
-
-        .upload-area {
-            border: 1.5px dashed rgba(255,255,255,.18);
-            border-radius: 12px;
-            padding: clamp(32px, 3.4vw, 44px);
+        
+        #authBanner.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #authBanner h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+        }
+        
+        #authBanner p {
+            margin: 4px 0;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        
+        #authBanner code {
+            background: rgba(0,0,0,.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: clamp(20px, 4vw, 28px);
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        /* QR Code Section - Top, Medium Size */
+        .qr-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
             text-align: center;
-            cursor: pointer;
-            background: rgba(20, 25, 43, .55);
-            transition: border-color .2s, background .2s, transform .15s;
         }
-        .upload-area:hover { background: rgba(20,25,43,.7); border-color: rgba(255,255,255,.28); }
-        .upload-area.uploading { background: rgba(245, 158, 11, .15); border-color: var(--warn); }
-        .upload-icon { font-size: clamp(28px, 4vw, 44px); margin-bottom: 12px; }
-        .upload-area h3 { color: var(--primary); margin-bottom: 6px; font-size: clamp(18px, 2.4vw, 22px); }
-        .upload-area p { color: var(--muted); font-size: clamp(13px, 1.8vw, 15px); }
-
-        #fileInput { display: none; }
-
-        .btn {
-            background: linear-gradient(180deg, var(--primary), var(--primary-600));
-            color: #0c1610;
-            border: 1px solid rgba(255,255,255,.1);
-            padding: 12px 18px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 15px;
-            cursor: pointer;
-            box-shadow: 0 6px 18px rgba(34,197,94,.25);
-            transition: transform .06s ease, filter .15s ease;
-            min-height: 42px; /* larger tap target */
+        
+        .qr-section h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            color: var(--muted);
+            font-weight: 600;
         }
-        .btn:hover { filter: brightness(1.05); }
-        .btn:active { transform: translateY(1px); }
-        .btn[disabled] { opacity: .6; cursor: not-allowed; }
-
-    .files-section { margin-top: 16px; }
-    .files-header { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 16px; }
-        .files-header h2 { font-size: clamp(18px, 2.4vw, 20px); font-weight: 700; }
-
-        .file-count {
-            background: rgba(124, 58, 237, .15);
-            color: #c4b5fd;
-            padding: 6px 12px;
-            border: 1px solid rgba(124, 58, 237, .35);
-            border-radius: 999px;
-            font-size: 12px;
-        }
-
-        .file-item {
-            background: rgba(255,255,255,.02);
+        
+        .qr-container {
+            display: inline-block;
+            padding: 16px;
+            background: white;
             border-radius: 12px;
-            padding: 16px 18px;
-            margin-bottom: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.3);
+        }
+        
+        .qr-container img {
+            display: block;
+            width: 200px;
+            height: 200px;
+            image-rendering: pixelated;
+        }
+        
+        .qr-refresh-btn {
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .qr-refresh-btn:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+            border-color: var(--primary);
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .badge.connected {
+            background: linear-gradient(135deg, var(--primary), var(--primary-600));
+            color: #08140d;
+            box-shadow: 0 4px 12px rgba(34,197,94,.3);
+        }
+        
+        .badge.disconnected {
+            background: #475569;
+            color: #cbd5e1;
+        }
+        
+        .icon-btn {
+            background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+            border: 1px solid rgba(255,255,255,.15);
+            color: var(--text);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+            transform: translateY(-2px);
+        }
+        
+        /* Upload Section with Drag & Drop */
+        .upload-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .drag-drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .drag-drop-zone.drag-over {
+            border-color: var(--primary);
+            background: rgba(34,197,94,.1);
+            transform: scale(1.02);
+        }
+        
+        .drag-drop-zone h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: var(--text);
+        }
+        
+        .drag-drop-zone p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+        
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            border: 1px solid rgba(255,255,255,.1);
+            color: #08140d;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.2s;
+            box-shadow: 0 6px 18px rgba(34,197,94,.25);
+        }
+        
+        .upload-btn:hover {
+            filter: brightness(1.05);
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn.secondary {
+            background: linear-gradient(180deg, var(--blue), #2563eb);
+            box-shadow: 0 6px 18px rgba(59,130,246,.25);
+            color: white;
+        }
+        
+        .upload-btn.danger {
+            background: linear-gradient(180deg, var(--danger), #dc2626);
+            box-shadow: 0 6px 18px rgba(239,68,68,.25);
+            color: white;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Upload/Download Progress with Speed */
+        .progress-container {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255,255,255,.02);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        
+        .progress-container.show {
+            display: block;
+        }
+        
+        .progress-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid var(--border);
-            transition: background .15s;
+            margin-bottom: 10px;
         }
-        .file-item:hover { background: rgba(255,255,255,.04); }
-
-    .file-info { flex: 1; min-width: 0; }
-    .file-name { display:flex; align-items:center; gap:8px; margin-bottom: 6px; }
-    .file-title { flex:1; min-width:0; font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .file-badges { display:flex; align-items:center; gap:2px; flex:none; }
-    .file-badge { display:inline-flex; align-items:center; justify-content:center; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:800; letter-spacing:.3px; border:1px solid rgba(255,255,255,.18); line-height:1; height:20px; }
-        .file-meta { color: var(--muted); font-size: 12px; }
-
-    .file-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-        .btn-download, .btn-delete {
-            padding: 8px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.1);
-            cursor: pointer;
+        
+        .progress-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .progress-speed {
             font-size: 13px;
+            color: var(--primary);
             font-weight: 700;
         }
-        .btn-download { background: rgba(34, 197, 94, .15); color: #86efac; }
-        .btn-download:hover { background: rgba(34, 197, 94, .25); }
-        .btn-delete { background: rgba(239, 68, 68, .15); color: #fecaca; }
-        .btn-delete:hover { background: rgba(239, 68, 68, .25); }
-
-        .empty-state { text-align: center; padding: 38px 16px; color: var(--muted); }
-        .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
-
-        .notification {
-            position: fixed; top: 16px; right: 16px;
-            padding: 12px 16px; border-radius: 12px; color: white; font-weight: 700;
-            box-shadow: var(--shadow); z-index: 1000; max-width: min(90vw, 320px);
+        
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 8px;
         }
-        .notification.success { background: #16a34a; }
-        .notification.error { background: #dc2626; }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--blue));
+            transition: width 0.3s;
+            width: 0%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+        }
+        
+        /* Multi-select Toolbar */
+        .toolbar {
+            display: none;
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .toolbar.show {
+            display: flex;
+        }
+        
+        .toolbar-left {
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .toolbar-btn {
+            background: rgba(255,255,255,.2);
+            border: 1px solid rgba(255,255,255,.3);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .toolbar-btn:hover {
+            background: rgba(255,255,255,.3);
+        }
+        
+        /* Files Section */
+        .files-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .files-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .file-list {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .file-item {
+            background: rgba(255,255,255,.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        
+        .file-item:hover {
+            background: rgba(255,255,255,.05);
+            border-color: rgba(255,255,255,.15);
+        }
+        
+        .file-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .file-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        
+        .file-badges {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .file-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .file-badge.new {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .file-badge.pinned {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .file-badge.expiring {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .file-badge.type {
+            background: rgba(255,255,255,.1);
+            color: var(--muted);
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .file-btn {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,.05);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .file-btn:hover {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.2);
+        }
+        
+        .file-btn.pin {
+            color: var(--warning);
+        }
+        
+        .file-btn.danger {
+            color: var(--danger);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+        
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.1) 50%, rgba(255,255,255,.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 8px;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .skeleton-item {
+            height: 80px;
+            margin-bottom: 10px;
+        }
+        
+        /* Page loader - removed once JS runs */
+        #pageLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            background-size: 50% 100%;
+            animation: loader-slide 1.5s infinite;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #pageLoader.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        @keyframes loader-slide {
+            0% { background-position: -50% 0; }
+            100% { background-position: 150% 0; }
+        }
+        
+        /* Clipboard Section */
+        .clipboard-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .clipboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .clipboard-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary);
+        }
 
-        .qr-section { text-align: center; padding: 18px; background: rgba(255,255,255,.02); border-radius: 12px; }
-        .qr-section h3 { color: var(--primary); margin-bottom: 12px; }
-        .qr-code { max-width: 220px; margin: 0 auto; padding: 10px; background: #0b0f1a; border-radius: 10px; border: 1px solid var(--border); }
-        .qr-code img { width: 100%; display: block; }
+        .clipboard-status {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        
+        .clipboard-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0,0,0,.3);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        
+        .clipboard-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .clipboard-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .clipboard-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,.05);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .clipboard-btn:hover {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.2);
+        }
+        
+        .clipboard-btn.primary {
+            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            color: #08140d;
+            border-color: rgba(255,255,255,.1);
+        }
 
-    /* Clipboard share */
-    .clip-wrap { display:flex; flex-direction:column; gap:14px; }
-    .clip-row { display:flex; gap:12px; flex-wrap:wrap; }
-    .clip-text { width:100%; min-height:120px; resize:vertical; padding:12px; border-radius:10px; border:1px solid var(--border); background:#0b0f1a; color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; line-height:1.5; }
-    .btn-secondary { background:linear-gradient(180deg,#94a3b8,#64748b); color:#0b0f1a; border:1px solid rgba(255,255,255,.1); }
-
-    /* Transfers */
-    .transfers { margin: 12px 0 0 0; }
-    .transfer-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-    .transfer-name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--muted); font-size:13px; }
-    .transfer-meta { font-size:12px; color:#cbd5e1; }
-    .transfer-bar { background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 8px; overflow:hidden; height: 10px; }
-    .transfer-bar > div { height:100%; width:0%; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .15s; }
-
-    /* Speed test */
-        #speedStatus { color: var(--muted); font-size: 14px; }
-        #speedBar { background: linear-gradient(90deg, #22c55e, #7c3aed); }
-    .progress { background: rgba(255,255,255,.06); border:1px solid var(--border); border-radius: 8px; overflow:hidden; height: 12px; }
-    .speedtest { margin-top: 14px; }
-    .speed-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
-
+        .clipboard-btn.danger {
+            background: linear-gradient(180deg, var(--danger), #dc2626);
+            color: white;
+            border-color: rgba(255,255,255,.1);
+        }
+        
+        /* Speed Test Section */
+        .speedtest-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .speedtest-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .speedtest-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--blue);
+        }
+        
+        .speedtest-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .speedtest-result {
+            padding: 16px;
+            background: rgba(255,255,255,.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .speedtest-result .label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .speedtest-result .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .speedtest-result .unit {
+            font-size: 14px;
+            color: var(--muted);
+            margin-left: 4px;
+        }
+        
+        .speedtest-btn {
+            width: 100%;
+            padding: 12px 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: linear-gradient(180deg, var(--blue), #2563eb);
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .speedtest-btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+        
+        .speedtest-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         /* Responsive */
-        @media (max-width: 720px) {
-            .container { max-width: 100%; }
-            .files-header { flex-direction: column; align-items: stretch; }
-            .file-item { flex-direction: column; align-items: stretch; }
-            .file-actions { width: 100%; justify-content: flex-end; margin-top: 8px; }
-            .btn-download, .btn-delete { flex: 1; }
-            .clip-row .btn { flex: 1 1 calc(50% - 6px); }
-        }
-        @media (max-width: 420px) {
-            .header h1 { font-size: 24px; }
-            .upload-area { padding: 22px; }
-            .card { padding: 16px; }
-            .file-item { padding: 12px; }
-            .clip-row .btn { flex: 1 1 100%; }
-        }
-        /* Desktop-only tiny vertical nudge to compensate font metrics differences */
-        @media (min-width: 721px) {
-            .file-badge { position: relative; top: 1px; }
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .header { padding: 12px 16px; }
+            .upload-section, .files-section, .clipboard-section, .speedtest-section, .qr-section { padding: 16px; }
+            .upload-grid { grid-template-columns: 1fr; }
+            
+            /* Progress bars mobile fix */
+            .progress-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            
+            .progress-title {
+                font-size: 13px;
+            }
+            
+            .progress-speed {
+                font-size: 12px;
+            }
+            
+            .progress-text {
+                font-size: 11px;
+            }
+            
+            /* File items mobile fix */
+            .file-item { 
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .file-checkbox { 
+                order: 1; 
+                margin-right: 0;
+            }
+            .file-icon { 
+                order: 2;
+                width: 36px;
+                height: 36px;
+                font-size: 12px;
+            }
+            .file-info { 
+                order: 3; 
+                flex: 1 1 100%; 
+                min-width: 0;
+            }
+            .file-name { 
+                font-size: 14px; 
+                word-break: break-word;
+            }
+            .file-meta {
+                font-size: 11px;
+            }
+            .file-badges {
+                margin-top: 4px;
+            }
+            .file-badge {
+                font-size: 9px;
+                padding: 2px 6px;
+            }
+            .file-actions { 
+                order: 4; 
+                flex: 1 1 100%; 
+                flex-direction: row; 
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .file-btn { 
+                flex: 1; 
+                min-width: 80px; 
+                padding: 6px 10px; 
+                font-size: 12px; 
+                text-align: center; 
+            }
+            
+            /* Toolbar mobile fix */
+            .toolbar { 
+                flex-direction: column; 
+                align-items: stretch; 
+                gap: 10px;
+                padding: 12px 14px;
+            }
+            .toolbar-left {
+                font-size: 13px;
+            }
+            .toolbar-actions { 
+                width: 100%; 
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .toolbar-btn { 
+                flex: 1; 
+                text-align: center; 
+                min-width: 45%;
+                font-size: 12px;
+                padding: 7px 10px;
+            }
+            
+            /* QR section mobile */
+            .qr-section h3 {
+                font-size: 14px;
+            }
+            
+            .qr-container img {
+                width: 180px;
+                height: 180px;
+            }
+            
+            /* Drag-drop zone mobile */
+            .drag-drop-zone {
+                padding: 30px 15px;
+            }
+            
+            .drag-drop-zone h3 {
+                font-size: 16px;
+            }
+            
+            .drag-drop-zone p {
+                font-size: 12px;
+            }
+            
+            /* Speed test mobile */
+            .speedtest-results {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .speedtest-result {
+                padding: 12px;
+            }
+            
+            .speedtest-result .value {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Page loader - shows while initial content loads -->
+    <div id="pageLoader"></div>
+    
     <div class="container">
-        <div class="nav">
-            <div class="brand">
-                <div class="logo">SJ</div>
-                <div class="brand-text">
-                    <div class="title">ShareJadPi</div>
-                    <div class="tagline">share to local just two clocks from pc</div>
-                </div>
-            </div>
-            <a href="/settings" id="settingsLink" class="icon-btn" title="Settings" aria-label="Settings">⚙️</a>
+        <!-- Authorization Banner (shown when not authorized) -->
+        <div id="authBanner">
+            <h3>⚠️ Not Authorized</h3>
+            <p>To access this device, scan the QR code from the host PC or open the link with the token:</p>
+            <p><code>http://YOUR_IP:5000/?k=YOUR_TOKEN</code></p>
+            <p style="margin-top: 12px; font-size: 13px;">On the host PC: Right-click tray icon → Show QR, or open <code>http://127.0.0.1:5000/popup</code></p>
         </div>
-
-        <div class="card qr-section">
-            <h3>📷 Scan to Connect from Mobile</h3>
-            <div class="qr-code">
-                <img id="qrImg" src="/qr" alt="QR Code">
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📤</div>
-                <h3>Drop files here or click to upload</h3>
-                <p>Share files quickly between your devices</p>
-                <input type="file" id="fileInput" multiple>
-                <button class="btn" onclick="document.getElementById('fileInput').click()">Choose Files</button>
-            </div>
-        </div>
-
         
-
-       
-
-        <div class="card files-section">
-            <div class="files-header" style="gap:10px;">
-                <h2 style="flex:1;">Shared Items (Single-Use)</h2>
-                <button class="btn" style="background:#ff9800;" onclick="clearCache()">Clear Cache</button>
-                <span class="file-count" id="fileCount">0 files</span>
+        <!-- Header -->
+        <div class="header">
+            <h1>📁 ShareJadPi</h1>
+            <div class="header-right">
+                <span id="connectedBadge" class="badge disconnected">•••</span>
+                <button class="icon-btn" id="settingsBtn" style="display: none;" onclick="window.location.href='/settings'" title="Settings">⚙️</button>
             </div>
-            <div id="filesList"></div>
-            <div class="transfers" id="transfers" style="display:none"></div>
         </div>
-
-        <!-- Separate Clipboard card -->
-        <div class="card">
-            <div class="clip-wrap">
-                <h3 style="color:var(--primary)">📋 Shared Clipboard</h3>
-                <textarea id="clipText" class="clip-text" placeholder="Paste text here…"></textarea>
-                <div class="clip-row">
-                    <button class="btn-secondary btn" onclick="pasteFromClipboard()">Paste from Clipboard</button>
-                    <button class="btn" onclick="shareClip()">Share</button>
-                    <button class="btn" onclick="copyClip()">Copy</button>
-                    <button class="btn" style="background:linear-gradient(180deg,#ef4444,#dc2626);color:#fff" onclick="clearClip()">Clear</button>
-                </div>
-                <div style="color:var(--muted);font-size:12px">Tip: This clipboard is shared across devices on your LAN. Paste updates appear within ~1s.</div>
+        
+        <!-- QR Top Section -->
+        <div class="qr-section" id="qrSection">
+            <h3>Scan this QR on your phone to connect</h3>
+            <div class="qr-container">
+                <img id="qrTop" src="/qr" alt="QR Code" loading="lazy">
+            </div>
+            <div>
+                <button class="qr-refresh-btn" onclick="refreshQRTop()">🔄 Refresh QR</button>
             </div>
         </div>
 
-        <!-- Separate Speed Test card -->
-        <div class="card">
-            <div class="speedtest">
-                <div class="speed-header">
-                    <h3>Network Speed Test</h3>
-                    <button id="runSpeedBtn" class="btn" style="background:linear-gradient(180deg,#7c3aed,#6d28d9);color:#eae4ff" onclick="runCombinedTest()">▶ 5s Combined Test</button>
-                </div>
-                <div id="speedStatus" style="margin-bottom:8px">Idle</div>
-                <div class="progress" style="margin-bottom:8px"><div id="speedBar" style="width:0%;height:100%;transition:width .2s"></div></div>
-                <div id="speedOutput" style="font-size:0.95em"></div>
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div id="dragDropZone" class="drag-drop-zone">
+                <h3>Drag & drop files here</h3>
+                <p>Or use the buttons below to choose files or a whole folder</p>
             </div>
+            <div class="upload-grid">
+                <label class="upload-btn">
+                    📤 Upload File
+                    <input type="file" id="fileInput" multiple>
+                </label>
+                <label class="upload-btn secondary">
+                    📂 Upload Folder
+                    <input type="file" id="folderInput" webkitdirectory directory multiple>
+                </label>
+                <button class="upload-btn danger" onclick="clearAll()">🗑️ Clear All</button>
+            </div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <div class="progress-title" id="progressTitle">Uploading...</div>
+                    <div class="progress-speed" id="progressSpeed">0 MB/s</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Uploading...</div>
+            </div>
+        </div>
+        
+        <!-- Multi-select Toolbar -->
+        <div class="toolbar" id="toolbar">
+            <div class="toolbar-left">
+                <span id="selectedCount">0</span> selected
+            </div>
+            <div class="toolbar-actions">
+                <button class="toolbar-btn" onclick="pinSelected()">📌 Pin</button>
+                <button class="toolbar-btn" onclick="unpinSelected()">📌 Unpin</button>
+                <button class="toolbar-btn" onclick="zipSelected()">📦 Zip & Download</button>
+                <button class="toolbar-btn" onclick="deleteSelected()">🗑️ Delete</button>
+            </div>
+        </div>
+        
+        <!-- Files Section -->
+        <div class="files-section">
+            <div class="files-header">
+                <h2>Shared Files</h2>
+            </div>
+            <div class="file-list" id="fileList">
+                <!-- Initial loading skeleton for instant feedback -->
+                <div class="skeleton skeleton-item"></div>
+                <div class="skeleton skeleton-item"></div>
+                <div class="skeleton skeleton-item"></div>
+            </div>
+        </div>
+
+        <!-- Clipboard Section (moved below files) -->
+        <div class="clipboard-section">
+            <div class="clipboard-header">
+                <h3>📋 Shared Clipboard</h3>
+                <span class="clipboard-status" id="clipboardStatus">Idle</span>
+            </div>
+            <textarea class="clipboard-textarea" id="clipboardText" placeholder="Type or paste text here to share across devices..."></textarea>
+            <div class="clipboard-actions">
+                <button class="clipboard-btn primary" id="clipboardSaveBtn" onclick="saveClipboard()">💾 Save & Sync</button>
+                <button class="clipboard-btn" onclick="copyToClipboard()">📋 Copy</button>
+                <button class="clipboard-btn danger" onclick="clearClipboard()">🗑️ Clear</button>
+            </div>
+        </div>
+        
+        <!-- Speed Test Section -->
+        <div class="speedtest-section">
+            <div class="speedtest-header">
+                <h3>⚡ Network Speed Test</h3>
+            </div>
+            <div class="speedtest-results">
+                <div class="speedtest-result">
+                    <div class="label">Download</div>
+                    <div class="value">
+                        <span id="downloadSpeed">--</span>
+                        <span class="unit">Mbps</span>
+                    </div>
+                </div>
+                <div class="speedtest-result">
+                    <div class="label">Upload</div>
+                    <div class="value">
+                        <span id="uploadSpeed">--</span>
+                        <span class="unit">Mbps</span>
+                    </div>
+                </div>
+            </div>
+            <button class="speedtest-btn" id="speedtestBtn" onclick="runSpeedTest()">🚀 Run Speed Test (5 seconds)</button>
         </div>
     </div>
-
+    
     <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const filesList = document.getElementById('filesList');
-        const fileCount = document.getElementById('fileCount');
-        const qrImg = document.getElementById('qrImg');
-        const settingsLink = document.getElementById('settingsLink');
-        const uploadingQueue = [];
-        let uploading = false;
-    // No dedupe set so selecting same filename again re-uploads immediately
-
-        // Hide Settings for non-host clients
-        (async () => {
-            try {
-                const r = await fetch('/api/is_host');
-                if (r.ok) {
-                    const d = await r.json();
-                    if (!d.host && settingsLink) {
-                        settingsLink.style.display = 'none';
-                    }
+        // Clear any service workers that might be causing caching issues
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
                 }
-            } catch (e) {
-                // If this fails, leave settings visible (host will still be enforced server-side)
-            }
-        })();
-
-        // Drag and drop functionality
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.add('drag-over');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.remove('drag-over');
-            }, false);
-        });
-
-        uploadArea.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }
-
-        fileInput.addEventListener('change', function() {
-            handleFiles(this.files);
-            // Allow same file re-selection
-            this.value = '';
-        });
-
-        uploadArea.addEventListener('click', function(e) {
-            // Intentionally empty: only the explicit button triggers file dialog now
-        });
-
-        function handleFiles(files) {
-            for (const f of files) {
-                uploadingQueue.push(f);
-            }
-            processQueue();
-        }
-
-        function processQueue() {
-            if (uploading) return;
-            const next = uploadingQueue.shift();
-            if (!next) return;
-            uploadFile(next).then(() => {
-                processQueue();
             });
         }
-
-        async function uploadFile(file) {
-            uploading = true;
-            uploadArea.classList.add('uploading');
-            const transfers = document.getElementById('transfers');
-            transfers.style.display = 'block';
-            transfers.innerHTML = `
-                <div class="transfer-row">
-                  <div class="transfer-name">⬆ ${file.name}</div>
-                  <div class="transfer-meta" id="ulMeta">0%</div>
-                </div>
-                <div class="transfer-bar"><div id="ulBar"></div></div>
-            `;
-            const t0 = performance.now();
-            let lastTime = t0; let lastLoaded = 0;
+        
+        // Force clear old caches
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+        }
+        
+        // Token handling: extract from URL and append to API requests
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('k');
+        
+        // Helper to append token to same-origin fetch requests if present in URL
+        function appendTokenIfNeeded(url) {
+            if (urlToken && url.startsWith('/')) {
+                const u = new URL(url, window.location.origin);
+                if (!u.searchParams.has('k')) {
+                    u.searchParams.set('k', urlToken);
+                }
+                return u.pathname + u.search;
+            }
+            return url;
+        }
+        
+        // Wrap fetch to auto-append token
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && url.startsWith('/')) {
+                url = appendTokenIfNeeded(url);
+            }
+            return originalFetch(url, options);
+        };
+        
+        let isHost = false;
+        let isAuthorized = false;
+        
+        // Check authorization status
+        async function checkAuth() {
             try {
-                await new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', '/upload');
-                    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('HTTP '+xhr.status));
-                    xhr.onerror = () => reject(new Error('Network error'));
-                    xhr.upload.onprogress = (e) => {
-                        if (!e.lengthComputable) return;
-                        const pct = (e.loaded / e.total) * 100;
-                        document.getElementById('ulBar').style.width = pct.toFixed(1) + '%';
-                        const now = performance.now();
-                        const dt = (now - lastTime) / 1000; lastTime = now;
-                        const delta = e.loaded - lastLoaded; lastLoaded = e.loaded;
-                        const speed = dt > 0 ? (delta * 8 / dt / 1e6) : 0; // Mbps between ticks
-                        document.getElementById('ulMeta').textContent = `${pct.toFixed(0)}% • ${speed.toFixed(2)} Mbps`;
-                    };
-                    const form = new FormData(); form.append('file', file);
-                    xhr.send(form);
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                isHost = data.host || false;
+                isAuthorized = data.authorized || false;
+                
+                // Show/hide settings icon
+                if (isHost) {
+                    document.getElementById('settingsBtn').style.display = 'flex';
+                }
+                
+                // Show auth banner if not authorized
+                const banner = document.getElementById('authBanner');
+                if (!isAuthorized && !isHost) {
+                    banner.classList.add('show');
+                } else {
+                    banner.classList.remove('show');
+                }
+                
+                // Disable upload/action buttons if not authorized
+                const uploadBtns = document.querySelectorAll('.upload-btn, #fileInput, #folderInput');
+                uploadBtns.forEach(btn => {
+                    if (!isAuthorized && !isHost) {
+                        btn.disabled = true;
+                        if (btn.classList && btn.classList.contains('upload-btn')) {
+                            btn.style.opacity = '0.5';
+                            btn.style.cursor = 'not-allowed';
+                            btn.style.pointerEvents = 'none';
+                        }
+                    }
                 });
-                showNotification('✓ Uploaded ' + file.name, 'success');
-                await fetchFiles();
+                
+                return isAuthorized || isHost;
             } catch (e) {
-                showNotification('✗ Upload failed: ' + e, 'error');
-            } finally {
-                uploadArea.classList.remove('uploading');
-                uploading = false;
-                setTimeout(() => { transfers.style.display = 'none'; transfers.innerHTML = ''; }, 1200);
+                console.error('Auth check failed:', e);
+                return false;
             }
         }
-
-        async function downloadFile(id, name) {
-            const transfers = document.getElementById('transfers');
-            transfers.style.display = 'block';
-            transfers.innerHTML = `
-                <div class="transfer-row">
-                  <div class="transfer-name">⬇ ${name}</div>
-                  <div class="transfer-meta" id="dlMeta">0%</div>
-                </div>
-                <div class="transfer-bar"><div id="dlBar"></div></div>
-            `;
-            const t0 = performance.now();
-            let received = 0;
+        
+        // Check connected status
+        async function updateStatus() {
             try {
-                const res = await fetch('/download/' + encodeURIComponent(id) + '?dl=1');
-                if (!res.ok || !res.body) throw new Error('HTTP '+res.status);
-                const total = parseInt(res.headers.get('Content-Length')||'0',10);
-                const contentType = res.headers.get('Content-Type')||'application/octet-stream';
-                const reader = res.body.getReader();
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                const badge = document.getElementById('connectedBadge');
+                if (data.authorized || data.host) {
+                    badge.textContent = 'Connected';
+                    badge.className = 'badge connected';
+                } else {
+                    badge.textContent = 'Not Authorized';
+                    badge.className = 'badge disconnected';
+                }
+            } catch (e) {
+                const badge = document.getElementById('connectedBadge');
+                badge.textContent = 'Offline';
+                badge.className = 'badge disconnected';
+            }
+        }
+        
+        // Load files
+        async function loadFiles() {
+            try {
+                const resp = await fetch('/api/files');
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        // Unauthorized - show locked state
+                        const list = document.getElementById('fileList');
+                        list.innerHTML = `
+                            <div class="empty-state">
+                                <svg fill="currentColor" viewBox="0 0 24 24" style="color: #ef4444;">
+                                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                                </svg>
+                                <h3>🔒 Authorization Required</h3>
+                                <p>Scan the QR code or open the tokenized link to access this device</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    console.error('Failed to load files:', resp.status);
+                    return;
+                }
+                const data = await resp.json();
+                const files = data.files || [];
+                const list = document.getElementById('fileList');
+                
+                // Preserve current checkbox state before rebuilding
+                const selectedIds = new Set(getSelectedIds());
+                
+                if (files.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM13 13h-2v-2h2v2zm0-4h-2V7h2v2z"/></svg>
+                            <h3>No files shared yet</h3>
+                            <p>Upload files or folders to start sharing</p>
+                        </div>
+                    `;
+                    // Clear toolbar since there are no files
+                    const toolbar = document.getElementById('toolbar');
+                    if (toolbar) toolbar.classList.remove('show');
+                    return;
+                }
+                
+                list.innerHTML = files.map(f => {
+                    const ext = f.name.split('.').pop().toUpperCase().slice(0, 3);
+                    const badges = [];
+                    if (f.is_new) badges.push('<span class="file-badge new">NEW</span>');
+                    if (f.pinned) badges.push('<span class="file-badge pinned">PINNED</span>');
+                    if (f.expires_in > 0 && f.expires_in <= 30 && !f.pinned) {
+                        badges.push(`<span class="file-badge expiring">EXP ${f.expires_in}m</span>`);
+                    }
+                    badges.push(`<span class="file-badge type">${ext}</span>`);
+                    
+                    // Restore checkbox state if it was selected
+                    const isChecked = selectedIds.has(f.id) ? ' checked' : '';
+                    
+                    return `
+                        <div class="file-item">
+                            <input type="checkbox" class="file-checkbox" data-id="${f.id}" onchange="updateToolbar()"${isChecked}>
+                            <div class="file-icon">${ext}</div>
+                            <div class="file-info">
+                                <div class="file-name">${escapeHtml(f.name)}</div>
+                                <div class="file-meta">${f.size} • ${f.kind} • ${f.added}</div>
+                                <div class="file-badges">${badges.join('')}</div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="file-btn" onclick="downloadFile('${f.id}', '${escapeHtml(f.name)}')">⬇️ Download</button>
+                                <button class="file-btn pin" onclick="togglePin('${f.id}', ${!f.pinned})">${f.pinned ? '📌 Unpin' : '📌 Pin'}</button>
+                                <button class="file-btn danger" onclick="deleteFile('${f.id}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Update toolbar after restoring checkboxes
+                updateToolbar();
+            } catch (e) {
+                console.error('Load files error:', e);
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Update multi-select toolbar
+        function updateToolbar() {
+            const checked = document.querySelectorAll('.file-checkbox:checked');
+            const toolbar = document.getElementById('toolbar');
+            const count = document.getElementById('selectedCount');
+            count.textContent = checked.length;
+            if (checked.length > 0) {
+                toolbar.classList.add('show');
+            } else {
+                toolbar.classList.remove('show');
+            }
+        }
+        
+        // Helpers for progress + speed
+        function humanSize(bytes) {
+            const units = ['B','KB','MB','GB'];
+            let i = 0; let v = bytes;
+            while (v >= 1024 && i < units.length-1) { v /= 1024; i++; }
+            return `${v.toFixed(1)} ${units[i]}`;
+        }
+
+        function humanSpeed(bytesPerSec) {
+            const units = ['B/s','KB/s','MB/s','GB/s'];
+            let i = 0; let v = bytesPerSec;
+            while (v >= 1024 && i < units.length-1) { v /= 1024; i++; }
+            return `${v.toFixed(1)} ${units[i]}`;
+        }
+
+        // File upload (with progress)
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required. Please scan the QR code from the host PC.');
+                e.target.value = '';
+                return;
+            }
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSpeed = document.getElementById('progressSpeed');
+            
+            progressContainer.classList.add('show');
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                progressTitle.textContent = `Uploading ${file.name} (${i + 1}/${files.length})`;
+                progressText.textContent = `${humanSize(0)} / ${humanSize(file.size)}`;
+                progressSpeed.textContent = '0 MB/s';
+
+                try {
+                    await uploadFileWithProgress(file, (sentBytes, totalBytes, speedBps) => {
+                        const pct = Math.min(100, (sentBytes / totalBytes) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `${humanSize(sentBytes)} / ${humanSize(totalBytes)} (${pct.toFixed(0)}%)`;
+                        progressSpeed.textContent = humanSpeed(speedBps);
+                    });
+                } catch (err) {
+                    alert(`Error uploading ${file.name}: ${err.message}`);
+                }
+            }
+            
+            progressText.textContent = 'Upload complete!';
+            setTimeout(() => {
+                progressContainer.classList.remove('show');
+                progressFill.style.width = '0%';
+            }, 2000);
+            
+            e.target.value = '';
+            loadFiles();
+        });
+        
+        // Folder upload
+        document.getElementById('folderInput').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required. Please scan the QR code from the host PC.');
+                e.target.value = '';
+                return;
+            }
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSpeed = document.getElementById('progressSpeed');
+            
+            progressContainer.classList.add('show');
+            progressTitle.textContent = `Uploading folder (${files.length} files)`;
+            progressText.textContent = `Preparing...`;
+            progressSpeed.textContent = '—';
+            
+            const formData = new FormData();
+            let totalSize = 0;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                formData.append('files[]', file, file.webkitRelativePath || file.name);
+                totalSize += file.size;
+            }
+            
+            // Show size warning for large folders
+            if (totalSize > 10 * 1024 * 1024 * 1024) { // > 10GB
+                const sizeGB = (totalSize / (1024 * 1024 * 1024)).toFixed(1);
+                if (!confirm(`This folder is ${sizeGB}GB. Upload may take several minutes. Continue?`)) {
+                    progressContainer.classList.remove('show');
+                    e.target.value = '';
+                    return;
+                }
+            }
+            
+            progressText.textContent = `Uploading ${humanSize(totalSize)}...`;
+            
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.onprogress = function (ev) {
+                    if (ev.lengthComputable) {
+                        const pct = Math.min(100, (ev.loaded / ev.total) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `${humanSize(ev.loaded)} / ${humanSize(ev.total)} (${pct.toFixed(0)}%)`;
+                    }
+                };
+                
+                xhr.onload = function () {
+                    if (xhr.status === 202) {
+                        // Background job started
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            const jobId = data.job_id;
+                            progressText.textContent = 'Zipping… 0%';
+                            progressSpeed.textContent = '—';
+                            pollZipJob(jobId, progressFill, progressText, progressSpeed, () => {
+                                e.target.value = '';
+                                loadFiles();
+                            });
+                        } catch {
+                            progressText.textContent = 'Zipping…';
+                        }
+                    } else if (xhr.status >= 200 && xhr.status < 300) {
+                        // Fallback older behavior
+                        progressFill.style.width = '100%';
+                        progressText.textContent = 'Creating zip file...';
+                        progressSpeed.textContent = 'Please wait';
+                        setTimeout(() => {
+                            progressText.textContent = 'Folder uploaded!';
+                            setTimeout(() => {
+                                progressContainer.classList.remove('show');
+                                progressFill.style.width = '0%';
+                            }, 2000);
+                        }, 1000);
+                        e.target.value = '';
+                        setTimeout(() => loadFiles(), 1500);
+                    } else if (xhr.status === 401) {
+                        alert('⚠️ Session expired. Please refresh and scan the QR code again.');
+                        progressContainer.classList.remove('show');
+                    } else if (xhr.status === 413) {
+                        alert('⚠️ Folder too large. Maximum total size is 50GB.');
+                        progressContainer.classList.remove('show');
+                    } else {
+                        try {
+                            const resp = JSON.parse(xhr.responseText);
+                            alert(`Upload failed: ${resp.error || 'Unknown error'}`);
+                        } catch {
+                            alert('Upload failed - Server error');
+                        }
+                        progressContainer.classList.remove('show');
+                    }
+                };
+                
+                xhr.onerror = function () {
+                    alert('Upload failed - Network error. Please check your connection.');
+                    progressContainer.classList.remove('show');
+                };
+                
+                xhr.open('POST', appendTokenIfNeeded('/upload_folder'));
+                xhr.send(formData);
+                
+            } catch (err) {
+                alert(`Error uploading folder: ${err.message}`);
+                progressContainer.classList.remove('show');
+            }
+        });
+
+        async function pollZipJob(jobId, barEl, textEl, speedEl, onDone) {
+            let timer = null;
+            const update = async () => {
+                try {
+                    const resp = await fetch(`/api/zip_jobs/${jobId}`);
+                    if (!resp.ok) throw new Error('job not found');
+                    const j = await resp.json();
+                    const pct = j.percent || 0;
+                    barEl.style.width = Math.min(100, pct).toFixed(0) + '%';
+                    const speed = j.speed_bps ? humanSpeed(j.speed_bps) : '—';
+                    speedEl.textContent = speed;
+                    const eta = (j.eta_sec != null) ? Math.max(0, j.eta_sec).toFixed(1) + 's' : '—';
+                    textEl.textContent = `Zipping… ${pct.toFixed(1)}% • ETA ${eta}`;
+                    if (j.status === 'done') {
+                        clearInterval(timer);
+                        textEl.textContent = 'Folder zipped!';
+                        setTimeout(() => {
+                            document.getElementById('progressContainer').classList.remove('show');
+                            barEl.style.width = '0%';
+                            if (onDone) onDone();
+                        }, 800);
+                    } else if (j.status === 'error') {
+                        clearInterval(timer);
+                        alert('Zipping failed: ' + (j.error || 'Unknown error'));
+                        document.getElementById('progressContainer').classList.remove('show');
+                        barEl.style.width = '0%';
+                    }
+                } catch (e) {
+                    // Stop on error
+                    if (timer) clearInterval(timer);
+                }
+            };
+            await update();
+            timer = setInterval(update, 500);
+        }
+        
+        // Download file with progress + speed (stream to memory, then save)
+        async function downloadFile(id, name) {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSpeed = document.getElementById('progressSpeed');
+            try {
+                progressContainer.classList.add('show');
+                progressTitle.textContent = `Downloading ${name}`;
+                progressText.textContent = 'Starting…';
+                progressSpeed.textContent = '0 MB/s';
+
+                const resp = await fetch(`/download/${id}?dl=1`);
+                if (!resp.ok || !resp.body) throw new Error('Download failed');
+                const contentLength = parseInt(resp.headers.get('Content-Length') || '0', 10);
+                const reader = resp.body.getReader();
                 const chunks = [];
+                let received = 0;
+                let lastTime = Date.now();
+                let lastReceived = 0;
                 while (true) {
-                    const {done, value} = await reader.read();
+                    const { done, value } = await reader.read();
                     if (done) break;
                     chunks.push(value);
                     received += value.byteLength;
-                    if (total > 0) {
-                        const pct = (received/total)*100;
-                        document.getElementById('dlBar').style.width = pct.toFixed(1)+'%';
-                        const dt = (performance.now()-t0)/1000;
-                        const speed = received * 8 / Math.max(dt, 0.001) / 1e6;
-                        document.getElementById('dlMeta').textContent = `${pct.toFixed(0)}% • ${speed.toFixed(2)} Mbps`;
+                    const now = Date.now();
+                    const dt = (now - lastTime) / 1000;
+                    if (dt > 0.2) {
+                        const db = received - lastReceived;
+                        progressSpeed.textContent = humanSpeed(db / dt);
+                        lastTime = now;
+                        lastReceived = received;
+                    }
+                    if (contentLength > 0) {
+                        const pct = Math.min(100, (received / contentLength) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `${humanSize(received)} / ${humanSize(contentLength)} (${pct.toFixed(0)}%)`;
+                    } else {
+                        progressText.textContent = `${humanSize(received)} downloaded`;
                     }
                 }
-                const blob = new Blob(chunks, {type: contentType});
+                const blob = new Blob(chunks);
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-                setTimeout(()=>URL.revokeObjectURL(url), 2000);
-                showNotification('⬇ Downloaded ' + name, 'success');
-                await fetchFiles();
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = name || 'download';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                progressText.textContent = 'Download complete!';
+                setTimeout(() => {
+                    progressContainer.classList.remove('show');
+                    progressFill.style.width = '0%';
+                }, 1500);
             } catch (e) {
-                showNotification('✗ Download failed: ' + e, 'error');
-            } finally {
-                setTimeout(() => { transfers.style.display = 'none'; transfers.innerHTML = ''; }, 1200);
+                // Fallback to direct navigation if streaming fails
+                window.location.href = `/download/${id}?dl=1`;
             }
         }
-
-        async function deleteFile(id, name) {
-            if (!confirm('Delete ' + name + '?')) {
+        
+        // Delete file
+        async function deleteFile(id) {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
                 return;
             }
+            
+            if (!confirm('Delete this file?')) return;
+            
             try {
-                const res = await fetch('/delete/' + encodeURIComponent(id), { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                    showNotification('✓ File deleted', 'success');
-                    await fetchFiles();
+                const resp = await fetch(`/delete/${id}`, { method: 'POST' });
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
                 } else {
-                    showNotification('✗ Delete failed: ' + data.error, 'error');
+                    alert('Failed to delete file');
                 }
-            } catch (e) {
-                showNotification('✗ Delete failed: ' + e, 'error');
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // Toggle pin
+        async function togglePin(id, pinned) {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: [id], pinned })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                } else {
+                    alert('Failed to update pin');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // Bulk actions
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.id);
+        }
+        
+        async function pinSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            
+            try {
+                const resp = await fetch('/api/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, pinned: true })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                    updateToolbar();
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function unpinSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            
+            try {
+                const resp = await fetch('/api/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, pinned: false })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                    updateToolbar();
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function zipSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            
+            try {
+                const resp = await fetch('/zip_selected', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    const data = await resp.json();
+                    // Direct download without awaiting downloadFile (which is async but doesn't need to block here)
+                    downloadFile(data.id, data.name);
+                    // Clear selection and refresh
+                    setTimeout(() => {
+                        document.querySelectorAll('.file-checkbox:checked').forEach(cb => cb.checked = false);
+                        updateToolbar();
+                        loadFiles();
+                    }, 500);
+                } else {
+                    alert('Failed to create zip');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function deleteSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            if (!confirm(`Delete ${ids.length} file(s)?`)) return;
+            
+            try {
+                const resp = await fetch('/delete_bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                    updateToolbar();
+                } else {
+                    alert('Failed to delete files');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // Clear all
+        async function clearAll() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            if (!confirm('Clear all shared files?')) return;
+            
+            try {
+                const resp = await fetch('/api/clear', { method: 'POST' });
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                } else {
+                    alert('Failed to clear files');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // QR refresh
+        function refreshQRTop() {
+            const img = document.getElementById('qrTop');
+            img.src = '/qr?t=' + Date.now();
+        }
+        
+        // Clipboard functions
+        let clipboardLast = null;
+        async function saveClipboard() {
+            const text = document.getElementById('clipboardText').value;
+            const status = document.getElementById('clipboardStatus');
+            try {
+                status.textContent = 'Saving…';
+                const resp = await fetch('/api/clipboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Authorization required.');
+                } else if (resp.ok) {
+                    status.textContent = 'Saved • Synced';
+                    clipboardLast = text;
+                } else {
+                    alert('Failed to save clipboard');
+                    status.textContent = 'Error';
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+                status.textContent = 'Error';
+            }
+        }
+        
+        async function loadClipboard() {
+            try {
+                const resp = await fetch('/api/clipboard');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const newText = data.text || '';
+                    document.getElementById('clipboardText').value = newText;
+                    clipboardLast = newText;
+                } else {
+                    alert('Failed to load clipboard');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function copyToClipboard() {
+            const text = document.getElementById('clipboardText').value;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('✅ Copied to your device clipboard!');
+            } catch (err) {
+                // Fallback for older browsers
+                const textarea = document.getElementById('clipboardText');
+                textarea.select();
+                document.execCommand('copy');
+                alert('✅ Copied to your device clipboard!');
+            }
+        }
+        
+        async function clearClipboard() {
+            if (!confirm('Clear clipboard?')) return;
+            
+            document.getElementById('clipboardText').value = '';
+            try {
+                await fetch('/api/clipboard', { method: 'DELETE' });
+            } catch (err) {
+                console.error('Failed to clear server clipboard:', err);
             }
         }
 
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        async function fetchFiles() {
-            try {
-                const res = await fetch('/api/files');
-                const data = await res.json();
-                const list = data.files;
-                fileCount.textContent = list.length + ' files';
-                if (!list.length) {
-                    filesList.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📂</div><p>No files shared yet. Upload your first file!</p></div>`;
+        // Drag & Drop handlers - Support folders and files
+        (function setupDragDrop(){
+            const zone = document.getElementById('dragDropZone');
+            if (!zone) return;
+            const prevent = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+            ['dragenter','dragover'].forEach(evt => zone.addEventListener(evt, e => { prevent(e); zone.classList.add('drag-over'); }));
+            ['dragleave','drop'].forEach(evt => zone.addEventListener(evt, e => { prevent(e); zone.classList.remove('drag-over'); }));
+            zone.addEventListener('drop', async (e) => {
+                const items = e.dataTransfer.items;
+                if (!items || items.length === 0) return;
+                
+                // Check if any of the dropped items is a folder
+                let hasFolder = false;
+                const entries = [];
+                for (let i = 0; i < items.length; i++) {
+                    const entry = items[i].webkitGetAsEntry();
+                    if (entry) {
+                        entries.push(entry);
+                        if (entry.isDirectory) hasFolder = true;
+                    }
+                }
+                
+                if (hasFolder) {
+                    // Handle as folder upload
+                    await handleFolderDrop(entries);
+                } else {
+                    // Handle as regular files
+                    const files = e.dataTransfer.files;
+                    await handleFilesUpload(files);
+                }
+            });
+            zone.addEventListener('click', () => document.getElementById('fileInput').click());
+        })();
+        
+        // Handle folder drop with webkitGetAsEntry
+        async function handleFolderDrop(entries) {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required. Please scan the QR code from the host PC.');
+                return;
+            }
+            
+            const allFiles = [];
+            for (const entry of entries) {
+                if (entry.isDirectory) {
+                    await traverseDirectory(entry, '', allFiles);
+                } else if (entry.isFile) {
+                    const file = await getFileFromEntry(entry);
+                    if (file) allFiles.push({ file, path: file.name });
+                }
+            }
+            
+            if (allFiles.length === 0) return;
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSpeed = document.getElementById('progressSpeed');
+            
+            progressContainer.classList.add('show');
+            progressTitle.textContent = `Uploading folder (${allFiles.length} files)`;
+            progressText.textContent = `Preparing...`;
+            progressSpeed.textContent = '—';
+            
+            const formData = new FormData();
+            let totalSize = 0;
+            for (const item of allFiles) {
+                formData.append('files[]', item.file, item.path);
+                totalSize += item.file.size;
+            }
+            
+            // Show size warning for large folders
+            if (totalSize > 10 * 1024 * 1024 * 1024) { // > 10GB
+                const sizeGB = (totalSize / (1024 * 1024 * 1024)).toFixed(1);
+                if (!confirm(`This folder is ${sizeGB}GB. Upload may take several minutes. Continue?`)) {
+                    progressContainer.classList.remove('show');
                     return;
                 }
-                filesList.innerHTML = list.map(f => {
-                    const safeName = f.name.replace(/'/g, "&#39;");
-                    const ext = (f.name.includes('.') ? f.name.split('.').pop() : '').toLowerCase();
-                    function badgeForExt(e){
-                        const img = ['jpg','jpeg','png','gif','webp','bmp','svg'];
-                        const vid = ['mp4','mov','mkv','avi','webm'];
-                        const aud = ['mp3','wav','m4a','flac','ogg'];
-                        const arc = ['zip','rar','7z','tar','gz'];
-                        const doc = ['pdf'];
-                        const off = ['doc','docx','ppt','pptx','xls','xlsx'];
-                        const code = ['txt','md','py','js','ts','json','csv','html','css'];
-                        if (img.includes(e)) return {label:e.toUpperCase(), color:'#22c55e'};
-                        if (vid.includes(e)) return {label:e.toUpperCase(), color:'#ff5722'};
-                        if (aud.includes(e)) return {label:e.toUpperCase(), color:'#3f51b5'};
-                        if (doc.includes(e)) return {label:'PDF', color:'#e53935'};
-                        if (off.includes(e)) return {label:e.toUpperCase(), color:'#009688'};
-                        if (arc.includes(e)) return {label:e.toUpperCase(), color:'#7c3aed'};
-                        if (code.includes(e)) return {label:e.toUpperCase(), color:'#607d8b'};
-                        return {label: e ? e.toUpperCase() : 'FILE', color:'#607d8b'};
-                    }
-                    const badge = badgeForExt(ext);
-                    return `
-                    <div class="file-item">
-                        <div class="file-info">
-                            <div class="file-name">
-                                <div class="file-title">📄 ${safeName}</div>
-                                <div class="file-badges">
-                                  <span class="file-badge" style=\"background:${badge.color};color:#fff;\">${badge.label}</span>
-                                </div>
-                            </div>
-                            <div class="file-meta">${f.size} • ${f.added}</div>
-                        </div>
-                        <div class="file-actions">
-                            <button class="btn-download" onclick="downloadFile('${f.id}','${safeName}')">⬇ Download</button>
-                            <button class="btn-delete" onclick="deleteFile('${f.id}','${safeName}')">🗑 Delete</button>
-                        </div>
-                    </div>`;
-                }).join('');
-            } catch (e) {
-                console.error('Failed to fetch files', e);
             }
-        }
-
-        function refreshQR() {
-            qrImg.src = '/qr?t=' + Date.now();
-        }
-
-        async function clearCache() {
-            if (!confirm('Clear all shared items?')) return;
+            
+            progressText.textContent = `Uploading ${humanSize(totalSize)}...`;
+            
             try {
-                const res = await fetch('/api/clear', { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                    showNotification('✓ Cache cleared', 'success');
-                    await fetchFiles();
-                } else {
-                    showNotification('✗ Clear failed', 'error');
-                }
-            } catch (e) { showNotification('✗ Clear failed: ' + e, 'error'); }
-        }
-
-        // Initial load
-        fetchFiles();
-        refreshQR();
-        // Periodic refresh
-    setInterval(fetchFiles, 1000);
-
-    // Speed test helpers
-    function fmtMbps(bytes, seconds) {
-        if (seconds <= 0) return '—';
-        const bits = bytes * 8;
-        const mbps = bits / seconds / 1e6;
-        return mbps.toFixed(2) + ' Mbps';
-    }
-    async function runCombinedTest(){
-        const out = document.getElementById('speedOutput');
-        const bar = document.getElementById('speedBar');
-        const status = document.getElementById('speedStatus');
-        const btn = document.getElementById('runSpeedBtn');
-        // Reset UI
-        out.textContent='';
-        bar.style.width='0%';
-        btn.disabled = true; btn.style.opacity='0.7';
-        let recv = 0, sent = 0;
-        const kb = 64*1024; // 64KB chunks
-        const chunk = new Uint8Array(kb);
-        crypto.getRandomValues(chunk);
-        const t0 = performance.now();
-        status.textContent = 'Running 5s test…';
-        // live UI updater
-        const uiTimer = setInterval(()=>{
-            const dt = (performance.now()-t0)/1000;
-            bar.style.width = Math.min(100, (dt/5)*100) + '%';
-            const dNow = fmtMbps(recv, Math.max(dt, 0.001));
-            const uNow = fmtMbps(sent, Math.max(dt, 0.001));
-            status.textContent = `Running… ${dt.toFixed(1)}s  •  ↓ ${dNow}  •  ↑ ${uNow}`;
-        }, 200);
-
-        try {
-            // Download task
-            const doDownload = (async () => {
-                try{
-                    const res = await fetch('/api/speedtest/down?bytes='+(500*1024*1024)+'&t='+Date.now());
-                    const reader = res.body.getReader();
-                    while(true){
-                        const dt = (performance.now()-t0)/1000;
-                        if(dt>=5){ try{ await reader.cancel(); }catch(_e){} break; }
-                        const {done, value} = await reader.read();
-                        if(done) break; recv += value.byteLength;
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.onprogress = function (ev) {
+                    if (ev.lengthComputable) {
+                        const pct = Math.min(100, (ev.loaded / ev.total) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `${humanSize(ev.loaded)} / ${humanSize(ev.total)} (${pct.toFixed(0)}%)`;
                     }
-                }catch(_e){ /* ignore */ }
-            })();
-
-            // Upload task
-            const doUpload = (async () => {
-                try{
-                    const stream = new ReadableStream({
-                        start(controller){
-                            function push(){
-                                const dt=(performance.now()-t0)/1000;
-                                if(dt>=5){ controller.close(); return; }
-                                controller.enqueue(chunk);
-                                sent += kb;
-                                setTimeout(push, 0);
-                            }
-                            push();
+                };
+                
+                xhr.onload = function () {
+                    if (xhr.status === 202) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            const jobId = data.job_id;
+                            progressText.textContent = 'Zipping… 0%';
+                            progressSpeed.textContent = '—';
+                            pollZipJob(jobId, progressFill, progressText, progressSpeed, () => {
+                                loadFiles();
+                            });
+                        } catch {}
+                    } else if (xhr.status >= 200 && xhr.status < 300) {
+                        progressFill.style.width = '100%';
+                        progressText.textContent = 'Creating zip file...';
+                        progressSpeed.textContent = 'Please wait';
+                        setTimeout(() => {
+                            progressText.textContent = 'Folder uploaded!';
+                            setTimeout(() => {
+                                progressContainer.classList.remove('show');
+                                progressFill.style.width = '0%';
+                            }, 2000);
+                        }, 1000);
+                        setTimeout(() => loadFiles(), 1500);
+                    } else if (xhr.status === 401) {
+                        alert('⚠️ Session expired. Please refresh and scan the QR code again.');
+                        progressContainer.classList.remove('show');
+                    } else if (xhr.status === 413) {
+                        alert('⚠️ Folder too large. Maximum total size is 50GB.');
+                        progressContainer.classList.remove('show');
+                    } else {
+                        try {
+                            const resp = JSON.parse(xhr.responseText);
+                            alert(`Upload failed: ${resp.error || 'Unknown error'}`);
+                        } catch {
+                            alert('Upload failed - Server error');
                         }
-                    });
-                    const resp = await fetch('/api/speedtest/upraw', {method:'POST', body: stream});
-                    await resp.json();
-                }catch(_streamErr){
-                    // Fallback: small repeated POSTs until 5s
-                    async function postOnce(){
-                        const resp = await fetch('/api/speedtest/upraw', {method:'POST', body: chunk});
-                        await resp.json();
+                        progressContainer.classList.remove('show');
                     }
-                    while(true){
-                        const dt=(performance.now()-t0)/1000;
-                        if(dt>=5) break;
-                        await postOnce(); sent += kb;
-                    }
-                }
-            })();
-
-            // Wait for both
-            await Promise.all([doDownload, doUpload]);
-            const totalSec = Math.max(5, (performance.now()-t0)/1000);
-            const dMbps = fmtMbps(recv, totalSec);
-            const uMbps = fmtMbps(sent, totalSec);
-            status.textContent = 'Done';
-            out.innerHTML = `<div><strong>Download:</strong> ${dMbps}</div><div><strong>Upload:</strong> ${uMbps}</div>`;
-        } catch (e) {
-            status.textContent = 'Error';
-            out.textContent = 'Speed test failed: ' + e;
-        } finally {
-            clearInterval(uiTimer);
-            btn.disabled = false; btn.style.opacity='1';
-        }
-    }
-
-    // Shared Clipboard
-    let clipLast = 0;
-    async function loadClip(){
-        try{
-            const r = await fetch('/api/clipboard');
-            const d = await r.json();
-            if (d && typeof d.updated === 'number' && d.updated !== clipLast) {
-                clipLast = d.updated;
-                document.getElementById('clipText').value = d.text || '';
+                };
+                
+                xhr.onerror = function () {
+                    alert('Upload failed - Network error. Please check your connection.');
+                    progressContainer.classList.remove('show');
+                };
+                
+                xhr.open('POST', appendTokenIfNeeded('/upload_folder'));
+                xhr.send(formData);
+                
+            } catch (err) {
+                alert(`Error uploading folder: ${err.message}`);
+                progressContainer.classList.remove('show');
             }
-        }catch(e){ /* ignore */ }
-    }
-    setInterval(loadClip, 1000);
-    loadClip();
+        }
+        
+        // Recursively traverse directory
+        async function traverseDirectory(dirEntry, path, allFiles) {
+            const reader = dirEntry.createReader();
+            const entries = await new Promise((resolve, reject) => {
+                reader.readEntries(resolve, reject);
+            });
+            
+            for (const entry of entries) {
+                const fullPath = path ? `${path}/${entry.name}` : entry.name;
+                if (entry.isDirectory) {
+                    await traverseDirectory(entry, fullPath, allFiles);
+                } else if (entry.isFile) {
+                    const file = await getFileFromEntry(entry);
+                    if (file) allFiles.push({ file, path: fullPath });
+                }
+            }
+        }
+        
+        // Get File from FileEntry
+        function getFileFromEntry(fileEntry) {
+            return new Promise((resolve, reject) => {
+                fileEntry.file(resolve, reject);
+            });
+        }
 
-    async function pasteFromClipboard(){
-        try{
-            const txt = await navigator.clipboard.readText();
-            document.getElementById('clipText').value = txt;
-        }catch(e){ showNotification('✗ Clipboard read blocked by browser', 'error'); }
-    }
-    async function shareClip(){
-        const v = document.getElementById('clipText').value;
-        if(!v || !v.trim()) { showNotification('✗ Nothing to share', 'error'); return; }
-        try{
-            const res = await fetch('/api/clipboard', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text: v})});
-            const d = await res.json();
-            if(!res.ok || !d.success) throw new Error(d.error||('HTTP '+res.status));
-            showNotification('✓ Clipboard updated', 'success');
-        }catch(e){ showNotification('✗ Share failed: '+e, 'error'); }
-    }
-    async function copyClip(){
-        const ta = document.getElementById('clipText');
-        const v = ta.value || '';
-        // Primary API
-        try{
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(v);
-                showNotification('✓ Copied to clipboard', 'success');
+        async function handleFilesUpload(fileList) {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required. Please scan the QR code from the host PC.');
                 return;
             }
-        } catch(_e) { /* fallthrough to legacy */ }
-        // Legacy fallback for mobile/HTTP: programmatic selection + execCommand
-        try {
-            const prevReadOnly = ta.readOnly;
-            ta.readOnly = false; // some browsers require editable to select
-            const prevSelectionStart = ta.selectionStart, prevSelectionEnd = ta.selectionEnd;
-            ta.focus(); ta.select();
-            const ok = document.execCommand && document.execCommand('copy');
-            // Restore selection and flags
-            if (typeof prevSelectionStart === 'number' && typeof prevSelectionEnd === 'number') {
-                ta.setSelectionRange(prevSelectionStart, prevSelectionEnd);
+            const files = Array.from(fileList);
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSpeed = document.getElementById('progressSpeed');
+            progressContainer.classList.add('show');
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                progressTitle.textContent = `Uploading ${file.name} (${i + 1}/${files.length})`;
+                progressText.textContent = `${humanSize(0)} / ${humanSize(file.size)}`;
+                progressSpeed.textContent = '0 MB/s';
+                try {
+                    await uploadFileWithProgress(file, (sentBytes, totalBytes, speedBps) => {
+                        const pct = Math.min(100, (sentBytes / totalBytes) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = `${humanSize(sentBytes)} / ${humanSize(totalBytes)} (${pct.toFixed(0)}%)`;
+                        progressSpeed.textContent = humanSpeed(speedBps);
+                    });
+                } catch (err) {
+                    alert(`Error uploading ${file.name}: ${err.message}`);
+                }
             }
-            ta.readOnly = prevReadOnly;
-            if (ok) { showNotification('✓ Copied to clipboard', 'success'); return; }
-            throw new Error('execCommand returned false');
-        } catch(e) {
-            // Final hint for users/browsers that block programmatic copy
-            showNotification('Copy blocked by browser. Long-press the text then tap Copy.', 'error');
+            progressText.textContent = 'Upload complete!';
+            setTimeout(() => {
+                progressContainer.classList.remove('show');
+                progressFill.style.width = '0%';
+            }, 2000);
+            loadFiles();
         }
-    }
-    async function clearClip(){
-        try{
-            const res = await fetch('/api/clipboard', {method:'DELETE'});
-            if(!res.ok) throw new Error('HTTP '+res.status);
-            document.getElementById('clipText').value = '';
-            showNotification('✓ Clipboard cleared', 'success');
-        }catch(e){ showNotification('✗ Clear failed: '+e, 'error'); }
-    }
+
+        function uploadFileWithProgress(file, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('file', file);
+
+                let lastTime = Date.now();
+                let lastLoaded = 0;
+
+                xhr.upload.onprogress = function (e) {
+                    if (e.lengthComputable) {
+                        const now = Date.now();
+                        const deltaT = (now - lastTime) / 1000;
+                        const deltaB = e.loaded - lastLoaded;
+                        if (deltaT > 0) {
+                            const speed = deltaB / deltaT; // bytes/sec
+                            onProgress(e.loaded, e.total, speed);
+                        } else {
+                            onProgress(e.loaded, e.total, 0);
+                        }
+                        lastTime = now;
+                        lastLoaded = e.loaded;
+                    }
+                };
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            resolve();
+                        } else if (xhr.status === 401) {
+                            reject(new Error('Unauthorized - Please refresh and reconnect'));
+                        } else if (xhr.status === 413) {
+                            reject(new Error('File too large - Maximum size is 50GB'));
+                        } else if (xhr.status === 500) {
+                            try {
+                                const resp = JSON.parse(xhr.responseText);
+                                reject(new Error(resp.error || 'Server error'));
+                            } catch {
+                                reject(new Error('Upload failed - Server error'));
+                            }
+                        } else {
+                            reject(new Error(`Upload failed - Status ${xhr.status}`));
+                        }
+                    }
+                };
+
+                xhr.open('POST', appendTokenIfNeeded('/upload'));
+                xhr.send(formData);
+            });
+        }
+        
+        // Speed test functions
+        async function runSpeedTest() {
+            const btn = document.getElementById('speedtestBtn');
+            const downEl = document.getElementById('downloadSpeed');
+            const upEl = document.getElementById('uploadSpeed');
+            
+            btn.disabled = true;
+            btn.textContent = 'Testing...';
+            downEl.textContent = '0.00';
+            upEl.textContent = '0.00';
+            
+            try {
+                // Run both tests in parallel for 5 seconds with live updates
+                const testDuration = 5000; // 5 seconds
+                
+                // Start both tests and update UI live
+                const downPromise = testDownloadSpeedLive(testDuration, (speed) => {
+                    downEl.textContent = speed.toFixed(2);
+                });
+                
+                const upPromise = testUploadSpeedLive(testDuration, (speed) => {
+                    upEl.textContent = speed.toFixed(2);
+                });
+                
+                await Promise.all([downPromise, upPromise]);
+                
+                btn.textContent = '🚀 Run Speed Test (5 seconds)';
+                btn.disabled = false;
+            } catch (err) {
+                alert(`Speed test failed: ${err.message}`);
+                btn.textContent = '🚀 Run Speed Test (5 seconds)';
+                btn.disabled = false;
+            }
+        }
+        
+        async function testDownloadSpeedLive(duration, onUpdate) {
+            const startTime = Date.now();
+            let totalBytes = 0;
+            const chunkSize = 5 * 1024 * 1024; // 5MB chunks for smoother updates
+            
+            while (Date.now() - startTime < duration) {
+                const chunkStart = Date.now();
+                const resp = await fetch(`/api/speedtest/down?bytes=${chunkSize}`);
+                const blob = await resp.blob();
+                totalBytes += blob.size;
+                
+                // Calculate and update speed in real-time
+                const elapsed = (Date.now() - startTime) / 1000;
+                if (elapsed > 0) {
+                    const megabits = (totalBytes * 8) / 1000000;
+                    const speed = megabits / elapsed;
+                    onUpdate(speed);
+                }
+            }
+        }
+        
+        async function testUploadSpeedLive(duration, onUpdate) {
+            const startTime = Date.now();
+            let totalBytes = 0;
+            const chunkSize = 1 * 1024 * 1024; // 1MB chunks
+            const chunk = new Uint8Array(chunkSize);
+            
+            while (Date.now() - startTime < duration) {
+                const formData = new FormData();
+                formData.append('file', new Blob([chunk]));
+                
+                const resp = await fetch('/api/speedtest/up', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (resp.ok) {
+                    totalBytes += chunkSize;
+                    
+                    // Calculate and update speed in real-time
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    if (elapsed > 0) {
+                        const megabits = (totalBytes * 8) / 1000000;
+                        const speed = megabits / elapsed;
+                        onUpdate(speed);
+                    }
+                }
+            }
+        }
+        
+        // Initialize
+        async function init() {
+            // Run auth check first (required for other calls)
+            await checkAuth();
+            
+            // Run critical calls in parallel for faster load
+            await Promise.all([
+                updateStatus(),
+                loadFiles()
+            ]);
+            
+            // Hide page loader once critical content is loaded
+            const loader = document.getElementById('pageLoader');
+            if (loader) loader.classList.add('hide');
+            
+            // Defer clipboard load (non-critical)
+            setTimeout(() => loadClipboard(), 100);
+            
+            // Start polling intervals after initial load
+            setInterval(updateStatus, 5000);
+            setInterval(loadFiles, 5000);
+            
+            // Clipboard auto-sync: poll every 2s and update only if changed
+            setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/clipboard');
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    const text = data.text || '';
+                    if (clipboardLast === null) {
+                        clipboardLast = text;
+                        document.getElementById('clipboardText').value = text;
+                    } else if (text !== clipboardLast) {
+                        clipboardLast = text;
+                        document.getElementById('clipboardText').value = text;
+                        const status = document.getElementById('clipboardStatus');
+                        if (status) status.textContent = 'Updated';
+                        setTimeout(() => { if (status) status.textContent = 'Idle'; }, 1500);
+                    }
+                } catch {}
+            }, 2000);
+        }
+        
+        init();
     </script>
 </body>
 </html>

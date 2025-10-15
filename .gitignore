@@ -1,19 +1,43 @@
-# Build artifacts
-
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
 build/
-*.spec
+*.egg
 
-# Virtual environments
+# Virtual Environment
 .venv/
 venv/
+ENV/
+env/
 
-# Runtime data
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ShareJadPi Runtime
 uploads/
 shared_files/
 static/qr_code.png
+core_data/
 
-# OS/editor
+# Logs
 *.log
-.DS_Store
-Thumbs.db
-.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+.~*
