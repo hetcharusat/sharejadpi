@@ -1,11 +1,12 @@
 import os
 import sys
 import socket
+import secrets
 import qrcode
 import webbrowser
 import threading
 import time
-from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
+from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect, make_response
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
@@ -60,6 +61,7 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 # Simple shared clipboard (ephemeral, in-memory)
 CLIPBOARD_TEXT = ''
 CLIPBOARD_UPDATED = 0.0
+SECRET_TOKEN = os.environ.get('SHAREJADPI_TOKEN') or secrets.token_urlsafe(24)
 
 RUN_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_RUN_NAME = "ShareJadPi"
@@ -221,6 +223,20 @@ def get_local_ip():
         return ip
     except Exception:
         return "127.0.0.1"
+
+def get_access_url(with_token: bool = True) -> str:
+    """Return an http URL using a preferred LAN IPv4 if available, optionally with access token."""
+    try:
+        # pick a non-loopback IPv4 if available
+        ips = [ip for ip in _get_all_local_ips() if ip != '127.0.0.1' and ':' not in ip]
+        host_ip = ips[0] if ips else '127.0.0.1'
+    except Exception:
+        host_ip = '127.0.0.1'
+    url = f"http://{host_ip}:{PORT}"
+    if with_token:
+        # append as query on root; other pages will set cookie and redirect
+        return url + f"/?k={SECRET_TOKEN}"
+    return url
 
 def generate_qr_code(url):
     """Generate QR code"""
