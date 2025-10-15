@@ -248,7 +248,7 @@ from uuid import uuid4
 from threading import Lock
 REGISTRY_LOCK = Lock()
 ENTRIES = {}  # id -> entry dict
-EXPIRY_MINUTES = 0  # 0 = disabled
+EXPIRY_MINUTES = 10  # default 10 minutes; can be changed in Settings (0 = disabled)
 
 # Dedicated uploads dir (single-use)
 UPLOADS_DIR = UPLOADS_CORE_DIR
@@ -700,6 +700,9 @@ def api_autostart():
     if request.method == 'GET':
         return jsonify({'enabled': is_autostart_enabled()})
     data = request.get_json(silent=True) or {}
+    # Only host PC can change autostart
+    if not is_request_from_host():
+        return jsonify({'error': 'Forbidden'}), 403
     enable = data.get('enable')
     if enable is True:
         ok = enable_autostart()
@@ -716,6 +719,9 @@ def api_expiry():
     if request.method == 'GET':
         return jsonify({'minutes': EXPIRY_MINUTES, 'enabled': EXPIRY_MINUTES > 0})
     data = request.get_json(silent=True) or {}
+    # Only host PC can modify expiry
+    if not is_request_from_host():
+        return jsonify({'error': 'Forbidden'}), 403
     minutes = data.get('minutes')
     try:
         if minutes is None or minutes == '' or int(minutes) <= 0:
@@ -733,8 +739,8 @@ def api_expiry():
 
 @app.route('/api/paths', methods=['GET'])
 def api_paths():
-    # Only expose local paths to localhost
-    if request.remote_addr not in ('127.0.0.1', '::1'):
+    # Only expose local paths to the host PC
+    if not is_request_from_host():
         return jsonify({'error': 'Forbidden'}), 403
     return jsonify({'core': CORE_DIR, 'shared': SHARED_DIR, 'uploads': UPLOADS_CORE_DIR})
 
@@ -800,7 +806,7 @@ def api_clip():
 
 @app.route('/api/cache_status', methods=['GET'])
 def api_cache_status():
-    if request.remote_addr not in ('127.0.0.1', '::1'):
+    if not is_request_from_host():
         return jsonify({'error': 'Forbidden'}), 403
     s = _cache_status_dict()
     # Human-readable too
@@ -813,8 +819,13 @@ def api_cache_status():
 
 @app.route('/settings')
 def settings_page():
-        # simple inline page with expiry config and paths
+    # Restrict full settings to host PC; remote shows a friendly notice
+    if not is_request_from_host():
         return """<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>ShareJadPi Settings</title><style>body{margin:0;background:#0f1320;color:#e7ecf3;font-family:ui-sans-serif,system-ui;-webkit-font-smoothing:antialiased} .wrap{max-width:760px;margin:40px auto;padding:20px;background:#14192b;border:1px solid #233046;border-radius:14px} a{color:#a78bfa;text-decoration:none}</style></head>
+<body><div class='wrap'><h2>Settings available on host PC only</h2><p>Open this page on the computer running ShareJadPi to view and change settings.</p><p><a href='/'>← Back to Share</a></p></div></body></html>"""
+    # simple inline page with expiry config and paths (host only)
+    return """<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
 <title>ShareJadPi Settings</title>
 <style>
     :root{--bg:#0f1320;--card:#14192b;--text:#e7ecf3;--muted:#9aa4b2;--border:#233046;--primary:#22c55e;--primary-600:#16a34a;--danger:#ef4444;--shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -1064,11 +1075,69 @@ def speedtest_upraw():
 @app.after_request
 def add_no_cache_headers(resp):
     """Prevent caching for dynamic resources so updates show immediately."""
-    if request.path in ['/qr', '/api/files', '/api/expiry', '/api/autostart', '/api/share', '/api/paths', '/api/cache_status', '/api/open_path', '/api/reset_cache', '/api/recreate_dirs', '/api/speedtest/down', '/api/speedtest/up', '/api/speedtest/upraw', '/api/clip', '/api/clipboard', '/popup', '/']:
+    if request.path in ['/qr', '/api/files', '/api/expiry', '/api/autostart', '/api/share', '/api/paths', '/api/cache_status', '/api/open_path', '/api/reset_cache', '/api/recreate_dirs', '/api/speedtest/down', '/api/speedtest/up', '/api/speedtest/upraw', '/api/clip', '/api/clipboard', '/api/is_host', '/popup', '/']:
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         resp.headers['Pragma'] = 'no-cache'
         resp.headers['Expires'] = '0'
     return resp
+
+def _get_all_local_ips() -> set[str]:
+    """Get a set of local IP addresses (IPv4/IPv6) for this machine.
+    Uses only stdlib to avoid extra dependencies.
+    """
+    ips: set[str] = set()
+    # Always include loopbacks
+    ips.update({'127.0.0.1', '::1'})
+    try:
+        hostname = socket.gethostname()
+        # IPv4 addresses bound to hostname
+        try:
+            _, _, addrs = socket.gethostbyname_ex(hostname)
+            ips.update(addrs)
+        except Exception:
+            pass
+        # Primary outbound IPv4 (common LAN IP)
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            ips.add(s.getsockname()[0])
+            s.close()
+        except Exception:
+            pass
+        # Collect any other addresses via getaddrinfo
+        try:
+            for fam in (socket.AF_INET, socket.AF_INET6):
+                try:
+                    infos = socket.getaddrinfo(hostname, None, fam, socket.SOCK_STREAM)
+                    for info in infos:
+                        ip = info[4][0]
+                        if ip:
+                            ips.add(str(ip))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return ips
+
+
+@app.route('/api/is_host')
+def api_is_host():
+    client_ip = request.remote_addr or ''
+    is_host = client_ip in _get_all_local_ips()
+    return jsonify({'host': is_host})
+
+def is_request_from_host() -> bool:
+    """Return True if the current request originates from the host machine.
+    Recognizes loopback and all local interface IPs (IPv4/IPv6).
+    """
+    try:
+        client_ip = request.remote_addr or ''
+        return client_ip in _get_all_local_ips()
+    except Exception:
+        # Fail closed (treat as not host) to be safe
+        return False
 
 def run_flask():
     """Run Flask server"""
@@ -1161,6 +1230,14 @@ def main():
     except Exception as _e:
         pass
 
+    # Enable autostart by default on first run (Windows)
+    try:
+        if platform.system() == 'Windows' and winreg and not is_autostart_enabled():
+            if enable_autostart():
+                print("[AUTOSTART] Enabled at first run")
+    except Exception:
+        pass
+
     # Start tray icon
     tray_thread = threading.Thread(target=start_tray, daemon=True)
     tray_thread.start()
@@ -1169,9 +1246,7 @@ def main():
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
     
-    # Open browser with QR code
-    time.sleep(1)
-    webbrowser.open(f'http://127.0.0.1:{PORT}')
+    # Do not auto-open browser; tray provides quick actions
     
     # Keep server running
     try:

@@ -205,7 +205,7 @@
                     <div class="tagline">share to local just two clocks from pc</div>
                 </div>
             </div>
-            <a href="/settings" class="icon-btn" title="Settings" aria-label="Settings">⚙️</a>
+            <a href="/settings" id="settingsLink" class="icon-btn" title="Settings" aria-label="Settings">⚙️</a>
         </div>
 
         <div class="card qr-section">
@@ -274,9 +274,25 @@
         const filesList = document.getElementById('filesList');
         const fileCount = document.getElementById('fileCount');
         const qrImg = document.getElementById('qrImg');
+        const settingsLink = document.getElementById('settingsLink');
         const uploadingQueue = [];
         let uploading = false;
     // No dedupe set so selecting same filename again re-uploads immediately
+
+        // Hide Settings for non-host clients
+        (async () => {
+            try {
+                const r = await fetch('/api/is_host');
+                if (r.ok) {
+                    const d = await r.json();
+                    if (!d.host && settingsLink) {
+                        settingsLink.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                // If this fails, leave settings visible (host will still be enforced server-side)
+            }
+        })();
 
         // Drag and drop functionality
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
