@@ -42,8 +42,6 @@ core_data/
 
 # Build artifacts & distributions
 dist/
-build/
-installer_output/
 *.exe
 *.zip
 
@@ -60,8 +58,8 @@ BUILD_SUMMARY.md
 EXE_FIX_NOTES.md
 GITHUB_RELEASE_DRAFT.md
 INSTALLER_GUIDE.md
-RELEASE_NOTES_v3.md
-RELEASE_NOTES_v3.0.1.md
+RELEASE_NOTES_v4.md
+RELEASE_NOTES_v4.0.1.md
 TROUBLESHOOTING.md
 USAGE_GUIDE.md
 VIDEO_UPLOAD_GUIDE.md
