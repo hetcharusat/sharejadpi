@@ -11,10 +11,10 @@
 ### 📥 Download for Windows
 
 <a href="https://github.com/hetcharusat/sharejadpi/releases/download/setup-3.1/ShareJadPi-3.1.1-Setup.exe">
-  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v3.1.1%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white" alt="Download ShareJadPi" height="50"/>
+  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v3.1.1%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a" alt="Download ShareJadPi" height="70"/>
 </a>
 
-**✨ One-click installer • 🔥 Firewall auto-configured • 🚀 Ready in 30 seconds**
+**✨ One-click installer • 🔥 Firewall auto-configured • 🚀 Ready in 20 seconds**
 
 <sub>Windows 10/11 (64-bit) • 20 MB download</sub>
 
