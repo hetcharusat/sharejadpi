@@ -27,10 +27,10 @@ Share files ANYWHERE with one click — Local WiFi AND Public Internet.
 - 📱 QR Code Access — Instant secure mobile connection (Local mode)
 - ⚡ Background Folder Zipping — Live progress with speed & ETA
 - 🌑 Beautiful Dark UI — Modern, responsive design
-- � Clipboard Sync — Share text between devices
+ - 📋 Clipboard Sync — Share text between devices
 - 📶 Network Speed Test — Check your network performance
 - 📦 Large File Support — Handle files up to 50GB
-- � Multi‑Select Actions — Zip, pin, delete multiple files
+ - 🔥 Multi‑Select Actions — Zip, pin, delete multiple files
 - 🧰 System Tray App — Runs quietly in background; optional auto‑start
 
 Online Share (UNIQUE): Send files over the public internet in ~10–15s with Cloudflare Tunnel — zero setup, no port forwarding, no DDNS, no VPN.
@@ -50,7 +50,40 @@ Online Share (UNIQUE): Send files over the public internet in ~10–15s with Clo
 
 ---
 
-## Screenshots
+## Screenshots & Demo
+
+### Video demos
+
+<div align="center">
+
+<details>
+  <summary>⚙️ Settings Overview (expand to play)</summary>
+
+  https://github.com/user-attachments/assets/62325df0-b18f-4106-847e-3807825160e3
+
+  <br/>
+  <sub>If the preview doesn’t load, open the link above directly.</sub>
+</details>
+
+<details>
+  <summary>🖱️ Context Menu Share (expand to play)</summary>
+
+  https://github.com/user-attachments/assets/e3642d5a-b051-4c72-9e5e-9fe42629bb75
+
+  <br/>
+  <sub>If the preview doesn’t load, open the link above directly.</sub>
+</details>
+
+<details>
+  <summary>🧰 Tray Icon → Open Share Page (expand to play)</summary>
+
+  https://github.com/user-attachments/assets/db1e52f6-c7d5-42ab-81ec-7b327f92b3aa
+
+  <br/>
+  <sub>If the preview doesn’t load, open the link above directly.</sub>
+</details>
+
+</div>
 
 ### Home Preview
 <div align="center">
@@ -104,16 +137,6 @@ python sharejadpi.py
 ```
 
 For Online Share from source, place `cloudflared.exe` in the project root.
-
----
-
-## Video demos (coming soon)
-
-- ▶️ Context Menu Share (context-menu-share.mp4) — video placeholder
-- ▶️ Open ShareJadPi (open_sharejadpi.mp4) — video placeholder
-- ▶️ Settings Overview (settings.mp4) — video placeholder
-
-Note: We’ll upload videos directly on GitHub for proper preview; links above are placeholders.
 
 ---
 
