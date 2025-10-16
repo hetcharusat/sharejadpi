@@ -8,9 +8,13 @@
 
 <div align="center">
 
-### [📥 Download ShareJadPi v3.0.0 (Windows)](https://github.com/hetcharusat/sharejadpi/releases/latest/download/ShareJadPi-3.0.0.exe)
+## 📥 Download ShareJadPi
 
-**One-click install • No setup required • Ready to use**
+<a href="https://github.com/hetcharusat/sharejadpi/releases/download/setup-3.1/ShareJadPi-3.1.1-Setup.exe">
+  <img src="https://img.shields.io/badge/Download-ShareJadPi%20v3.1.1%20Setup-blue?style=for-the-badge&logo=windows&logoColor=white" alt="Download ShareJadPi v3.1.1">
+</a>
+
+**✨ One-click installer • 🔥 Firewall auto-config • 🚀 Ready in seconds**
 
 </div>
 
