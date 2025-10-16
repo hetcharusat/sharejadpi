@@ -7,14 +7,16 @@
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 <div align="center">
-
-## 📥 Download ShareJadPi
+  
+### 📥 Download for Windows
 
 <a href="https://github.com/hetcharusat/sharejadpi/releases/download/setup-3.1/ShareJadPi-3.1.1-Setup.exe">
-  <img src="https://img.shields.io/badge/Download-ShareJadPi%20v3.1.1%20Setup-blue?style=for-the-badge&logo=windows&logoColor=white" alt="Download ShareJadPi v3.1.1">
+  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v3.1.1%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white" alt="Download ShareJadPi" height="50"/>
 </a>
 
-**✨ One-click installer • 🔥 Firewall auto-config • 🚀 Ready in seconds**
+**✨ One-click installer • 🔥 Firewall auto-configured • 🚀 Ready in 30 seconds**
+
+<sub>Windows 10/11 (64-bit) • 20 MB download</sub>
 
 </div>
 
