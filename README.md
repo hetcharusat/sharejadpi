@@ -17,47 +17,47 @@ ShareJadPi turns your Windows PC into a local file server that you can access fr
 ### 🖱️ Context Menu Integration (PC)
 Right-click any file or folder to share instantly:
 
-https://github.com/user-attachments/assets/context-menu-share.mp4
+<video src="vidss/context-menu-share.mp4" width="480" controls></video>
 
 ### 🏠 Home Interface (Mobile)
 Beautiful dark UI with all features at your fingertips:
 
-![Home Preview](vidss/home-preview.jpg)
+<img src="vidss/home-preview.jpg" width="280" alt="Home Preview">
 
 ### 📂 Opening ShareJadPi (PC)
 Quick access from system tray:
 
-https://github.com/user-attachments/assets/open_sharejadpi.mp4
+<video src="vidss/open_sharejadpi.mp4" width="480" controls></video>
 
 ### ☑️ Multi-Select & Zip (Mobile)
 Select multiple files to download as a zip:
 
-![Select Files and Zip](vidss/select-files-and-zip.jpg)
+<img src="vidss/select-files-and-zip.jpg" width="280" alt="Select Files and Zip">
 
 ### 📤 Uploading Files (Mobile)
 Drag & drop or choose files with live progress:
 
-![Uploading Files](vidss/uploading-files.jpg)
+<img src="vidss/uploading-files.jpg" width="280" alt="Uploading Files">
 
 ### ⚙️ Settings Panel (PC)
 Configure autostart, file expiry, and context menu:
 
-https://github.com/user-attachments/assets/settings.mp4
+<video src="vidss/settings.mp4" width="480" controls></video>
 
 ### 📋 Shared Clipboard & Speed Test (Mobile)
 Sync text between devices and test network speed:
 
-![Shared Clipboard and Speed Test](vidss/shared-clipboard-and-speedtest.jpg)
+<img src="vidss/shared-clipboard-and-speedtest.jpg" width="280" alt="Shared Clipboard and Speed Test">
 
 ### 📁 Shared Files Component (Mobile)
 View all shared files with pin, download, and delete options:
 
-![Shared Files Component](vidss/shared-files-component.jpg)
+<img src="vidss/shared-files-component.jpg" width="280" alt="Shared Files Component">
 
 ### 📦 Folder Zipping in Action (PC)
 Background zipping with real-time progress and ETA:
 
-![Zipping Folder](vidss/zipping-the-folder.png)
+<img src="vidss/zipping-the-folder.png" width="480" alt="Zipping Folder">
 
 ---
 
