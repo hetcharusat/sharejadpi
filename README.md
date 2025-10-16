@@ -6,6 +6,16 @@
 [![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
+<div align="center">
+
+### [📥 Download ShareJadPi v3.0.0 (Windows)](https://github.com/hetcharusat/sharejadpi/releases/latest/download/ShareJadPi-3.0.0.exe)
+
+**One-click install • No setup required • Ready to use**
+
+</div>
+
+---
+
 ShareJadPi turns your Windows PC into a local file server accessible from any device on your network. Share files instantly, sync clipboard, upload from mobile, and more—all with a beautiful, modern web interface.
 
 ---
