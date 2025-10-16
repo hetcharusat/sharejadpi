@@ -1,71 +1,184 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-*.egg
+# Python# Python
 
-# Virtual Environment
-.venv/
-venv/
-ENV/
-env/
+__pycache__/__pycache__/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+*.py[cod]*.py[cod]
 
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
+*$py.class*$py.class
 
-# ShareJadPi Runtime
-uploads/
-shared_files/
-static/qr_code.png
-core_data/
+*.so*.so
 
-# Logs
-*.log
+.Python.Python
 
-# Temporary files
-*.tmp
-*.bak
-*.backup
-.~*
+*.egg-info/*.egg-info/
 
-# Build artifacts & distributions
-dist/
-*.exe
-*.zip
+*.egg*.egg
 
-# Old helper build scripts
-build_v*.ps1
 
-# Keep spec/installer config files tracked (do NOT ignore .spec/.iss)
-# ShareJadPi-*.spec
+
+# Virtual Environment# Virtual Environment
+
+.venv/.venv/
+
+venv/venv/
+
+ENV/ENV/
+
+env/env/
+
+
+
+# IDE# IDE
+
+.vscode/.vscode/
+
+.idea/.idea/
+
+*.swp*.swp
+
+*.swo*.swo
+
+*~*~
+
+
+
+# OS# OS
+
+.DS_Store.DS_Store
+
+Thumbs.dbThumbs.db
+
+desktop.inidesktop.ini
+
+
+
+# ShareJadPi Runtime# ShareJadPi Runtime
+
+uploads/uploads/
+
+shared_files/shared_files/
+
+static/qr_code.pngstatic/qr_code.png
+
+core_data/core_data/
+
+
+
+# Logs# Logs
+
+*.log*.log
+
+
+
+# Temporary files# Temporary files
+
+*.tmp*.tmp
+
+*.bak*.bak
+
+*.backup*.backup
+
+.~*.~*
+
+test_bundle.pu
+
+# Build artifacts & distributionstest_bundle.spec
+
+dist/# Build artifacts & distributions
+
+*.exedist/
+
+!cloudflared.exe*.exe
+
+*.zip!cloudflared.exe
+
+build/*.zip
+
+installer_output/build/
+
+
+
+# Old build scripts and specs (keep only v4.5.0)# Old build scripts and specs (keep only latest)
+
+build_tools/ShareJadPi-3.*.specShareJadPi-3.*.spec
+
+build_tools/ShareJadPi-4.0.*.specShareJadPi-4.0.*.spec
+
+build_tools/ShareJadPi-4.1.*.specShareJadPi-4.1.*.spec
+
+build_tools/ShareJadPi-4.2.*.specShareJadPi-Installer-3.*.iss
+
+build_tools/ShareJadPi-4.3.*.specShareJadPi-Installer-4.0.*.iss
+
+build_tools/ShareJadPi-4.4.*.specShareJadPi-Installer-4.1.*.iss
+
+build_tools/ShareJadPi-Installer-3.*.issbuild_v*.ps1
+
+build_tools/ShareJadPi-Installer-4.0.*.iss
+
+build_tools/ShareJadPi-Installer-4.1.*.isstest_bundle.pu
+
+build_tools/ShareJadPi-Installer-4.2.*.isstest_bundle.spec
+
+build_tools/ShareJadPi-Installer-4.3.*.iss
+
+build_tools/ShareJadPi-Installer-4.4.*.iss# Keep spec/installer config files tracked (do NOT ignore .spec/.iss)
+
+build_scripts/build_v*.ps1# ShareJadPi-*.spec
+
 # ShareJadPi-Installer-*.iss
-# ShareJadPi-Installer.iss
 
-# Development/internal docs (not for users)
+# Old release notes (keep only v4.5.0)# ShareJadPi-Installer.iss
+
+release_notes/RELEASE_NOTES_v3*.md
+
+release_notes/RELEASE_NOTES_v4.0*.md# Development/internal docs (not for users)
+
+release_notes/RELEASE_NOTES_v4.1*.mdBUILD_SUMMARY.md
+
+release_notes/RELEASE_NOTES_v4.2*.mdEXE_FIX_NOTES.md
+
+release_notes/RELEASE_NOTES_v4.3*.mdGITHUB_RELEASE_DRAFT.md
+
+release_notes/RELEASE_NOTES_v4.4*.mdINSTALLER_GUIDE.md
+
+release_notes/BUILD_SUMMARY_v3*.mdRELEASE_NOTES_v3.*.md
+
+release_notes/BUILD_SUMMARY_v4.0*.mdRELEASE_NOTES_v4.0.*.md
+
+release_notes/BUILD_SUMMARY_v4.1*.mdRELEASE_NOTES_v4.1.*.md
+
+release_notes/BUILD_SUMMARY_v4.2*.mdTROUBLESHOOTING.md
+
+release_notes/BUILD_SUMMARY_v4.3*.mdUSAGE_GUIDE.md
+
+release_notes/BUILD_SUMMARY_v4.4*.mdVIDEO_UPLOAD_GUIDE.md
+
+README.md.backup
+
+# Test filesCLOUDFLARE_*.md
+
+tests/test_bundle.*NGROK_*.md
+
+ONLINE_SHARING_*.md
+
+# Unwanted MD files (already cleaned up)IMPLEMENTATION_SUMMARY.md
+
 BUILD_SUMMARY.md
-EXE_FIX_NOTES.md
-GITHUB_RELEASE_DRAFT.md
-INSTALLER_GUIDE.md
-RELEASE_NOTES_v4.md
-RELEASE_NOTES_v4.0.1.md
-TROUBLESHOOTING.md
+
+EXE_FIX_NOTES.md# Helper scripts (included in installer, not needed in repo)
+
+GITHUB_RELEASE_DRAFT.mdshow_connection_info.ps1
+
+INSTALLER_GUIDE.mdfix_firewall.ps1
+
+TROUBLESHOOTING.mdbuild_installer.ps1
+
 USAGE_GUIDE.md
 VIDEO_UPLOAD_GUIDE.md
 README.md.backup
-
-# Helper scripts (included in installer, not needed in repo)
-show_connection_info.ps1
-fix_firewall.ps1
-build_installer.ps1
+CLOUDFLARE_*.md
+NGROK_*.md
+ONLINE_SHARING_*.md
+IMPLEMENTATION_SUMMARY.md
+TESTING_GUIDE.md

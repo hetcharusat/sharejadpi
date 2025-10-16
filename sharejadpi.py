@@ -18,6 +18,75 @@ try:
     import winreg  # type: ignore
 except ImportError:
     winreg = None
+
+# Simple debug logger to help diagnose context-menu flows (windowless)
+def _debug_log(msg: str):
+    try:
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_path = os.path.join(os.environ.get('TEMP', os.getcwd()), 'ShareJadPi.log')
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(f"[{ts}] {msg}\n")
+    except Exception:
+        pass
+
+def _safe_flush():
+    """Safely flush stdout (handles windowless EXE where stdout is None)"""
+    try:
+        if sys.stdout is not None:
+            _safe_flush()
+    except Exception:
+        pass
+
+def _wait_for_server(port: int, timeout_sec: int = 25) -> bool:
+    """Wait until localhost:port accepts a TCP connection or timeout.
+    Returns True when server is up, otherwise False."""
+    start = time.time()
+    while time.time() - start < timeout_sec:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.settimeout(1.5)
+            s.connect(('127.0.0.1', port))
+            s.close()
+            return True
+        except Exception:
+            time.sleep(0.3)
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+    return False
+
+def _start_server_background():
+    """Start ShareJadPi server in the background (no console window)."""
+    try:
+        if getattr(sys, 'frozen', False):  # running as packaged exe
+            exe = sys.executable
+            cmd = [exe]
+        else:
+            cmd = [sys.executable, os.path.abspath(__file__)]
+
+        creation = 0
+        if platform.system() == 'Windows':
+            creation = subprocess.CREATE_NO_WINDOW | getattr(subprocess, 'DETACHED_PROCESS', 0)
+
+        _debug_log(f"[LAUNCH] Starting server background: {' '.join(cmd)}")
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation)
+        return True
+    except Exception as e:
+        _debug_log(f"[LAUNCH] Failed to start server: {e}")
+        return False
+def _message_box(title: str, text: str):
+    """Simple native MessageBox fallback when toast is unavailable."""
+    try:
+        if platform.system() == 'Windows':
+            MB_ICONINFORMATION = 0x40
+            MB_OK = 0x0
+            ctypes.windll.user32.MessageBoxW(0, str(text), str(title), MB_OK | MB_ICONINFORMATION)  # type: ignore[attr-defined]
+        else:
+            print(f"[MSGBOX] {title}: {text}")
+    except Exception:
+        print(f"[MSGBOX] {title}: {text}")
 try:
     import pystray
     from PIL import Image as PILImage, ImageDraw as PILImageDraw
@@ -69,112 +138,115 @@ class CloudflareManager:
         Returns public URL or None if failed.
         """
         print(f"[CLOUDFLARE DEBUG] start_tunnel() ENTERED - port={port}, file_size={file_size}")
-        sys.stdout.flush()
-        
+        _safe_flush()
         print("[CLOUDFLARE DEBUG] Acquiring lock...")
-        sys.stdout.flush()
-        
+        _safe_flush()
         with self.lock:
             print("[CLOUDFLARE DEBUG] Lock acquired, stopping existing tunnel if any...")
-            sys.stdout.flush()
-            
-            # Stop existing tunnel if any (using internal version to avoid deadlock)
+            _safe_flush()
             self._stop_tunnel_internal()
-            
             print("[CLOUDFLARE DEBUG] Ready to start new tunnel...")
-            sys.stdout.flush()
-            
+            _safe_flush()
             try:
                 # Calculate timeout based on file size
                 self.timeout_minutes = self.calculate_timeout(file_size)
-                
                 print(f"[CLOUDFLARE] Starting tunnel to port {port}...")
                 print(f"[CLOUDFLARE] Idle timeout: {self.timeout_minutes} minutes (file size: {format_file_size(file_size)})")
-                
                 # Find cloudflared executable
-                # Priority: 1) Same directory as script/exe, 2) PATH
                 cloudflared_path = 'cloudflared'
-                
-                # If running as PyInstaller bundle, check bundle directory
                 if getattr(sys, 'frozen', False):
-                    bundle_dir = os.path.dirname(sys.executable)
+                    bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
                     bundled_cloudflared = os.path.join(bundle_dir, 'cloudflared.exe')
                     if os.path.exists(bundled_cloudflared):
                         cloudflared_path = bundled_cloudflared
-                        print(f"[CLOUDFLARE] Using bundled cloudflared: {cloudflared_path}")
+                        print(f"[CLOUDFLARE] Using bundled cloudflared from _MEIPASS: {cloudflared_path}")
+                        _debug_log(f"[CF] using bundled: {cloudflared_path}")
+                    else:
+                        print(f"[CLOUDFLARE] cloudflared.exe not found in bundle dir: {bundle_dir}")
+                        _debug_log(f"[CF] not in bundle {bundle_dir}")
+                        # Fallback: check installed directory (same dir as EXE)
+                        install_dir = os.path.dirname(sys.executable)
+                        install_cloudflared = os.path.join(install_dir, 'cloudflared.exe')
+                        if os.path.exists(install_cloudflared):
+                            cloudflared_path = install_cloudflared
+                            print(f"[CLOUDFLARE] Using cloudflared from install dir: {cloudflared_path}")
+                            _debug_log(f"[CF] using install dir: {cloudflared_path}")
+                        else:
+                            print(f"[CLOUDFLARE] ERROR: cloudflared.exe not found in install dir: {install_dir}")
+                            _debug_log(f"[CF] not found in install dir {install_dir}")
                 else:
-                    # Running as script - check script directory
                     script_dir = os.path.dirname(os.path.abspath(__file__))
                     local_cloudflared = os.path.join(script_dir, 'cloudflared.exe')
                     if os.path.exists(local_cloudflared):
                         cloudflared_path = local_cloudflared
                         print(f"[CLOUDFLARE] Using local cloudflared: {cloudflared_path}")
-                
+                        _debug_log(f"[CF] using local: {cloudflared_path}")
+                # Validate executable when explicit path used
+                if os.path.sep in cloudflared_path and not os.path.exists(cloudflared_path):
+                    self.last_error = f"cloudflared missing at {cloudflared_path}"
+                    _debug_log(f"[CF] {self.last_error}")
+                    print(f"[CLOUDFLARE] {self.last_error}")
+                    return None
                 # Start cloudflared process
-                # Using --url localhost:PORT for quick tunnel (no auth needed)
-                cmd = [cloudflared_path, 'tunnel', '--url', f'http://localhost:{port}']
-                
+                cmd = [cloudflared_path, 'tunnel', '--no-autoupdate', '--url', f'http://localhost:{port}']
                 self.process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
-                    bufsize=1,  # Line buffered
+                    bufsize=1,
                     creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == 'Windows' else 0
                 )
-                
                 print(f"[CLOUDFLARE] Process started (PID: {self.process.pid})")
-                
                 # Read output to get the public URL
-                # Cloudflare prints: "Your quick Tunnel has been created! Visit it at: https://..."
                 print("[CLOUDFLARE] Waiting for tunnel URL...")
+                _debug_log("[CF] waiting for tunnel url...")
                 timeout_start = time.time()
-                while time.time() - timeout_start < 30:  # 30 second timeout
-                    line = self.process.stdout.readline()
+                while time.time() - timeout_start < 45:
+                    if not self.process:
+                        print("[CLOUDFLARE] No process handle; aborting read loop")
+                        _debug_log("[CF] no process handle")
+                        break
+                    out = getattr(self.process, 'stdout', None)
+                    if out is None:
+                        print("[CLOUDFLARE] No process stdout available; aborting read loop")
+                        _debug_log("[CF] no stdout available")
+                        break
+                    line = out.readline()
                     if not line:
-                        # Check if process died
                         if self.process.poll() is not None:
                             print(f"[CLOUDFLARE] Process exited with code: {self.process.poll()}")
+                            _debug_log(f"[CF] process exited code={self.process.poll()}")
                             break
                         time.sleep(0.1)
                         continue
-                    
                     print(f"[CLOUDFLARE] Output: {line.strip()}")
-                    
-                    # Look for the URL in output
+                    _debug_log(f"[CF][out] {line.strip()}")
                     if 'trycloudflare.com' in line:
-                        # Extract URL from line - improved regex to handle various formats
                         import re as _re
-                        # Match full URL: https://xyz-abc-123.trycloudflare.com
                         match = _re.search(r'https://[a-zA-Z0-9.-]+\.trycloudflare\.com', line)
                         if match:
                             extracted_url = match.group(0)
-                            # Validate it's not the API endpoint
                             if 'api.trycloudflare.com' not in extracted_url:
                                 self.public_url = extracted_url
                                 self.last_activity = time.time()
                                 print(f"[CLOUDFLARE] ✓ Tunnel active: {self.public_url}")
-                                
-                                # Start monitor thread
                                 self.running = True
                                 self.monitor_thread = threading.Thread(target=self._monitor_idle, daemon=True)
                                 self.monitor_thread.start()
-                                
+                                _debug_log(f"[CF] tunnel active {self.public_url}")
                                 return self.public_url
                             else:
                                 print(f"[CLOUDFLARE] Skipping API URL: {extracted_url}")
                         else:
                             print(f"[CLOUDFLARE] Found 'trycloudflare.com' but regex didn't match: {line.strip()}")
-                    
-                    # Check for errors
                     if 'error' in line.lower() or 'failed' in line.lower():
                         self.last_error = line.strip()
-                
-                # If we get here, couldn't find URL
-                self.last_error = "Could not extract tunnel URL from cloudflared output"
+                        _debug_log(f"[CF] error: {self.last_error}")
+                self.last_error = self.last_error or "Could not extract tunnel URL from cloudflared output"
+                _debug_log(f"[CF] failed: {self.last_error}")
                 print(f"[CLOUDFLARE] Failed to start tunnel: {self.last_error}")
                 return None
-                
             except FileNotFoundError:
                 self.last_error = "cloudflared not found - please install it"
                 print(f"[CLOUDFLARE] Error: cloudflared not installed")
@@ -185,10 +257,8 @@ class CloudflareManager:
                 print(f"[CLOUDFLARE] Exception in start_tunnel: {e}")
                 import traceback
                 traceback.print_exc()
-                sys.stdout.flush()
+                _safe_flush()
                 return None
-    
-    def update_activity(self):
         """Update last activity timestamp."""
         with self.lock:
             self.last_activity = time.time()
@@ -219,7 +289,7 @@ class CloudflareManager:
         if self.process:
             try:
                 print("[CLOUDFLARE] Stopping existing tunnel...")
-                sys.stdout.flush()
+                _safe_flush()
                 self.process.terminate()
                 try:
                     self.process.wait(timeout=5)
@@ -229,7 +299,7 @@ class CloudflareManager:
                 self.public_url = None
                 self.last_activity = None
                 print("[CLOUDFLARE] ✓ Tunnel stopped")
-                sys.stdout.flush()
+                _safe_flush()
             except Exception as e:
                 self.last_error = str(e)
                 print(f"[CLOUDFLARE] Error stopping tunnel: {e}")
@@ -245,6 +315,11 @@ class CloudflareManager:
         """Check if tunnel is currently active."""
         with self.lock:
             return self.process is not None and self.public_url is not None
+
+    def update_activity(self):
+        """Update last activity timestamp to prevent idle shutdown."""
+        with self.lock:
+            self.last_activity = time.time()
 
 
 class OnlineShareManager:
@@ -384,7 +459,18 @@ class OnlineShareManager:
             qr_img = qr.make_image(fill_color="black", back_color="white")
             
             qr_path = os.path.join(STATIC_DIR, f"qr_online_{token[:16]}.png")
-            qr_img.save(qr_path)
+            # Ensure directory exists
+            os.makedirs(STATIC_DIR, exist_ok=True)
+            
+            # Remove existing file if locked
+            if os.path.exists(qr_path):
+                try:
+                    os.chmod(qr_path, stat.S_IWRITE)
+                    os.remove(qr_path)
+                except Exception:
+                    pass
+            
+            qr_img.save(qr_path)  # type: ignore[arg-type]
             return qr_path
             
         except Exception as e:
@@ -545,7 +631,16 @@ def show_windows_notification(title, message):
             stderr=subprocess.DEVNULL,
         )
     except Exception as e:
-        print(f"[NOTIFICATION] Failed to show notification: {e}")
+        print(f"[NOTIFICATION] Failed to show toast: {e}")
+        # Fallback: simple MessageBox on Windows
+        try:
+            if platform.system() == 'Windows':
+                import ctypes as _ct
+                MB_OK = 0x00000000
+                MB_ICONINFORMATION = 0x00000040
+                _ct.windll.user32.MessageBoxW(None, str(message), str(title), MB_OK | MB_ICONINFORMATION)
+        except Exception:
+            pass
 
 def get_python_exe():
     return sys.executable
@@ -936,16 +1031,17 @@ def tray_open_online(icon, item):  # noqa: ARG001
     try:
         import urllib.request as _ur
         import json as _json
-        
-        # Call /api/tunnel/start
+        # Open the /online-wait page immediately for visual feedback
+        webbrowser.open(f'http://127.0.0.1:{PORT}/online-wait')
+        # Trigger tunnel start in background
         payload = _json.dumps({'size_hint': 0}).encode()
         req = _ur.Request(f'http://127.0.0.1:{PORT}/api/tunnel/start', data=payload, headers={'Content-Type': 'application/json'})
-        with _ur.urlopen(req, timeout=5) as resp:
-            body = resp.read().decode('utf-8', errors='ignore')
-            print("[TRAY] Tunnel start response:", body)
-        
-        # Open the /online-wait page which shows live status
-        webbrowser.open(f'http://127.0.0.1:{PORT}/online-wait')
+        try:
+            with _ur.urlopen(req, timeout=3) as resp:
+                body = resp.read().decode('utf-8', errors='ignore')
+                print("[TRAY] Tunnel start response:", body)
+        except Exception as _e:
+            print(f"[TRAY] /api/tunnel/start error: {_e}")
     except Exception as e:
         print(f"[TRAY] Failed to start online tunnel: {e}")
 
@@ -1318,7 +1414,10 @@ def _token_gate():
     
     # Public endpoints that don't require authorization
     # NOTE: / is NOT public - it requires token authentication
-    public_paths = ['/qr', '/popup', '/health', '/favicon.ico', '/api/status', '/api/is_host', '/login']
+    public_paths = [
+        '/qr', '/popup', '/health', '/favicon.ico', '/api/status', '/api/is_host', '/login',
+        '/online-wait', '/api/tunnel/status', '/api/tunnel/start'
+    ]
     if request.path.startswith('/static'):
         public_paths.append(request.path)
     
@@ -1570,11 +1669,16 @@ def qr_code():
         qr.add_data(qr_url)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white")
+        # Convert to PIL.Image for typing compatibility
+        try:
+            pil_img = qr_img.get_image()  # type: ignore[attr-defined]
+        except Exception:
+            pil_img = qr_img
         
         # Save to memory buffer instead of file
         from io import BytesIO
         buffer = BytesIO()
-        qr_img.save(buffer, format='PNG')
+        pil_img.save(buffer, format='PNG')  # type: ignore[call-arg]
         buffer.seek(0)
         
         return send_file(buffer, mimetype='image/png', as_attachment=False, download_name='qr_code.png')
@@ -2097,10 +2201,10 @@ def api_tunnel_start():
         # Non-blocking start: kick off a background thread if not active
         if not cloudflare_manager.is_active():
             print("[CLOUDFLARE] /api/tunnel/start requested - starting in background")
-            sys.stdout.flush()
+            _safe_flush()
             def _bg_start():
                 print(f"[CLOUDFLARE DEBUG] Background thread started, calling start_tunnel(port={PORT}, size_hint={size_hint})")
-                sys.stdout.flush()
+                _safe_flush()
                 try:
                     public = cloudflare_manager.start_tunnel(PORT, size_hint)
                     if public:
@@ -2133,13 +2237,15 @@ def api_tunnel_status():
     
     # If tunnel is active and URL exists, verify it's reachable
     reachable = False
-    if active and public:
+    if active and public and url:
         try:
-            import requests
-            # Quick HEAD request to verify DNS is propagated
-            response = requests.head(url, timeout=5, allow_redirects=True)
-            reachable = response.status_code in [200, 301, 302, 303, 307, 308]
-        except:
+            # Quick HEAD using urllib to avoid extra deps
+            import urllib.request as _ur
+            req = _ur.Request(url, method='HEAD')
+            with _ur.urlopen(req, timeout=10) as resp:  # Increased timeout to 10s
+                code = getattr(resp, 'status', None)
+                reachable = code in (200, 301, 302, 303, 307, 308)
+        except Exception:
             reachable = False
     
     return jsonify({
@@ -2186,6 +2292,7 @@ h1{color:#667eea;font-size:28px;margin-bottom:10px;font-weight:600;text-shadow:0
 .progress-bar{height:100%;background:linear-gradient(90deg,#667eea,#764ba2,#667eea);background-size:200% 100%;border-radius:10px;width:0%;transition:width 0.3s ease;animation:shimmer 2s linear infinite;box-shadow:0 0 15px rgba(102,126,234,0.6)}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .status-box{background:linear-gradient(135deg,rgba(102,126,234,0.1) 0%,rgba(118,75,162,0.1) 100%);border-radius:12px;padding:20px;margin:25px 0;border-left:4px solid #667eea;position:relative;overflow:hidden;border:1px solid rgba(102,126,234,0.2)}
+.status-box.error{border-left:4px solid #ef4444;border-color:rgba(239,68,68,0.3)}
 .status-box::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(102,126,234,0.2),transparent);animation:scan 2s ease-in-out infinite}
 @keyframes scan{0%{left:-100%}100%{left:200%}}
 .status-icon{font-size:32px;margin-bottom:10px;display:inline-block;animation:pulse 2s ease-in-out infinite}
@@ -2196,26 +2303,29 @@ h1{color:#667eea;font-size:28px;margin-bottom:10px;font-weight:600;text-shadow:0
 .step{display:flex;align-items:center;padding:12px 15px;margin:8px 0;border-radius:8px;background:rgba(20,20,35,0.6);transition:all 0.3s;border:1px solid rgba(102,126,234,0.1)}
 .step.active{background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(118,75,162,0.15));border-left:3px solid #667eea;border-color:rgba(102,126,234,0.3)}
 .step.complete{background:rgba(40,167,69,0.15);border-left:3px solid #28a745;border-color:rgba(40,167,69,0.3)}
+.step.error{background:rgba(239,68,68,0.15);border-left:3px solid #ef4444;border-color:rgba(239,68,68,0.3)}
 .step-icon{font-size:20px;margin-right:12px;min-width:24px}
 .step-text{color:#ddd;font-size:14px;flex:1}
 .step-status{font-size:11px;color:#999;margin-left:10px}
 .spinner{display:inline-block;width:40px;height:40px;border:4px solid rgba(102,126,234,0.2);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite;margin:20px 0}
 @keyframes spin{to{transform:rotate(360deg)}}
-.btn{display:inline-block;margin-top:15px;padding:14px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:25px;text-decoration:none;font-weight:600;font-size:15px;transition:all 0.3s;box-shadow:0 4px 15px rgba(102,126,234,0.4);border:none}
+.btn{display:inline-block;margin-top:15px;padding:14px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:25px;text-decoration:none;font-weight:600;font-size:15px;transition:all 0.3s;box-shadow:0 4px 15px rgba(102,126,234,0.4);border:none;cursor:pointer}
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.6)}
 .hidden{display:none}
 .dots::after{content:'';animation:dots 1.5s steps(4) infinite}
 @keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+.error-msg{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;margin-top:15px;color:#fca5a5;font-size:13px;text-align:left}
 </style></head><body>
 <div class="container">
   <div class="logo">&#128640;</div>
   <h1>ShareJadPi Online</h1>
   <div class="subtitle">Creating your secure public tunnel</div>
   <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
-  <div class="status-box">
+  <div class="status-box" id="status-box">
     <div class="status-icon" id="status-icon">&#128260;</div>
     <div class="status-text" id="status-text">Initializing<span class="dots"></span></div>
     <div class="status-detail" id="status-detail">Preparing secure tunnel infrastructure...</div>
+    <div class="error-msg hidden" id="error-msg"></div>
   </div>
   <div class="steps">
     <div class="step" id="step1">
@@ -2237,14 +2347,34 @@ h1{color:#667eea;font-size:28px;margin-bottom:10px;font-weight:600;text-shadow:0
   <div class="spinner" id="spinner"></div>
 </div>
 <script>
-let attempts=0,tunnelUrl=null,progress=0;
+let attempts=0,tunnelUrl=null,progress=0,errorShown=false;
 function updateProgress(p){progress=Math.min(p,95);document.getElementById('progress').style.width=progress+'%'}
-function updateStep(id,s){const step=document.getElementById(id);if(!step)return;step.classList.remove('active','complete');if(s==='active'){step.classList.add('active');step.querySelector('.step-status').textContent='\\u23f3'}else if(s==='complete'){step.classList.add('complete');step.querySelector('.step-status').textContent='\\u2713'}}
+function updateStep(id,s){const step=document.getElementById(id);if(!step)return;step.classList.remove('active','complete','error');if(s==='active'){step.classList.add('active');step.querySelector('.step-status').textContent='\\u23f3'}else if(s==='complete'){step.classList.add('complete');step.querySelector('.step-status').textContent='\\u2713'}else if(s==='error'){step.classList.add('error');step.querySelector('.step-status').textContent='\\u2717'}}
+function showError(msg){
+  if(errorShown)return;
+  errorShown=true;
+  updateProgress(0);
+  updateStep('step1','error');
+  updateStep('step2','error');
+  updateStep('step3','error');
+  document.getElementById('status-box').classList.add('error');
+  document.getElementById('status-icon').textContent='\\u274C';
+  document.getElementById('status-text').textContent='Tunnel Failed';
+  document.getElementById('status-detail').innerHTML='Could not establish tunnel. See error below.';
+  const errDiv=document.getElementById('error-msg');
+  errDiv.textContent=msg||'Unknown error';
+  errDiv.classList.remove('hidden');
+  document.querySelector('.spinner').classList.add('hidden');
+}
 async function poll(){
   attempts++;
   try{
     const r=await fetch('/api/tunnel/status',{cache:'no-store'});
     const j=await r.json();
+    if(j.last_error&&!j.active&&attempts>3){
+      showError(j.last_error);
+      return;
+    }
     if(j&&j.url){
       tunnelUrl=j.url;
       if(j.reachable){
@@ -2258,7 +2388,15 @@ async function poll(){
         updateProgress(60+(attempts*1.2));updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','active');
         document.getElementById('status-icon').textContent='\\ud83c\\udf10';
         document.getElementById('status-text').innerHTML='Verifying DNS Propagation<span class="dots"></span>';
-        document.getElementById('status-detail').textContent='Cloudflare is registering your tunnel URL globally. Attempt '+attempts+'/25';
+        document.getElementById('status-detail').textContent='Cloudflare is registering your tunnel URL globally. Attempt '+attempts+'/30';
+        if(attempts>=15){
+          updateProgress(95);updateStep('step3','complete');
+          document.getElementById('status-icon').textContent='\\u2705';
+          document.getElementById('status-text').innerHTML='Tunnel Created<span class="dots"></span>';
+          document.getElementById('status-detail').textContent='Opening your secure public link now...';
+          setTimeout(()=>window.location.replace(tunnelUrl),1000);
+          return;
+        }
       }
     }else{
       updateProgress(Math.min(20+(attempts*1.5),55));updateStep('step1','complete');updateStep('step2','active');
@@ -2266,15 +2404,19 @@ async function poll(){
       document.getElementById('status-text').innerHTML='Creating Secure Tunnel<span class="dots"></span>';
       document.getElementById('status-detail').textContent='Establishing encrypted connection through Cloudflare network...';
     }
-    if(attempts>25){
-      updateProgress(95);
-      document.getElementById('status-icon').textContent='\\u26a0\\ufe0f';
-      document.getElementById('status-text').textContent='DNS Propagation Delayed';
-      document.getElementById('status-detail').innerHTML='Your tunnel is created but taking longer than usual.<br><a href="'+tunnelUrl+'" class="btn" target="_blank">Open Tunnel Manually</a>';
-      document.querySelector('.spinner').classList.add('hidden');
+    if(attempts>30){
+      if(tunnelUrl){
+        updateProgress(95);
+        document.getElementById('status-icon').textContent='\\u26a0\\ufe0f';
+        document.getElementById('status-text').textContent='DNS Propagation Delayed';
+        document.getElementById('status-detail').innerHTML='Your tunnel is created but taking longer than usual.<br><a href="'+tunnelUrl+'" class="btn" target="_blank">Open Tunnel Manually</a>';
+        document.querySelector('.spinner').classList.add('hidden');
+      }else{
+        showError(j.last_error||'Tunnel did not start after 30 attempts. Please check the debug log at %TEMP%\\\\ShareJadPi.log');
+      }
       return;
     }
-  }catch(e){console.error('Poll error:',e)}
+  }catch(e){console.error('Poll error:',e);if(attempts>5){showError('Network error: '+e.message);return;}}
   setTimeout(poll,800);
 }
 window.onload=()=>{updateStep('step1','active');poll()};
@@ -2517,79 +2659,85 @@ def main():
         if len(sys.argv) > 2:
             file_path = sys.argv[2]
             file_name = os.path.basename(file_path)
-            
-            # Check if server is running
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Ensure server is running; auto-start if needed
+            if not _wait_for_server(PORT, timeout_sec=1):
+                _debug_log("[FLOW] 'share' invoked: server not running, launching...")
+                _start_server_background()
+                if not _wait_for_server(PORT, timeout_sec=25):
+                    _message_box("ShareJadPi", "Could not start ShareJadPi server. Please run ShareJadPi from Start Menu and try again.")
+                    sys.exit(1)
+            # Send request to running server and open browser
             try:
-                s.connect(('127.0.0.1', PORT))
-                s.close()
-                # Send request to running server instead of local share
-                try:
-                    import json as _json, urllib.request as _ur
-                    payload = _json.dumps({'path': file_path}).encode()
-                    req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share', data=payload, headers={'Content-Type': 'application/json'})
-                    with _ur.urlopen(req, timeout=10) as resp:
-                        body = resp.read().decode('utf-8', errors='ignore')
-                        print("[SHARE] Server response:", body)
-                        
-                        # Show success notification
-                        show_windows_notification(
-                            "ShareJadPi - Local Sharing",
-                            f"✅ SHARED LOCALLY!\n\n{file_name}\n\n📱 Open your browser for QR code"
-                        )
-                except Exception as e:
-                    print(f"[ERROR] Failed to instruct running server to share: {e}")
-                    print("Ensure the server is running, then retry.")
-                time.sleep(2)
-            except Exception:
-                print("\n[ERROR] ShareJadPi server is not running!")
-                print("Please start the server first by running: python sharejadpi.py")
-                print("\nPress Enter to exit...")
-                try:
-                    input()
-                except Exception:
-                    pass
-            finally:
-                try:
-                    s.close()
-                except Exception:
-                    pass
+                import json as _json, urllib.request as _ur
+                payload = _json.dumps({'path': file_path}).encode()
+                req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share', data=payload, headers={'Content-Type': 'application/json'})
+                with _ur.urlopen(req, timeout=20) as resp:
+                    body = resp.read().decode('utf-8', errors='ignore')
+                    print("[SHARE] Server response:", body)
+                    try:
+                        webbrowser.open(f'http://127.0.0.1:{PORT}/?k=' + urllib.parse.quote(SECRET_TOKEN))
+                    except Exception:
+                        pass
+                    show_windows_notification(
+                        "ShareJadPi - Local Sharing",
+                        f"✅ SHARED LOCALLY!\n\n{file_name}\n\n📱 Browser opened with QR"
+                    )
+            except Exception as e:
+                print(f"[ERROR] Failed to share via server: {e}")
+                _message_box("ShareJadPi", f"Failed to share: {e}")
+            time.sleep(1.0)
         sys.exit(0)
     
-    # Handle online sharing
+    # Handle online sharing (legacy path)
     if len(sys.argv) > 1 and sys.argv[1] == "share-online":
         if len(sys.argv) > 2:
             file_path = sys.argv[2]
-            # Check if server is running
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Ensure server is running, auto-start if needed
+            if not _wait_for_server(PORT, timeout_sec=1):
+                _debug_log("[FLOW] Server not running, launching...")
+                _start_server_background()
+                _wait_for_server(PORT, timeout_sec=20)
+
+            # Send request to server for online share
             try:
-                s.connect(('127.0.0.1', PORT))
-                s.close()
-                # Send request to running server for online share
-                try:
-                    import json as _json, urllib.request as _ur
-                    payload = _json.dumps({'path': file_path}).encode()
-                    req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share-online', data=payload, headers={'Content-Type': 'application/json'})
-                    with _ur.urlopen(req, timeout=30) as resp:  # Longer timeout for zipping
-                        body = resp.read().decode('utf-8', errors='ignore')
-                        print("[ONLINE] Server response:", body)
-                except Exception as e:
-                    print(f"[ERROR] Failed to create online share: {e}")
-                    print("Ensure cloudflared.exe is in the same directory as ShareJadPi.exe")
-                time.sleep(2)
-            except Exception:
-                print("\n[ERROR] ShareJadPi server is not running!")
-                print("Please start the server first by running: python sharejadpi.py")
-                print("\nPress Enter to exit...")
-                try:
-                    input()
-                except Exception:
-                    pass
-            finally:
-                try:
-                    s.close()
-                except Exception:
-                    pass
+                import json as _json, urllib.request as _ur
+                payload = _json.dumps({'path': file_path}).encode()
+                req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share-online', data=payload, headers={'Content-Type': 'application/json'})
+                with _ur.urlopen(req, timeout=60) as resp:  # Longer timeout for zipping/tunnel
+                    body = resp.read().decode('utf-8', errors='ignore')
+                    print("[ONLINE] Server response:", body)
+            except Exception as e:
+                print(f"[ERROR] Failed to create online share: {e}")
+            time.sleep(1.5)
+        sys.exit(0)
+
+    # Handle view-online (open waiting page without file)
+    if len(sys.argv) > 1 and sys.argv[1] == "view-online":
+        # Ensure server is running, auto-start if needed
+        if not _wait_for_server(PORT, timeout_sec=1):
+            _debug_log("[FLOW] Server not running for view-online, launching...")
+            _start_server_background()
+            _wait_for_server(PORT, timeout_sec=20)
+
+        try:
+            import json as _json, urllib.request as _ur
+            # Open the /online-wait page immediately for visual feedback
+            webbrowser.open(f'http://127.0.0.1:{PORT}/online-wait')
+            # Trigger tunnel start in background
+            payload = _json.dumps({'size_hint': 0}).encode()
+            req = _ur.Request(f'http://127.0.0.1:{PORT}/api/tunnel/start', data=payload, headers={'Content-Type': 'application/json'})
+            try:
+                with _ur.urlopen(req, timeout=3) as resp:
+                    body = resp.read().decode('utf-8', errors='ignore')
+                    print("[VIEW-ONLINE] Tunnel start response:", body)
+            except Exception as _e:
+                print(f"[VIEW-ONLINE] /api/tunnel/start error: {_e}")
+                _debug_log(f"[VIEW-ONLINE] /api/tunnel/start error: {_e}")
+        except Exception as e:
+            print(f"[VIEW-ONLINE] Failed to start online tunnel: {e}")
+            import traceback
+            traceback.print_exc()
+        time.sleep(1.5)
         sys.exit(0)
 
     # Handle open-online (share file via Cloudflare Tunnel)
@@ -2603,65 +2751,56 @@ def main():
         
         file_name = os.path.basename(file_path)
         
-        # Check server running
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Ensure server is running, auto-start if needed
+        if not _wait_for_server(PORT, timeout_sec=1):
+            _debug_log("[FLOW] Server not running for open-online, launching...")
+            _start_server_background()
+            _wait_for_server(PORT, timeout_sec=20)
+
         try:
-            s.connect(('127.0.0.1', PORT))
-            s.close()
+            import json as _json, urllib.request as _ur
+            print(f"[ONLINE] Sharing file via Cloudflare Tunnel: {file_path}")
+
+            # Non-blocking toast: Building public link
+            show_windows_notification(
+                "ShareJadPi - Online Sharing",
+                f"⏳ BUILDING PUBLIC LINK...\n\n{file_name}\n\nPlease wait, tunnel is starting.\n📱 Browser will open shortly"
+            )
+
+            # Open waiting page for immediate feedback
             try:
-                import json as _json, urllib.request as _ur, webbrowser as _wb
-                print(f"[ONLINE] Sharing file via Cloudflare Tunnel: {file_path}")
-                
-                # Show notification: Building public link
-                show_windows_notification(
-                    "ShareJadPi - Online Sharing",
-                    f"⏳ BUILDING PUBLIC LINK...\n\n{file_name}\n\nPlease wait, tunnel is starting.\n📱 Browser will open shortly"
-                )
-                
-                # Call /api/share-online with the file path
-                payload = _json.dumps({'path': file_path}).encode()
-                req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share-online', data=payload, headers={'Content-Type': 'application/json'})
-                with _ur.urlopen(req, timeout=60) as resp:  # Longer timeout for tunnel startup
-                    body = resp.read().decode('utf-8', errors='ignore')
-                    result = _json.loads(body)
-                    
-                    if result.get('success'):
-                        print(f"[ONLINE] ✓ File shared successfully!")
-                        print(f"[ONLINE] Public URL: {result.get('url')}")
-                        print(f"[ONLINE] Timeout: {result.get('timeout_minutes')} minutes")
-                        
-                        # Show success notification with browser reminder
-                        timeout_min = result.get('timeout_minutes', 10)
-                        show_windows_notification(
-                            "ShareJadPi - Online Sharing",
-                            f"✅ SHARED ONLINE!\n\n{file_name}\n\n📱 OPEN YOUR BROWSER FOR QR CODE\n⏱ Timeout: {timeout_min} min"
-                        )
-                    else:
-                        print(f"[ERROR] Failed to share: {result.get('error')}")
-                        show_windows_notification(
-                            "ShareJadPi - Error",
-                            f"❌ SHARING FAILED\n\n{file_name}\n\n{result.get('error', 'Unknown error')}"
-                        )
-                        
-            except Exception as e:
-                print(f"[ERROR] Failed to share file online: {e}")
-                print("Ensure cloudflared.exe is in the same directory as ShareJadPi.exe")
-                import traceback
-                traceback.print_exc()
-            time.sleep(2)
-        except Exception:
-            print("\n[ERROR] ShareJadPi server is not running!")
-            print("Please start the server first by running: python sharejadpi.py")
-            print("\nPress Enter to exit...")
-            try:
-                input()
+                webbrowser.open(f'http://127.0.0.1:{PORT}/online-wait')
             except Exception:
                 pass
-        finally:
-            try:
-                s.close()
-            except Exception:
-                pass
+
+            # Call /api/share-online with the file path
+            payload = _json.dumps({'path': file_path}).encode()
+            req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share-online', data=payload, headers={'Content-Type': 'application/json'})
+            with _ur.urlopen(req, timeout=75) as resp:  # allow a bit longer
+                body = resp.read().decode('utf-8', errors='ignore')
+                result = _json.loads(body)
+
+                if result.get('success'):
+                    print(f"[ONLINE] ✓ File shared successfully!")
+                    print(f"[ONLINE] Public URL: {result.get('url')}")
+                    print(f"[ONLINE] Timeout: {result.get('timeout_minutes')} minutes")
+
+                    timeout_min = result.get('timeout_minutes', 10)
+                    show_windows_notification(
+                        "ShareJadPi - Online Sharing",
+                        f"✅ SHARED ONLINE!\n\n{file_name}\n\n📱 OPEN YOUR BROWSER FOR QR CODE\n⏱ Timeout: {timeout_min} min"
+                    )
+                else:
+                    print(f"[ERROR] Failed to share: {result.get('error')}")
+                    show_windows_notification(
+                        "ShareJadPi - Error",
+                        f"❌ SHARING FAILED\n\n{file_name}\n\n{result.get('error', 'Unknown error')}"
+                    )
+        except Exception as e:
+            print(f"[ERROR] Failed to share file online: {e}")
+            import traceback
+            traceback.print_exc()
+        time.sleep(1.5)
         sys.exit(0)
     
     if len(sys.argv) > 1 and sys.argv[1] in ("install-context-menu", "uninstall-context-menu"):
@@ -2746,3 +2885,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

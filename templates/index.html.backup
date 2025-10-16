@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ShareJadPi - Local File Sharing</title>
+    <style>
+        :root {
+
+            --bg: #0f1320;
+            --card: #14192b;
+            --text: #e7ecf3;
+            --muted: #9aa4b2;
+            --border: #233046;
+            --primary: #22c55e;
+            --primary-600: #16a34a;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --blue: #3b82f6;
+            --purple: #a78bfa;
+            --shadow: 0 10px 30px rgba(0,0,0,.25);
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: radial-gradient(1200px 800px at 20% -10%, #1b2140 0%, var(--bg) 40%),
+                        radial-gradient(1000px 600px at 100% 0%, #191a2b 0%, transparent 50%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            padding: 12px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        /* Authorization Banner */
+        #authBanner {
+            display: none;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,.2);
+        }
+        
+        #authBanner.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #authBanner h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+        }
+        
+        #authBanner p {
+            margin: 4px 0;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        
+        #authBanner code {
+            background: rgba(0,0,0,.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: clamp(20px, 4vw, 28px);
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        /* QR Code Section - Top, Medium Size */
+        .qr-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+        
+        .qr-section h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+        
+        .qr-container {
+            display: inline-block;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.3);
+        }
+        
+        .qr-container img {
+            display: block;
+            width: 200px;
+            height: 200px;
+            image-rendering: pixelated;
+        }
+        
+        .qr-refresh-btn {
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .qr-refresh-btn:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+            border-color: var(--primary);
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .badge.connected {
+            background: linear-gradient(135deg, var(--primary), var(--primary-600));
+            color: #08140d;
+            box-shadow: 0 4px 12px rgba(34,197,94,.3);
+        }
+        
+        .badge.disconnected {
+            background: #475569;
+            color: #cbd5e1;
+        }
+        
+        .icon-btn {
+            background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+            border: 1px solid rgba(255,255,255,.15);
+            color: var(--text);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+            background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+            transform: translateY(-2px);
+        }
+        
+        /* Upload Section with Drag & Drop */
+        .upload-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .drag-drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .drag-drop-zone.drag-over {
+            border-color: var(--primary);
+            background: rgba(34,197,94,.1);
+            transform: scale(1.02);
+        }
+        
+        .drag-drop-zone h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: var(--text);
+        }
+        
+        .drag-drop-zone p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+        
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            border: 1px solid rgba(255,255,255,.1);
+            color: #08140d;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.2s;
+            box-shadow: 0 6px 18px rgba(34,197,94,.25);
+        }
+        
+        .upload-btn:hover {
+            filter: brightness(1.05);
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn.secondary {
+            background: linear-gradient(180deg, var(--blue), #2563eb);
+            box-shadow: 0 6px 18px rgba(59,130,246,.25);
+            color: white;
+        }
+        
+        .upload-btn.danger {
+            background: linear-gradient(180deg, var(--danger), #dc2626);
+            box-shadow: 0 6px 18px rgba(239,68,68,.25);
+            color: white;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Upload/Download Progress with Speed */
+        .progress-container {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255,255,255,.02);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        
+        .progress-container.show {
+            display: block;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .progress-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .progress-speed {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--blue));
+            transition: width 0.3s;
+            width: 0%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+        }
+        
+        /* Multi-select Toolbar */
+        .toolbar {
+            display: none;
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .toolbar.show {
+            display: flex;
+        }
+        
+        .toolbar-left {
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .toolbar-btn {
+            background: rgba(255,255,255,.2);
+            border: 1px solid rgba(255,255,255,.3);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .toolbar-btn:hover {
+            background: rgba(255,255,255,.3);
+        }
+        
+        /* Files Section */
+        .files-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .files-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        .file-list {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .file-item {
+            background: rgba(255,255,255,.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        
+        .file-item:hover {
+            background: rgba(255,255,255,.05);
+            border-color: rgba(255,255,255,.15);
+        }
+        
+        .file-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .file-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        
+        .file-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        
+        .file-badges {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .file-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .file-badge.new {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .file-badge.pinned {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .file-badge.expiring {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .file-badge.type {
+            background: rgba(255,255,255,.1);
+            color: var(--muted);
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .file-btn {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,.05);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .file-btn:hover {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.2);
+        }
+        
+        .file-btn.pin {
+            color: var(--warning);
+        }
+        
+        .file-btn.danger {
+            color: var(--danger);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+        
+        /* Clipboard Section */
+        .clipboard-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .clipboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .clipboard-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary);
+        }
+        
+        .clipboard-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(0,0,0,.3);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        
+        .clipboard-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .clipboard-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .clipboard-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255,255,255,.05);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .clipboard-btn:hover {
+            background: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.2);
+        }
+        
+        .clipboard-btn.primary {
+            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            color: #08140d;
+            border-color: rgba(255,255,255,.1);
+        }
+        
+        /* Speed Test Section */
+        .speedtest-section {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: var(--shadow);
+        }
+        
+        .speedtest-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .speedtest-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--blue);
+        }
+        
+        .speedtest-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .speedtest-result {
+            padding: 16px;
+            background: rgba(255,255,255,.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .speedtest-result .label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .speedtest-result .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .speedtest-result .unit {
+            font-size: 14px;
+            color: var(--muted);
+            margin-left: 4px;
+        }
+        
+        .speedtest-btn {
+            width: 100%;
+            padding: 12px 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: linear-gradient(180deg, var(--blue), #2563eb);
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .speedtest-btn:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+        
+        .speedtest-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .header { padding: 12px 16px; }
+            .upload-section, .files-section, .clipboard-section, .speedtest-section { padding: 16px; }
+            .upload-grid { grid-template-columns: 1fr; }
+            .file-item { flex-wrap: wrap; }
+            .file-checkbox { order: 1; }
+            .file-icon { order: 2; }
+            .file-info { order: 3; flex: 1 1 100%; }
+            .file-actions { order: 4; flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; }
+            .file-btn { flex: 1; min-width: 80px; padding: 6px 10px; font-size: 12px; text-align: center; }
+            .file-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+            .toolbar-actions { width: 100%; flex-wrap: wrap; }
+            .toolbar-btn { flex: 1; text-align: center; min-width: 45%; }
+            .qr-mini { width: 50px; height: 50px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authorization Banner (shown when not authorized) -->
+        <div id="authBanner">
+            <h3>⚠️ Not Authorized</h3>
+            <p>To access this device, scan the QR code from the host PC or open the link with the token:</p>
+            <p><code>http://YOUR_IP:5000/?k=YOUR_TOKEN</code></p>
+            <p style="margin-top: 12px; font-size: 13px;">On the host PC: Right-click tray icon → Show QR, or open <code>http://127.0.0.1:5000/popup</code></p>
+        </div>
+        
+        <!-- Header -->
+        <div class="header">
+            <h1>📁 ShareJadPi</h1>
+            <div class="header-right">
+                <div class="qr-mini" onclick="refreshQR()" title="Click to refresh QR">
+                    <img id="qrMini" src="/qr" alt="QR">
+                </div>
+                <span id="connectedBadge" class="badge disconnected">Connecting...</span>
+                <button class="icon-btn" id="settingsBtn" style="display: none;" onclick="window.location.href='/settings'" title="Settings">⚙️</button>
+            </div>
+        </div>
+        
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="upload-grid">
+                <label class="upload-btn">
+                    📤 Upload File
+                    <input type="file" id="fileInput" multiple>
+                </label>
+                <label class="upload-btn secondary">
+                    📂 Upload Folder
+                    <input type="file" id="folderInput" webkitdirectory directory multiple>
+                </label>
+                <button class="upload-btn danger" onclick="clearAll()">🗑️ Clear All</button>
+            </div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Uploading...</div>
+            </div>
+        </div>
+        
+        <!-- Clipboard Section -->
+        <div class="clipboard-section">
+            <div class="clipboard-header">
+                <h3>📋 Shared Clipboard</h3>
+            </div>
+            <textarea class="clipboard-textarea" id="clipboardText" placeholder="Type or paste text here to share across devices..."></textarea>
+            <div class="clipboard-actions">
+                <button class="clipboard-btn primary" onclick="saveClipboard()">💾 Save to Cloud</button>
+                <button class="clipboard-btn" onclick="loadClipboard()">📥 Load from Cloud</button>
+                <button class="clipboard-btn" onclick="copyToClipboard()">📋 Copy</button>
+                <button class="clipboard-btn" onclick="clearClipboard()">🗑️ Clear</button>
+            </div>
+        </div>
+        
+        <!-- Multi-select Toolbar -->
+        <div class="toolbar" id="toolbar">
+            <div class="toolbar-left">
+                <span id="selectedCount">0</span> selected
+            </div>
+            <div class="toolbar-actions">
+                <button class="toolbar-btn" onclick="pinSelected()">📌 Pin</button>
+                <button class="toolbar-btn" onclick="unpinSelected()">📌 Unpin</button>
+                <button class="toolbar-btn" onclick="zipSelected()">📦 Zip & Download</button>
+                <button class="toolbar-btn" onclick="deleteSelected()">🗑️ Delete</button>
+            </div>
+        </div>
+        
+        <!-- Files Section -->
+        <div class="files-section">
+            <div class="files-header">
+                <h2>Shared Files</h2>
+            </div>
+            <div class="file-list" id="fileList">
+                <div class="empty-state">
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM13 13h-2v-2h2v2zm0-4h-2V7h2v2z"/></svg>
+                    <h3>No files shared yet</h3>
+                    <p>Upload files or folders to start sharing</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Speed Test Section -->
+        <div class="speedtest-section">
+            <div class="speedtest-header">
+                <h3>⚡ Network Speed Test</h3>
+            </div>
+            <div class="speedtest-results">
+                <div class="speedtest-result">
+                    <div class="label">Download</div>
+                    <div class="value">
+                        <span id="downloadSpeed">--</span>
+                        <span class="unit">Mbps</span>
+                    </div>
+                </div>
+                <div class="speedtest-result">
+                    <div class="label">Upload</div>
+                    <div class="value">
+                        <span id="uploadSpeed">--</span>
+                        <span class="unit">Mbps</span>
+                    </div>
+                </div>
+            </div>
+            <button class="speedtest-btn" id="speedtestBtn" onclick="runSpeedTest()">🚀 Run Speed Test (5 seconds)</button>
+        </div>
+    </div>
+    
+    <script>
+        // Token handling: extract from URL and append to API requests
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('k');
+        
+        // Helper to append token to same-origin fetch requests if present in URL
+        function appendTokenIfNeeded(url) {
+            if (urlToken && url.startsWith('/')) {
+                const u = new URL(url, window.location.origin);
+                if (!u.searchParams.has('k')) {
+                    u.searchParams.set('k', urlToken);
+                }
+                return u.pathname + u.search;
+            }
+            return url;
+        }
+        
+        // Wrap fetch to auto-append token
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && url.startsWith('/')) {
+                url = appendTokenIfNeeded(url);
+            }
+            return originalFetch(url, options);
+        };
+        
+        let isHost = false;
+        let isAuthorized = false;
+        
+        // Check authorization status
+        async function checkAuth() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                isHost = data.host || false;
+                isAuthorized = data.authorized || false;
+                
+                // Show/hide settings icon
+                if (isHost) {
+                    document.getElementById('settingsBtn').style.display = 'flex';
+                }
+                
+                // Show auth banner if not authorized
+                const banner = document.getElementById('authBanner');
+                if (!isAuthorized && !isHost) {
+                    banner.classList.add('show');
+                } else {
+                    banner.classList.remove('show');
+                }
+                
+                // Disable upload/action buttons if not authorized
+                const uploadBtns = document.querySelectorAll('.upload-btn, #fileInput, #folderInput');
+                uploadBtns.forEach(btn => {
+                    if (!isAuthorized && !isHost) {
+                        btn.disabled = true;
+                        if (btn.classList && btn.classList.contains('upload-btn')) {
+                            btn.style.opacity = '0.5';
+                            btn.style.cursor = 'not-allowed';
+                            btn.style.pointerEvents = 'none';
+                        }
+                    }
+                });
+                
+                return isAuthorized || isHost;
+            } catch (e) {
+                console.error('Auth check failed:', e);
+                return false;
+            }
+        }
+        
+        // Check connected status
+        async function updateStatus() {
+            try {
+                const resp = await fetch('/api/status');
+                const data = await resp.json();
+                const badge = document.getElementById('connectedBadge');
+                if (data.authorized || data.host) {
+                    badge.textContent = 'Connected';
+                    badge.className = 'badge connected';
+                } else {
+                    badge.textContent = 'Not Authorized';
+                    badge.className = 'badge disconnected';
+                }
+            } catch (e) {
+                const badge = document.getElementById('connectedBadge');
+                badge.textContent = 'Offline';
+                badge.className = 'badge disconnected';
+            }
+        }
+        
+        // Load files
+        async function loadFiles() {
+            try {
+                const resp = await fetch('/api/files');
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        // Unauthorized - show locked state
+                        const list = document.getElementById('fileList');
+                        list.innerHTML = `
+                            <div class="empty-state">
+                                <svg fill="currentColor" viewBox="0 0 24 24" style="color: #ef4444;">
+                                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                                </svg>
+                                <h3>🔒 Authorization Required</h3>
+                                <p>Scan the QR code or open the tokenized link to access this device</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    console.error('Failed to load files:', resp.status);
+                    return;
+                }
+                const data = await resp.json();
+                const files = data.files || [];
+                const list = document.getElementById('fileList');
+                
+                if (files.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM13 13h-2v-2h2v2zm0-4h-2V7h2v2z"/></svg>
+                            <h3>No files shared yet</h3>
+                            <p>Upload files or folders to start sharing</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                list.innerHTML = files.map(f => {
+                    const ext = f.name.split('.').pop().toUpperCase().slice(0, 3);
+                    const badges = [];
+                    if (f.is_new) badges.push('<span class="file-badge new">NEW</span>');
+                    if (f.pinned) badges.push('<span class="file-badge pinned">PINNED</span>');
+                    if (f.expires_in > 0 && f.expires_in <= 30 && !f.pinned) {
+                        badges.push(`<span class="file-badge expiring">EXP ${f.expires_in}m</span>`);
+                    }
+                    badges.push(`<span class="file-badge type">${ext}</span>`);
+                    
+                    return `
+                        <div class="file-item">
+                            <input type="checkbox" class="file-checkbox" data-id="${f.id}" onchange="updateToolbar()">
+                            <div class="file-icon">${ext}</div>
+                            <div class="file-info">
+                                <div class="file-name">${escapeHtml(f.name)}</div>
+                                <div class="file-meta">${f.size} • ${f.kind} • ${f.added}</div>
+                                <div class="file-badges">${badges.join('')}</div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="file-btn" onclick="downloadFile('${f.id}', '${escapeHtml(f.name)}')">⬇️ Download</button>
+                                <button class="file-btn pin" onclick="togglePin('${f.id}', ${!f.pinned})">${f.pinned ? '📌 Unpin' : '📌 Pin'}</button>
+                                <button class="file-btn danger" onclick="deleteFile('${f.id}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Load files error:', e);
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Update multi-select toolbar
+        function updateToolbar() {
+            const checked = document.querySelectorAll('.file-checkbox:checked');
+            const toolbar = document.getElementById('toolbar');
+            const count = document.getElementById('selectedCount');
+            count.textContent = checked.length;
+            if (checked.length > 0) {
+                toolbar.classList.add('show');
+            } else {
+                toolbar.classList.remove('show');
+            }
+        }
+        
+        // File upload
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required. Please scan the QR code from the host PC.');
+                e.target.value = '';
+                return;
+            }
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.classList.add('show');
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                progressText.textContent = `Uploading ${file.name} (${i + 1}/${files.length})...`;
+                
+                try {
+                    const resp = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (resp.status === 401) {
+                        alert('⚠️ Session expired. Please refresh and scan the QR code again.');
+                        break;
+                    }
+                    
+                    if (resp.ok) {
+                        progressFill.style.width = ((i + 1) / files.length * 100) + '%';
+                    } else {
+                        alert(`Failed to upload ${file.name}`);
+                    }
+                } catch (err) {
+                    alert(`Error uploading ${file.name}: ${err.message}`);
+                }
+            }
+            
+            progressText.textContent = 'Upload complete!';
+            setTimeout(() => {
+                progressContainer.classList.remove('show');
+                progressFill.style.width = '0%';
+            }, 2000);
+            
+            e.target.value = '';
+            loadFiles();
+        });
+        
+        // Folder upload
+        document.getElementById('folderInput').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required. Please scan the QR code from the host PC.');
+                e.target.value = '';
+                return;
+            }
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.classList.add('show');
+            progressText.textContent = `Uploading folder (${files.length} files)...`;
+            progressFill.style.width = '50%';
+            
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                formData.append('files[]', file, file.webkitRelativePath || file.name);
+            }
+            
+            try {
+                const resp = await fetch('/upload_folder', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh and scan the QR code again.');
+                } else if (resp.ok) {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Folder uploaded!';
+                } else {
+                    alert('Failed to upload folder');
+                }
+            } catch (err) {
+                alert(`Error uploading folder: ${err.message}`);
+            }
+            
+            setTimeout(() => {
+                progressContainer.classList.remove('show');
+                progressFill.style.width = '0%';
+            }, 2000);
+            
+            e.target.value = '';
+            loadFiles();
+        });
+        
+        // Download file - use direct navigation to avoid fetch/authorization issues
+        function downloadFile(id, name) {
+            // Direct browser navigation - this will work even with authorization
+            // because the browser sends cookies automatically
+            window.location.href = `/download/${id}?dl=1`;
+        }
+        
+        // Delete file
+        async function deleteFile(id) {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            if (!confirm('Delete this file?')) return;
+            
+            try {
+                const resp = await fetch(`/delete/${id}`, { method: 'POST' });
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                } else {
+                    alert('Failed to delete file');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // Toggle pin
+        async function togglePin(id, pinned) {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: [id], pinned })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                } else {
+                    alert('Failed to update pin');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // Bulk actions
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.id);
+        }
+        
+        async function pinSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            
+            try {
+                const resp = await fetch('/api/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, pinned: true })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                    updateToolbar();
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function unpinSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            
+            try {
+                const resp = await fetch('/api/pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, pinned: false })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                    updateToolbar();
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function zipSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            
+            try {
+                const resp = await fetch('/zip_selected', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    const data = await resp.json();
+                    // Preflight and then trigger download to avoid JSON save
+                    await downloadFile(data.id, data.name);
+                    loadFiles();
+                    updateToolbar();
+                } else {
+                    alert('Failed to create zip');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function deleteSelected() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            if (!confirm(`Delete ${ids.length} file(s)?`)) return;
+            
+            try {
+                const resp = await fetch('/delete_bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                    updateToolbar();
+                } else {
+                    alert('Failed to delete files');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // Clear all
+        async function clearAll() {
+            if (!isAuthorized && !isHost) {
+                alert('⚠️ Authorization required.');
+                return;
+            }
+            
+            if (!confirm('Clear all shared files?')) return;
+            
+            try {
+                const resp = await fetch('/api/clear', { method: 'POST' });
+                if (resp.status === 401) {
+                    alert('⚠️ Session expired. Please refresh the page.');
+                } else if (resp.ok) {
+                    loadFiles();
+                } else {
+                    alert('Failed to clear files');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        // QR refresh
+        function refreshQR() {
+            document.getElementById('qrMini').src = '/qr?t=' + Date.now();
+        }
+        
+        // Clipboard functions
+        async function saveClipboard() {
+            const text = document.getElementById('clipboardText').value;
+            try {
+                const resp = await fetch('/api/clipboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                
+                if (resp.status === 401) {
+                    alert('⚠️ Authorization required.');
+                } else if (resp.ok) {
+                    alert('✅ Saved to cloud!');
+                } else {
+                    alert('Failed to save clipboard');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function loadClipboard() {
+            try {
+                const resp = await fetch('/api/clipboard');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    document.getElementById('clipboardText').value = data.text || '';
+                } else {
+                    alert('Failed to load clipboard');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+        
+        async function copyToClipboard() {
+            const text = document.getElementById('clipboardText').value;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('✅ Copied to your device clipboard!');
+            } catch (err) {
+                // Fallback for older browsers
+                const textarea = document.getElementById('clipboardText');
+                textarea.select();
+                document.execCommand('copy');
+                alert('✅ Copied to your device clipboard!');
+            }
+        }
+        
+        async function clearClipboard() {
+            if (!confirm('Clear clipboard?')) return;
+            
+            document.getElementById('clipboardText').value = '';
+            try {
+                await fetch('/api/clipboard', { method: 'DELETE' });
+            } catch (err) {
+                console.error('Failed to clear server clipboard:', err);
+            }
+        }
+        
+        // Speed test functions
+        async function runSpeedTest() {
+            const btn = document.getElementById('speedtestBtn');
+            const downEl = document.getElementById('downloadSpeed');
+            const upEl = document.getElementById('uploadSpeed');
+            
+            btn.disabled = true;
+            btn.textContent = 'Testing...';
+            downEl.textContent = '--';
+            upEl.textContent = '--';
+            
+            try {
+                // Run both tests in parallel for 5 seconds
+                const testDuration = 5000; // 5 seconds
+                
+                // Download test
+                const downPromise = testDownloadSpeed(testDuration);
+                
+                // Upload test
+                const upPromise = testUploadSpeed(testDuration);
+                
+                const [downSpeed, upSpeed] = await Promise.all([downPromise, upPromise]);
+                
+                downEl.textContent = downSpeed.toFixed(2);
+                upEl.textContent = upSpeed.toFixed(2);
+                
+                btn.textContent = '🚀 Run Speed Test (5 seconds)';
+                btn.disabled = false;
+            } catch (err) {
+                alert(`Speed test failed: ${err.message}`);
+                btn.textContent = '🚀 Run Speed Test (5 seconds)';
+                btn.disabled = false;
+            }
+        }
+        
+        async function testDownloadSpeed(duration) {
+            const startTime = Date.now();
+            let totalBytes = 0;
+            const chunkSize = 10 * 1024 * 1024; // 10MB chunks
+            
+            while (Date.now() - startTime < duration) {
+                const resp = await fetch(`/api/speedtest/down?bytes=${chunkSize}`);
+                const blob = await resp.blob();
+                totalBytes += blob.size;
+            }
+            
+            const elapsedSeconds = (Date.now() - startTime) / 1000;
+            const megabits = (totalBytes * 8) / 1000000;
+            return megabits / elapsedSeconds;
+        }
+        
+        async function testUploadSpeed(duration) {
+            const startTime = Date.now();
+            let totalBytes = 0;
+            const chunkSize = 1 * 1024 * 1024; // 1MB chunks
+            const chunk = new Uint8Array(chunkSize);
+            
+            while (Date.now() - startTime < duration) {
+                const formData = new FormData();
+                formData.append('file', new Blob([chunk]));
+                
+                const resp = await fetch('/api/speedtest/up', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (resp.ok) {
+                    totalBytes += chunkSize;
+                }
+            }
+            
+            const elapsedSeconds = (Date.now() - startTime) / 1000;
+            const megabits = (totalBytes * 8) / 1000000;
+            return megabits / elapsedSeconds;
+        }
+        
+        // Initialize
+        async function init() {
+            await checkAuth();
+            await updateStatus();
+            await loadFiles();
+            loadClipboard(); // Auto-load clipboard on start
+            
+            // Poll for updates
+            setInterval(updateStatus, 5000);
+            setInterval(loadFiles, 5000);
+            setInterval(loadClipboard, 10000); // Refresh clipboard every 10s
+        }
+        
+        init();
+    </script>
+</body>
+</html>
