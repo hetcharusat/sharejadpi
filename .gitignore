@@ -5,7 +5,6 @@ __pycache__/
 *.so
 .Python
 *.egg-info/
-
 *.egg
 
 # Virtual Environment
@@ -40,3 +39,35 @@ core_data/
 *.bak
 *.backup
 .~*
+
+# Build artifacts & distributions
+dist/
+build/
+installer_output/
+*.exe
+*.zip
+
+# Old versions (keep only latest)
+ShareJadPi-3.0.0.spec
+ShareJadPi-3.0.1.spec
+ShareJadPi-Installer.iss
+ShareJadPi-Installer-3.0.1.iss
+build_v3.ps1
+build_v3.0.1.ps1
+
+# Development/internal docs (not for users)
+BUILD_SUMMARY.md
+EXE_FIX_NOTES.md
+GITHUB_RELEASE_DRAFT.md
+INSTALLER_GUIDE.md
+RELEASE_NOTES_v3.md
+RELEASE_NOTES_v3.0.1.md
+TROUBLESHOOTING.md
+USAGE_GUIDE.md
+VIDEO_UPLOAD_GUIDE.md
+README.md.backup
+
+# Helper scripts (included in installer, not needed in repo)
+show_connection_info.ps1
+fix_firewall.ps1
+build_installer.ps1
