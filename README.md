@@ -20,25 +20,31 @@ Share files ANYWHERE with one click — Local WiFi AND Public Internet.
 
 ---
 
-## Why ShareJadPi?
+## ✨ Key Features
 
-- 🌍 Online Share: Send files over the public internet in ~10–15s (Cloudflare Tunnel, zero config)
-- 🏠 Local Share: Super‑fast transfers on your WiFi/LAN
-- 🖱️ Right‑click to Share: Context menu for Local or Online
-- 🔐 Secure by default: Token‑gated access, HTTPS tunnel
+- 🖱️ One‑Click Sharing — Right‑click any file → “Share with ShareJadPi”
+- 🔒 Token‑Based Security — 32‑char tokens protect access, no unauthorized use
+- 📱 QR Code Access — Instant secure mobile connection (Local mode)
+- ⚡ Background Folder Zipping — Live progress with speed & ETA
+- 🌑 Beautiful Dark UI — Modern, responsive design
+- � Clipboard Sync — Share text between devices
+- 📶 Network Speed Test — Check your network performance
+- 📦 Large File Support — Handle files up to 50GB
+- � Multi‑Select Actions — Zip, pin, delete multiple files
+- 🧰 System Tray App — Runs quietly in background; optional auto‑start
 
-Online Share is one of our main features — no port forwarding, no DDNS, no VPN.
+Online Share (UNIQUE): Send files over the public internet in ~10–15s with Cloudflare Tunnel — zero setup, no port forwarding, no DDNS, no VPN.
 
 ---
 
 ## Online Share (headline feature)
 
 <div align="center">
-  <img src="assets/vidss/context-menu-wit-online-share.png" width="520" alt="Context Menu – Share Online">
+  <img src="assets/vidss/context-menu-wit-online-share.png" width="420" alt="Context Menu – Share Online">
   <p><i>Right‑click any file/folder → “Share with ShareJadPi (Online)” → get a public https link.</i></p>
-  <img src="assets/vidss/online-wait.png" width="520" alt="Waiting Page – Creating Tunnel">
+  <img src="assets/vidss/online-wait.png" width="420" alt="Waiting Page – Creating Tunnel">
   <p><i>Clean waiting page while the secure tunnel spins up.</i></p>
-  <img src="assets/vidss/online-share-web-home.png" width="520" alt="Public Share Page">
+  <img src="assets/vidss/online-share-web-home.png" width="420" alt="Public Share Page">
   <p><i>The recipient gets a simple web page to download or upload (if enabled).</i></p>
 </div>
 
@@ -48,37 +54,37 @@ Online Share is one of our main features — no port forwarding, no DDNS, no VPN
 
 ### Home Preview
 <div align="center">
-  <img src="assets/vidss/home-preview.jpg" width="420" alt="Home Preview">
+  <img src="assets/vidss/home-preview.jpg" width="320" alt="Home Preview">
 </div>
 
 ### Shared Files Component
 <div align="center">
-  <img src="assets/vidss/shared-files-component.jpg" width="420" alt="Shared Files Component">
+  <img src="assets/vidss/shared-files-component.jpg" width="320" alt="Shared Files Component">
 </div>
 
 ### Select Files and Zip
 <div align="center">
-  <img src="assets/vidss/select-files-and-zip.jpg" width="420" alt="Select Files and Zip">
+  <img src="assets/vidss/select-files-and-zip.jpg" width="320" alt="Select Files and Zip">
 </div>
 
 ### Uploading Files
 <div align="center">
-  <img src="assets/vidss/uploading-files.jpg" width="420" alt="Uploading Files">
+  <img src="assets/vidss/uploading-files.jpg" width="320" alt="Uploading Files">
 </div>
 
 ### Zipping the Folder
 <div align="center">
-  <img src="assets/vidss/zipping-the-folder.png" width="420" alt="Zipping the Folder">
+  <img src="assets/vidss/zipping-the-folder.png" width="320" alt="Zipping the Folder">
 </div>
 
 ### Clipboard and Speed Test
 <div align="center">
-  <img src="assets/vidss/shared-clipboard-and-speedtest.jpg" width="420" alt="Shared Clipboard and Speed Test">
+  <img src="assets/vidss/shared-clipboard-and-speedtest.jpg" width="320" alt="Shared Clipboard and Speed Test">
 </div>
 
 ### Tray Icon Features
 <div align="center">
-  <img src="assets/vidss/tray-icon%20features.png" width="480" alt="Tray Icon Features">
+  <img src="assets/vidss/tray-icon%20features.png" width="360" alt="Tray Icon Features">
 </div>
 
 ---
