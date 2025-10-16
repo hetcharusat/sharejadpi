@@ -877,20 +877,18 @@ def download_entry(entry_id):
     # Important: some mobile browsers issue a HEAD request before GET to probe size.
     # Do not mark/download or delete on HEAD, only return headers.
     if request.method == 'HEAD':
-        # Use context manager to ensure file is closed
-        with open(e['path'], 'rb') as f:
-            return send_file(f, as_attachment=True, download_name=e['name'])
+        # Don't use context manager - send_file will close it after streaming
+        return send_file(e['path'], as_attachment=True, download_name=e['name'])
     # Real download (GET)
     mark_download(entry_id)
     
-    # Open file and send it, ensuring it's closed after
-    with open(e['path'], 'rb') as f:
-        response = send_file(
-            f,
-            as_attachment=True,
-            download_name=e['name'],
-            mimetype='application/octet-stream'
-        )
+    # Send file directly - Flask will handle opening and closing
+    response = send_file(
+        e['path'],
+        as_attachment=True,
+        download_name=e['name'],
+        mimetype='application/octet-stream'
+    )
     
     # Delete upload files after download (but not on Range requests)
     if e['kind'] == 'upload':

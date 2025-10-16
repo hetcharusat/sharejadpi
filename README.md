@@ -10,6 +10,57 @@ ShareJadPi turns your Windows PC into a local file server that you can access fr
 
 ---
 
+## 📸 Screenshots & Demo
+
+> **Visual walkthrough of ShareJadPi's features** - captured from both mobile and PC to show real-world usage!
+
+### 🖱️ Context Menu Integration (PC)
+Right-click any file or folder to share instantly:
+
+https://github.com/user-attachments/assets/context-menu-share.mp4
+
+### 🏠 Home Interface (Mobile)
+Beautiful dark UI with all features at your fingertips:
+
+![Home Preview](vidss/home-preview.jpg)
+
+### 📂 Opening ShareJadPi (PC)
+Quick access from system tray:
+
+https://github.com/user-attachments/assets/open_sharejadpi.mp4
+
+### ☑️ Multi-Select & Zip (Mobile)
+Select multiple files to download as a zip:
+
+![Select Files and Zip](vidss/select-files-and-zip.jpg)
+
+### 📤 Uploading Files (Mobile)
+Drag & drop or choose files with live progress:
+
+![Uploading Files](vidss/uploading-files.jpg)
+
+### ⚙️ Settings Panel (PC)
+Configure autostart, file expiry, and context menu:
+
+https://github.com/user-attachments/assets/settings.mp4
+
+### 📋 Shared Clipboard & Speed Test (Mobile)
+Sync text between devices and test network speed:
+
+![Shared Clipboard and Speed Test](vidss/shared-clipboard-and-speedtest.jpg)
+
+### 📁 Shared Files Component (Mobile)
+View all shared files with pin, download, and delete options:
+
+![Shared Files Component](vidss/shared-files-component.jpg)
+
+### 📦 Folder Zipping in Action (PC)
+Background zipping with real-time progress and ETA:
+
+![Zipping Folder](vidss/zipping-the-folder.png)
+
+---
+
 ## ✨ Features
 
 ### 🚀 Core Features
