@@ -47,13 +47,13 @@ installer_output/
 *.exe
 *.zip
 
-# Old versions (keep only latest)
-ShareJadPi-3.0.0.spec
-ShareJadPi-3.0.1.spec
-ShareJadPi-Installer.iss
-ShareJadPi-Installer-3.0.1.iss
-build_v3.ps1
-build_v3.0.1.ps1
+# Old helper build scripts
+build_v*.ps1
+
+# Keep spec/installer config files tracked (do NOT ignore .spec/.iss)
+# ShareJadPi-*.spec
+# ShareJadPi-Installer-*.iss
+# ShareJadPi-Installer.iss
 
 # Development/internal docs (not for users)
 BUILD_SUMMARY.md

@@ -1,4 +1,4 @@
-# ShareJadPi v3.0.0
+# ShareJadPi v4.0.0
 
 **Fast, secure local file sharing between your PC and mobile devices over WiFi.**
 
@@ -10,8 +10,8 @@
   
 ### 📥 Download for Windows
 
-<a href="https://github.com/hetcharusat/sharejadpi/releases/download/setup-3.1/ShareJadPi-3.1.1-Setup.exe">
-  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v3.1.1%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a&scale=2" alt="Download ShareJadPi" width="400"/>
+<a href="https://github.com/hetcharusat/sharejadpi/releases/latest">
+  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v4.0.0%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a&scale=2" alt="Download ShareJadPi" width="400"/>
 </a>
 
 **✨ One-click installer • 🔥 Firewall auto-configured • 🚀 Ready in 30 seconds**
@@ -28,13 +28,13 @@ ShareJadPi turns your Windows PC into a local file server accessible from any de
 ## ✨ Key Features
 
 - 🖱️ **One-Click Sharing** - Right-click any file → "Share with ShareJadPi"
-- � **Token-Based Security** - Unique 32-char tokens protect your files, no unauthorized access
+- 🔒 **Token-Based Security** - Unique 32-char tokens protect your files, no unauthorized access
 - 📱 **QR Code Access** - Instant secure mobile connection
 - ⚡ **Background Folder Zipping** - Live progress with speed & ETA
 - 🎨 **Beautiful Dark UI** - Modern, responsive design
 - 📋 **Clipboard Sync** - Share text between devices
 - 🚀 **Network Speed Test** - Test local network performance
-- � **Large File Support** - Handle files up to 50GB
+- 📦 **Large File Support** - Handle files up to 50GB
 - 🔥 **Multi-Select Actions** - Zip, pin, delete multiple files
 - ⚙️ **System Tray App** - Runs quietly in background
 
@@ -43,13 +43,13 @@ ShareJadPi turns your Windows PC into a local file server accessible from any de
 ## 📸 Screenshots & Demo
 
 ### 🖱️ Context Menu Integration
-https://github.com/user-attachments/assets/46c6b784-f82c-40e3-9c21-6bab15435278
+Video: Coming soon — see the placeholders in [Video Tutorials](#-video-tutorials-placeholders)
 
 ### 🏠 Mobile Interface
 <img src="assets/vidss/home-preview.jpg" width="280" alt="Home Preview">
 
 ### 📂 System Tray Access
-https://github.com/user-attachments/assets/d1145397-81a6-4531-b606-34caf9a6c9b2
+Video: Coming soon — see the placeholders in [Video Tutorials](#-video-tutorials-placeholders)
 
 ### ☑️ Multi-Select & Zip
 <img src="assets/vidss/select-files-and-zip.jpg" width="280" alt="Select and Zip">
@@ -58,7 +58,7 @@ https://github.com/user-attachments/assets/d1145397-81a6-4531-b606-34caf9a6c9b2
 <img src="assets/vidss/uploading-files.jpg" width="280" alt="Uploading">
 
 ### ⚙️ Settings Panel
-https://github.com/user-attachments/assets/fb9ed56a-fc1f-459b-abb0-86ee14cc620b
+Video: Coming soon — see the placeholders in [Video Tutorials](#-video-tutorials-placeholders)
 
 ### 📋 Clipboard & Speed Test
 <img src="assets/vidss/shared-clipboard-and-speedtest.jpg" width="280" alt="Clipboard">
@@ -76,7 +76,7 @@ https://github.com/user-attachments/assets/fb9ed56a-fc1f-459b-abb0-86ee14cc620b
 ## 🎯 Quick Start
 
 ### Download & Run (Recommended)
-1. **Download** `ShareJadPi-3.0.0.exe` from [Releases](https://github.com/hetcharusat/sharejadpi/releases)
+1. **Download** `ShareJadPi-4.0.0-Setup.exe` from [Releases](https://github.com/hetcharusat/sharejadpi/releases/latest)
 2. **Run** the exe
 3. **Allow firewall** when prompted ⚠️ *Important: Don't miss this!*
 4. **Right-click tray icon** → "Show QR"
@@ -109,14 +109,28 @@ python sharejadpi.py
 
 ---
 
-## 🚀 What's New in v3.0
+## 🚀 What's New in v4.0
 
-- ⚡ Background folder zipping with live progress
-- 🚄 10-20x faster zipping (no compression)
-- 💾 Memory-safe streaming for large files
-- 🔧 Robust file deletion with Windows API
-- 🎨 Aggressive cache-busting for mobile
-- 🔼 Fixed network speed test
+- 🔒 Stronger security: token-gated routes, Cloudflare header detection, remote settings hidden
+- 📱 Smarter QR and notifications: separate local vs tunnel QR; multi-line Windows toasts
+- 🚧 More reliable online sharing: server-side reachability check before redirect; improved waiting page (dark theme)
+- ⏱️ Dynamic idle timeout based on file size with activity tracking during downloads
+- 📣 Clearer Windows notifications during context menu actions
+
+---
+
+## 🎬 Video Tutorials (placeholders)
+
+We’ll publish short video tutorials soon. Until then, these placeholders indicate what’s coming:
+
+- ▶️ Installation & Setup: https://youtu.be/PLACEHOLDER_INSTALL
+- ▶️ Share Locally (Context Menu): https://youtu.be/PLACEHOLDER_LOCAL_SHARE
+- ▶️ Share Online (Cloudflare Tunnel): https://youtu.be/PLACEHOLDER_ONLINE_SHARE
+- ▶️ Fix Windows Firewall for Mobile Access: https://youtu.be/PLACEHOLDER_FIREWALL
+- ▶️ QR Code & Mobile Access: https://youtu.be/PLACEHOLDER_QR
+- ▶️ Troubleshooting (Common Issues): https://youtu.be/PLACEHOLDER_TROUBLESHOOT
+
+For a full list, see docs/VIDEOS.md (to be updated with real links once published).
 
 ---
 

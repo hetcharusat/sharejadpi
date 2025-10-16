@@ -1,15 +1,15 @@
-; ShareJadPi v3.1.1 Installer Script for Inno Setup
+; ShareJadPi v4.0.0 Installer Script for Inno Setup
 ; Download Inno Setup from: https://jrsoftware.org/isdl.php
 
 #define MyAppName "ShareJadPi"
-#define MyAppVersion "3.1.1"
+#define MyAppVersion "4.0.0"
 #define MyAppPublisher "hetcharusat"
 #define MyAppURL "https://github.com/hetcharusat/sharejadpi"
-#define MyAppExeName "ShareJadPi-3.1.1.exe"
+#define MyAppExeName "ShareJadPi-4.0.0.exe"
 
 [Setup]
 ; Basic Information
-AppId={{ShareJadPi-A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+AppId={{ShareJadPi-A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -22,7 +22,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=..\LICENSE
 OutputDir=..\installer_output
-OutputBaseFilename=ShareJadPi-3.1.1-Setup
+OutputBaseFilename=ShareJadPi-4.0.0-Setup
 SetupIconFile=..\assets\icon.ico
 Compression=lzma2/max
 SolidCompression=yes
@@ -46,9 +46,14 @@ Name: "firewall"; Description: "Add Windows Firewall rule (required for mobile a
 ; Main executable
 Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
-; Cloudflare Tunnel executable (for online sharing - no auth needed!)
+; Cloudflare Tunnel executable (for online sharing)
 Source: "..\cloudflared.exe"; DestDir: "{app}"; Flags: ignoreversion
 
+Source: "..\\TROUBLESHOOTING.md"; DestDir: "{app}"; Flags: ignoreversion
+
+; Helper scripts used by Start Menu entries
+Source: "..\\fix_firewall.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\show_connection_info.ps1"; DestDir: "{app}"; Flags: ignoreversion
 ; Icon file for context menu
 Source: "..\assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -131,13 +136,13 @@ begin
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0);
     // Show success message
     MsgBox('ShareJadPi has been installed successfully!' + #13#10 + #13#10 +
-           'The app will start automatically. Look for the green icon in your system tray.' + #13#10 + #13#10 +
-           'Tips:' + #13#10 +
-           '• Right-click the tray icon to access all features' + #13#10 +
-           '• Use "Show QR" to connect from mobile devices' + #13#10 +
-           '• If mobile can''t connect, run "Fix Firewall" from Start Menu' + #13#10 + #13#10 +
-           'See TROUBLESHOOTING.md for help!',
-           mbInformation, MB_OK);
+      'The app will start automatically. Look for the green icon in your system tray.' + #13#10 + #13#10 +
+      'Tips:' + #13#10 +
+      '- Right-click the tray icon to access all features' + #13#10 +
+      '- Use "Show QR" to connect from mobile devices' + #13#10 +
+      '- If mobile can''t connect, run "Fix Firewall" from Start Menu' + #13#10 + #13#10 +
+      'See TROUBLESHOOTING.md for help!',
+      mbInformation, MB_OK);
   end;
 end;
 

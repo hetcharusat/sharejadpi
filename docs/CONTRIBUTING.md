@@ -44,17 +44,17 @@ pip install pyinstaller
 
 # Build from the build_tools directory
 cd build_tools
-pyinstaller --clean ShareJadPi-3.1.1.spec
+pyinstaller --clean ShareJadPi-4.0.0.spec
 
-# Output: ../dist/ShareJadPi-3.1.1.exe
+# Output: ../dist/ShareJadPi-4.0.0.exe
 ```
 
 ### Build Installer (Requires Inno Setup)
 
 1. Install [Inno Setup 6](https://jrsoftware.org/isdl.php)
-2. Open `build_tools/ShareJadPi-Installer-3.1.1.iss` in Inno Setup
+2. Open `build_tools/ShareJadPi-Installer-4.0.0.iss` in Inno Setup
 3. Click "Compile"
-4. Output: `installer_output\ShareJadPi-3.1.1-Setup.exe`
+4. Output: `installer_output\ShareJadPi-4.0.0-Setup.exe`
 
 ---
 
@@ -110,8 +110,8 @@ sharejadpi/
 │   ├── icon.png              # PNG icon
 │   └── vidss/                # Demo screenshots/videos
 ├── build_tools/               # Build configuration
-│   ├── ShareJadPi-3.1.1.spec         # PyInstaller config
-│   ├── ShareJadPi-Installer-3.1.1.iss # Inno Setup config
+│   ├── ShareJadPi-4.0.0.spec         # PyInstaller config
+│   ├── ShareJadPi-Installer-4.0.0.iss # Inno Setup config
 │   └── create_icon.py         # Icon generator
 └── docs/                      # Documentation
     └── CONTRIBUTING.md        # This file

@@ -7,7 +7,7 @@ import qrcode
 import webbrowser
 import threading
 import time
-from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect, make_response, g, abort
+from flask import Flask, render_template, render_template_string, request, send_file, jsonify, send_from_directory, redirect, make_response, g, abort
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
@@ -27,6 +27,429 @@ import stat
 import ctypes
 import re
 import uuid
+import subprocess
+
+# ============================================================================
+# ONLINE SHARING FEATURE - Temporary public file sharing with Cloudflare Tunnel
+# ============================================================================
+
+# Constants for online sharing
+MAX_ONLINE_FILE_SIZE = 2 * 1024 * 1024 * 1024  # 2GB limit
+ONLINE_SHARES_DIR: str = ""  # Will be set after CORE_DIR is defined
+BASE_TIMEOUT_MINUTES = 10  # Base idle timeout (reduced from 15 for faster RAM recovery)
+TIMEOUT_INCREMENT_PER_200MB = 4  # Add 4 minutes per 200MB (increased from 2 for slower connections)
+
+class CloudflareManager:
+    """Manages Cloudflare Tunnel lifecycle with dynamic idle timeout."""
+    
+    def __init__(self):
+        self.process = None
+        self.public_url = None
+        self.last_activity = None
+        self.timeout_minutes = BASE_TIMEOUT_MINUTES
+        self.monitor_thread = None
+        self.running = False
+        self.lock = threading.Lock()
+        self.last_error = None
+    
+    def calculate_timeout(self, file_size_bytes):
+        """
+        Calculate idle timeout based on file size.
+        Base: 15 minutes + 2 minutes per 200MB
+        """
+        base_timeout = BASE_TIMEOUT_MINUTES
+        size_mb = file_size_bytes / (1024 * 1024)
+        additional_minutes = int(size_mb / 200) * TIMEOUT_INCREMENT_PER_200MB
+        timeout = base_timeout + additional_minutes
+        return max(timeout, BASE_TIMEOUT_MINUTES)  # Never less than base
+    
+    def start_tunnel(self, port=5000, file_size=0):
+        """
+        Start Cloudflare Tunnel (quick tunnels - no auth required).
+        Returns public URL or None if failed.
+        """
+        print(f"[CLOUDFLARE DEBUG] start_tunnel() ENTERED - port={port}, file_size={file_size}")
+        sys.stdout.flush()
+        
+        print("[CLOUDFLARE DEBUG] Acquiring lock...")
+        sys.stdout.flush()
+        
+        with self.lock:
+            print("[CLOUDFLARE DEBUG] Lock acquired, stopping existing tunnel if any...")
+            sys.stdout.flush()
+            
+            # Stop existing tunnel if any (using internal version to avoid deadlock)
+            self._stop_tunnel_internal()
+            
+            print("[CLOUDFLARE DEBUG] Ready to start new tunnel...")
+            sys.stdout.flush()
+            
+            try:
+                # Calculate timeout based on file size
+                self.timeout_minutes = self.calculate_timeout(file_size)
+                
+                print(f"[CLOUDFLARE] Starting tunnel to port {port}...")
+                print(f"[CLOUDFLARE] Idle timeout: {self.timeout_minutes} minutes (file size: {format_file_size(file_size)})")
+                
+                # Find cloudflared executable
+                # Priority: 1) Same directory as script/exe, 2) PATH
+                cloudflared_path = 'cloudflared'
+                
+                # If running as PyInstaller bundle, check bundle directory
+                if getattr(sys, 'frozen', False):
+                    bundle_dir = os.path.dirname(sys.executable)
+                    bundled_cloudflared = os.path.join(bundle_dir, 'cloudflared.exe')
+                    if os.path.exists(bundled_cloudflared):
+                        cloudflared_path = bundled_cloudflared
+                        print(f"[CLOUDFLARE] Using bundled cloudflared: {cloudflared_path}")
+                else:
+                    # Running as script - check script directory
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    local_cloudflared = os.path.join(script_dir, 'cloudflared.exe')
+                    if os.path.exists(local_cloudflared):
+                        cloudflared_path = local_cloudflared
+                        print(f"[CLOUDFLARE] Using local cloudflared: {cloudflared_path}")
+                
+                # Start cloudflared process
+                # Using --url localhost:PORT for quick tunnel (no auth needed)
+                cmd = [cloudflared_path, 'tunnel', '--url', f'http://localhost:{port}']
+                
+                self.process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,  # Line buffered
+                    creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == 'Windows' else 0
+                )
+                
+                print(f"[CLOUDFLARE] Process started (PID: {self.process.pid})")
+                
+                # Read output to get the public URL
+                # Cloudflare prints: "Your quick Tunnel has been created! Visit it at: https://..."
+                print("[CLOUDFLARE] Waiting for tunnel URL...")
+                timeout_start = time.time()
+                while time.time() - timeout_start < 30:  # 30 second timeout
+                    line = self.process.stdout.readline()
+                    if not line:
+                        # Check if process died
+                        if self.process.poll() is not None:
+                            print(f"[CLOUDFLARE] Process exited with code: {self.process.poll()}")
+                            break
+                        time.sleep(0.1)
+                        continue
+                    
+                    print(f"[CLOUDFLARE] Output: {line.strip()}")
+                    
+                    # Look for the URL in output
+                    if 'trycloudflare.com' in line:
+                        # Extract URL from line - improved regex to handle various formats
+                        import re as _re
+                        # Match full URL: https://xyz-abc-123.trycloudflare.com
+                        match = _re.search(r'https://[a-zA-Z0-9.-]+\.trycloudflare\.com', line)
+                        if match:
+                            extracted_url = match.group(0)
+                            # Validate it's not the API endpoint
+                            if 'api.trycloudflare.com' not in extracted_url:
+                                self.public_url = extracted_url
+                                self.last_activity = time.time()
+                                print(f"[CLOUDFLARE] ✓ Tunnel active: {self.public_url}")
+                                
+                                # Start monitor thread
+                                self.running = True
+                                self.monitor_thread = threading.Thread(target=self._monitor_idle, daemon=True)
+                                self.monitor_thread.start()
+                                
+                                return self.public_url
+                            else:
+                                print(f"[CLOUDFLARE] Skipping API URL: {extracted_url}")
+                        else:
+                            print(f"[CLOUDFLARE] Found 'trycloudflare.com' but regex didn't match: {line.strip()}")
+                    
+                    # Check for errors
+                    if 'error' in line.lower() or 'failed' in line.lower():
+                        self.last_error = line.strip()
+                
+                # If we get here, couldn't find URL
+                self.last_error = "Could not extract tunnel URL from cloudflared output"
+                print(f"[CLOUDFLARE] Failed to start tunnel: {self.last_error}")
+                return None
+                
+            except FileNotFoundError:
+                self.last_error = "cloudflared not found - please install it"
+                print(f"[CLOUDFLARE] Error: cloudflared not installed")
+                print("[CLOUDFLARE] Download from: https://github.com/cloudflare/cloudflared/releases")
+                return None
+            except Exception as e:
+                self.last_error = str(e)
+                print(f"[CLOUDFLARE] Exception in start_tunnel: {e}")
+                import traceback
+                traceback.print_exc()
+                sys.stdout.flush()
+                return None
+    
+    def update_activity(self):
+        """Update last activity timestamp."""
+        with self.lock:
+            self.last_activity = time.time()
+    
+    def _monitor_idle(self):
+        """Monitor idle timeout and shutdown tunnel if inactive."""
+        while self.running:
+            try:
+                time.sleep(30)  # Check every 30 seconds
+                
+                with self.lock:
+                    if self.last_activity is None:
+                        continue
+                    
+                    idle_seconds = time.time() - self.last_activity
+                    idle_minutes = idle_seconds / 60
+                    
+                    if idle_minutes >= self.timeout_minutes:
+                        print(f"[CLOUDFLARE] Idle timeout reached ({self.timeout_minutes} min) - shutting down tunnel")
+                        self._stop_tunnel_internal()
+                        break
+                    
+            except Exception as e:
+                print(f"[CLOUDFLARE] Monitor error: {e}")
+    
+    def _stop_tunnel_internal(self):
+        """Internal: Stop tunnel without acquiring lock (called when lock already held)."""
+        if self.process:
+            try:
+                print("[CLOUDFLARE] Stopping existing tunnel...")
+                sys.stdout.flush()
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                self.process = None
+                self.public_url = None
+                self.last_activity = None
+                print("[CLOUDFLARE] ✓ Tunnel stopped")
+                sys.stdout.flush()
+            except Exception as e:
+                self.last_error = str(e)
+                print(f"[CLOUDFLARE] Error stopping tunnel: {e}")
+        
+        self.running = False
+    
+    def stop_tunnel(self):
+        """Stop the Cloudflare tunnel and cleanup."""
+        with self.lock:
+            self._stop_tunnel_internal()
+    
+    def is_active(self):
+        """Check if tunnel is currently active."""
+        with self.lock:
+            return self.process is not None and self.public_url is not None
+
+
+class OnlineShareManager:
+    """Manages online shares with one-time access tokens."""
+    
+    def __init__(self, cloudflare_manager):
+        self.cloudflare_manager = cloudflare_manager
+        self.shares = {}  # token -> share_info dict
+        self.lock = threading.Lock()
+    
+    def create_share(self, file_path, original_name=None):
+        """
+        Create an online share for a file.
+        Returns (token, public_url, qr_path) or (None, None, None) if failed.
+        """
+        # Validate file
+        if not os.path.exists(file_path):
+            print(f"[ONLINE] File not found: {file_path}")
+            return None, None, None
+        
+        file_size = os.path.getsize(file_path)
+        
+        # Check size limit
+        if file_size > MAX_ONLINE_FILE_SIZE:
+            print(f"[ONLINE] File too large: {format_file_size(file_size)} (max: {format_file_size(MAX_ONLINE_FILE_SIZE)})")
+            return None, None, None
+        
+        # Start Cloudflare tunnel if not already active
+        if not self.cloudflare_manager.is_active():
+            public_url = self.cloudflare_manager.start_tunnel(PORT, file_size)
+            if not public_url:
+                print("[ONLINE] Failed to start Cloudflare tunnel")
+                return None, None, None
+        else:
+            public_url = self.cloudflare_manager.public_url
+        
+        # Generate one-time access token
+        token = secrets.token_urlsafe(32)
+        
+        # Create share info
+        share_info = {
+            'token': token,
+            'file_path': file_path,
+            'original_name': original_name or os.path.basename(file_path),
+            'file_size': file_size,
+            'created_at': time.time(),
+            'accessed': False,
+            'access_count': 0,
+        }
+        
+        with self.lock:
+            self.shares[token] = share_info
+        
+        # Generate QR code for the share URL
+        share_url = f"{public_url}/online-download/{token}"
+        qr_path = self._generate_qr(share_url, token)
+        
+        # Update activity
+        self.cloudflare_manager.update_activity()
+        
+        print(f"[ONLINE] ✓ Share created: {share_info['original_name']}")
+        print(f"[ONLINE] Token: {token[:16]}...")
+        print(f"[ONLINE] URL: {share_url}")
+        
+        return token, share_url, qr_path
+    
+    def get_share(self, token):
+        """Get share info by token."""
+        with self.lock:
+            return self.shares.get(token)
+    
+    def mark_accessed(self, token):
+        """Mark share as accessed and schedule cleanup."""
+        with self.lock:
+            if token in self.shares:
+                self.shares[token]['accessed'] = True
+                self.shares[token]['access_count'] += 1
+                
+                # Update activity
+                self.cloudflare_manager.update_activity()
+                
+                # Schedule cleanup after download
+                cleanup_thread = threading.Thread(
+                    target=self._cleanup_share_delayed,
+                    args=(token,),
+                    daemon=True
+                )
+                cleanup_thread.start()
+    
+    def _cleanup_share_delayed(self, token):
+        """Delete share file and remove from registry after a delay."""
+        time.sleep(5)  # Wait 5 seconds to ensure download completes
+        
+        with self.lock:
+            share_info = self.shares.pop(token, None)
+            
+            if share_info:
+                file_path = share_info['file_path']
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                        print(f"[ONLINE] ✓ Cleaned up: {share_info['original_name']}")
+                except Exception as e:
+                    print(f"[ONLINE] Cleanup error: {e}")
+            
+            # Stop tunnel if no more shares
+            if len(self.shares) == 0:
+                print("[ONLINE] No more active shares - tunnel will auto-stop on idle timeout")
+    
+    def list_shares(self):
+        """List all active online shares."""
+        with self.lock:
+            return list(self.shares.values())
+    
+    def cleanup_all(self):
+        """Cleanup all shares and stop tunnel."""
+        with self.lock:
+            for token, share_info in list(self.shares.items()):
+                file_path = share_info['file_path']
+                try:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except Exception:
+                    pass
+            
+            self.shares.clear()
+        
+        self.cloudflare_manager.stop_tunnel()
+        print("[ONLINE] ✓ All shares cleaned up")
+    
+    def _generate_qr(self, url, token):
+        """Generate QR code for share URL."""
+        try:
+            qr = qrcode.QRCode(version=1, box_size=10, border=2)
+            qr.add_data(url)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            
+            qr_path = os.path.join(STATIC_DIR, f"qr_online_{token[:16]}.png")
+            qr_img.save(qr_path)
+            return qr_path
+            
+        except Exception as e:
+            print(f"[ONLINE] QR generation error: {e}")
+            return None
+
+
+def zip_folder_with_progress(folder_path, output_path, progress_callback=None):
+    """
+    Zip a folder with progress tracking and size limit.
+    Returns (success, error_message, total_size)
+    """
+    import zipfile
+    
+    try:
+        # Calculate total size first
+        total_size = 0
+        file_list = []
+        
+        for root, _, files in os.walk(folder_path):
+            for f in files:
+                full_path = os.path.join(root, f)
+                try:
+                    size = os.path.getsize(full_path)
+                    total_size += size
+                    file_list.append((full_path, size))
+                except Exception:
+                    continue
+        
+        # Check size limit
+        if total_size > MAX_ONLINE_FILE_SIZE:
+            return False, f"Folder too large: {format_file_size(total_size)} (max: {format_file_size(MAX_ONLINE_FILE_SIZE)})", 0
+        
+        # Create zip with progress
+        processed_size = 0
+        with zipfile.ZipFile(output_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
+            for full_path, size in file_list:
+                rel_path = os.path.relpath(full_path, folder_path)
+                zf.write(full_path, arcname=rel_path)
+                
+                processed_size += size
+                
+                # Call progress callback
+                if progress_callback:
+                    progress = int((processed_size / total_size) * 100)
+                    progress_callback(progress, processed_size, total_size)
+        
+        return True, None, total_size
+        
+    except Exception as e:
+        return False, str(e), 0
+
+
+def format_file_size(size):
+    """Format file size in human-readable format."""
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} TB"
+
+
+# ============================================================================
+# END OF ONLINE SHARING FEATURE
+# ============================================================================
 
 # Configuration and app setup (restored)
 def resource_path(*paths: str) -> str:
@@ -46,6 +469,14 @@ SHARED_DIR = os.path.join(CORE_DIR, 'shared')
 UPLOADS_CORE_DIR = os.path.join(CORE_DIR, 'uploads')
 os.makedirs(SHARED_DIR, exist_ok=True)
 os.makedirs(UPLOADS_CORE_DIR, exist_ok=True)
+
+# Online shares directory
+ONLINE_SHARES_DIR = os.path.join(CORE_DIR, 'online_shares')
+os.makedirs(ONLINE_SHARES_DIR, exist_ok=True)
+
+# Initialize online sharing managers
+cloudflare_manager = CloudflareManager()
+online_share_manager = OnlineShareManager(cloudflare_manager)
 
 # Legacy variable retained
 UPLOAD_FOLDER = SHARED_DIR
@@ -70,6 +501,52 @@ OPEN_MODE = str(os.environ.get('SJ_OPEN', '0')).lower() in ('1','true','yes','on
 RUN_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_RUN_NAME = "ShareJadPi"
 
+def show_windows_notification(title, message):
+    """Show a Windows 10/11 toast notification with good multi-line formatting.
+
+    - Uses ToastGeneric with multiple <text> tags (first is title, rest are lines).
+    - Splits message on newlines and caps to 4 lines for reliability.
+    - Uses duration="long" so the toast stays visible a bit longer.
+    """
+    try:
+        import subprocess as _sp
+
+        def _xml_escape(s: str) -> str:
+            return (
+                s.replace('&', '&amp;')
+                 .replace('<', '&lt;')
+                 .replace('>', '&gt;')
+                 .replace('"', '&quot;')
+                 .replace("'", '&apos;')
+            )
+
+        title_xml = _xml_escape(title)
+        # Split message into lines and escape each; cap to 4 lines
+        msg_lines = [ln.strip() for ln in (message or '').split('\n') if ln.strip()]
+        msg_lines = msg_lines[:4]
+        lines_xml = ''.join(f"<text hint-wrap='true'>{_xml_escape(ln)}</text>" for ln in msg_lines)
+
+        ps_script = (
+            "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null;"
+            "$xml = New-Object Windows.Data.Xml.Dom.XmlDocument;"
+            f"$xml.LoadXml('<toast duration=\'long\'><visual><binding template=\'ToastGeneric\'>"
+            f"<text>{title_xml}</text>{lines_xml}"
+            "</binding></visual></toast>');"
+            "$toast = [Windows.UI.Notifications.ToastNotification]::new($xml);"
+            "$toast.Tag = 'ShareJadPi'; $toast.Group = 'ShareJadPi';"
+            "$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('ShareJadPi');"
+            "$notifier.Show($toast);"
+        )
+
+        _sp.Popen(
+            ['powershell', '-NoProfile', '-Command', ps_script],
+            creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == 'Windows' else 0,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception as e:
+        print(f"[NOTIFICATION] Failed to show notification: {e}")
+
 def get_python_exe():
     return sys.executable
 
@@ -83,17 +560,21 @@ def get_start_command():
 CM_USER_FILE_KEY = r"Software\Classes\*\shell\ShareJadPi"
 CM_USER_DIR_KEY = r"Software\Classes\Directory\shell\ShareJadPi"
 
+# Online sharing context menu keys
+CM_USER_FILE_ONLINE_KEY = r"Software\Classes\*\shell\ShareJadPiOnline"
+CM_USER_DIR_ONLINE_KEY = r"Software\Classes\Directory\shell\ShareJadPiOnline"
+
 def _current_exe_for_context() -> str:
     if getattr(sys, 'frozen', False):  # type: ignore[attr-defined]
         return sys.executable
     return f'{get_python_exe()} "{os.path.abspath(__file__)}"'
 
-def _cm_command_for_exe(exe_path: str) -> str:
+def _cm_command_for_exe(exe_path: str, action='share') -> str:
     # Quotes around path and argument target
     if 'sharejadpi.py' in exe_path.lower():
         # Running as script
-        return f'"{get_python_exe()}" "{os.path.abspath(__file__)}" share "%1"'
-    return f'"{exe_path}" share "%1"'
+        return f'"{get_python_exe()}" "{os.path.abspath(__file__)}" {action} "%1"'
+    return f'"{exe_path}" {action} "%1"'
 
 def _reg_set_string(root, path: str, name: str, value: str):
     if not winreg:
@@ -156,14 +637,27 @@ def install_context_menu_user() -> bool:
     if platform.system() != 'Windows' or not winreg:
         return False
     exe = _current_exe_for_context()
-    cmd = _cm_command_for_exe(exe)
+    cmd = _cm_command_for_exe(exe, 'share')
+    # For Online, prefer exposing the full UI via Cloudflare Tunnel (open-online)
+    cmd_online = _cm_command_for_exe(exe, 'open-online')
     ok = True
-    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_KEY, "", "Share with ShareJadPi")
+    
+    # Local sharing menu
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_KEY, "", "Share with ShareJadPi (Local)")
     ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_KEY, "Icon", exe)
     ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_KEY + "\\command", "", cmd)
-    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY, "", "Share with ShareJadPi")
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY, "", "Share with ShareJadPi (Local)")
     ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY, "Icon", exe)
     ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY + "\\command", "", cmd)
+    
+    # Online sharing menu
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_ONLINE_KEY, "", "Share with ShareJadPi (Online)")
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_ONLINE_KEY, "Icon", exe)
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_FILE_ONLINE_KEY + "\\command", "", cmd_online)
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_ONLINE_KEY, "", "Share with ShareJadPi (Online)")
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_ONLINE_KEY, "Icon", exe)
+    ok &= _reg_set_string(winreg.HKEY_CURRENT_USER, CM_USER_DIR_ONLINE_KEY + "\\command", "", cmd_online)
+    
     return ok
 
  
@@ -171,11 +665,20 @@ def install_context_menu_user() -> bool:
 def uninstall_context_menu_user() -> bool:
     if platform.system() != 'Windows' or not winreg:
         return False
+    
+    # Remove local sharing menus
     ok1 = _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_FILE_KEY + "\\command")
     ok1 &= _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_FILE_KEY)
     ok2 = _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY + "\\command")
     ok2 &= _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_DIR_KEY)
-    return ok1 and ok2
+    
+    # Remove online sharing menus
+    ok3 = _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_FILE_ONLINE_KEY + "\\command")
+    ok3 &= _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_FILE_ONLINE_KEY)
+    ok4 = _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_DIR_ONLINE_KEY + "\\command")
+    ok4 &= _reg_delete_tree(winreg.HKEY_CURRENT_USER, CM_USER_DIR_ONLINE_KEY)
+    
+    return ok1 and ok2 and ok3 and ok4
 
 def is_autostart_enabled():
     if platform.system() != 'Windows' or not winreg:
@@ -292,11 +795,14 @@ def generate_qr_code(url):
         return os.path.join(STATIC_DIR, "qr_code.png")
 
 def show_qr_popup(url):
-    """Open the dynamic /popup route in default browser."""
+    """Open the dynamic /popup route in default browser with the URL to display."""
     try:
         # ensure QR updated
         generate_qr_code(url)
-        webbrowser.open(f'http://127.0.0.1:{PORT}/popup?ts={int(time.time())}')
+        # Pass the URL as a query parameter so /popup can display it
+        import urllib.parse
+        encoded_url = urllib.parse.quote(url, safe='')
+        webbrowser.open(f'http://127.0.0.1:{PORT}/popup?url={encoded_url}&ts={int(time.time())}')
     except Exception as e:
         print(f"[ERROR] Unable to open QR popup: {e}")
 
@@ -401,6 +907,48 @@ def tray_show_qr(icon, item):  # noqa: ARG001
     url = get_access_url(with_token=True)
     show_qr_popup(url)
 
+def tray_stop_tunnel(icon, item):  # noqa: ARG001
+    """Stop the Cloudflare tunnel manually"""
+    try:
+        import urllib.request as _ur
+        
+        # Call /api/tunnel/stop
+        req = _ur.Request(f'http://127.0.0.1:{PORT}/api/tunnel/stop', method='POST')
+        with _ur.urlopen(req, timeout=5) as resp:
+            body = resp.read().decode('utf-8', errors='ignore')
+            print("[TRAY] Tunnel stop response:", body)
+            
+            # Show notification
+            show_windows_notification(
+                "ShareJadPi - Online Sharing",
+                "🛑 TUNNEL STOPPED\n\nOnline sharing has been disabled.\n\nRAM freed: ~36 MB"
+            )
+    except Exception as e:
+        print(f"[TRAY] Failed to stop tunnel: {e}")
+        # Show error notification
+        show_windows_notification(
+            "ShareJadPi - Info",
+            "ℹ️ NO ACTIVE TUNNEL\n\nThere's no online tunnel running.\n\nNothing to stop."
+        )
+
+def tray_open_online(icon, item):  # noqa: ARG001
+    """Start Cloudflare tunnel and open the online share page"""
+    try:
+        import urllib.request as _ur
+        import json as _json
+        
+        # Call /api/tunnel/start
+        payload = _json.dumps({'size_hint': 0}).encode()
+        req = _ur.Request(f'http://127.0.0.1:{PORT}/api/tunnel/start', data=payload, headers={'Content-Type': 'application/json'})
+        with _ur.urlopen(req, timeout=5) as resp:
+            body = resp.read().decode('utf-8', errors='ignore')
+            print("[TRAY] Tunnel start response:", body)
+        
+        # Open the /online-wait page which shows live status
+        webbrowser.open(f'http://127.0.0.1:{PORT}/online-wait')
+    except Exception as e:
+        print(f"[TRAY] Failed to start online tunnel: {e}")
+
 def tray_open_settings(icon, item):  # noqa: ARG001
     webbrowser.open(get_access_url(with_token=True) + 'settings')
 
@@ -453,7 +1001,9 @@ def start_tray():
         if errs:
             print('[CACHE] Some items scheduled for deletion on reboot or failed:', errs)
     menu = pystray.Menu(
-        pystray.MenuItem('Open Share Page', tray_open_share),
+        pystray.MenuItem('Open Share Page (Local)', tray_open_share),
+        pystray.MenuItem('Open Share Page (Online)', tray_open_online),
+        pystray.MenuItem('Stop Online Tunnel', tray_stop_tunnel),
         pystray.MenuItem('Show QR', tray_show_qr),
         pystray.MenuItem('Install Context Menu', tray_install_cm),
         pystray.MenuItem('Remove Context Menu', tray_uninstall_cm),
@@ -464,9 +1014,14 @@ def start_tray():
     tray_icon = pystray.Icon('ShareJadPi', image, 'ShareJadPi', menu)
     tray_icon.run()
 
-def share_file_or_folder(path):
+def share_file_or_folder(path, show_qr=True):
     """Share by copying file(s) / zipping directories into central shared dir.
-    Returns list of created entry dicts."""
+    Returns list of created entry dicts.
+    
+    Args:
+        path: File or folder path to share
+        show_qr: If True, show QR popup. Set False when sharing via online tunnel.
+    """
     created = []
     try:
         print(f"\n{'='*60}\n[SHARE] Processing: {path}\n{'='*60}")
@@ -504,20 +1059,14 @@ def share_file_or_folder(path):
         if created:
             url = get_access_url(with_token=True)
             print(f"\n[SUCCESS] {len(created)} item(s) shared! URL: {url}")
-            show_qr_popup(url)
+            if show_qr:
+                show_qr_popup(url)
         else:
             print("[SHARE] No entries created.")
     except Exception as e:
         print(f"[ERROR] Failed to share: {e}")
         import traceback; traceback.print_exc()
     return created
-
-def format_file_size(size):
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if size < 1024.0:
-            return f"{size:.1f} {unit}"
-        size /= 1024.0
-    return f"{size:.1f} TB"
 
 # Utilities for cache stats
 def _dir_stats(path):
@@ -767,8 +1316,9 @@ def _token_gate():
         resp.set_cookie('sjk', SECRET_TOKEN, max_age=7*24*3600, httponly=True, samesite='Lax', path='/')
         return resp
     
-    # Public endpoints that don't require authorization (so UI can load and check status)
-    public_paths = ['/', '/qr', '/popup', '/health', '/favicon.ico', '/api/status', '/api/is_host']
+    # Public endpoints that don't require authorization
+    # NOTE: / is NOT public - it requires token authentication
+    public_paths = ['/qr', '/popup', '/health', '/favicon.ico', '/api/status', '/api/is_host', '/login']
     if request.path.startswith('/static'):
         public_paths.append(request.path)
     
@@ -781,7 +1331,29 @@ def _token_gate():
     
     # All other endpoints require authorization
     if not _is_authorized():
-        return jsonify({'error': 'Unauthorized', 'message': 'Valid token required'}), 401
+        # Return HTML error page for browser requests, JSON for API requests
+        if request.path.startswith('/api/') or request.headers.get('Accept', '').startswith('application/json'):
+            return jsonify({'error': 'Unauthorized', 'message': 'Valid token required'}), 401
+        else:
+            # Browser request - show friendly HTML error page
+            return render_template_string("""
+<!DOCTYPE html>
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>ShareJadPi - Access Required</title>
+<style>
+body{margin:0;font-family:Arial,Helvetica,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.card{background:rgba(0,0,0,.25);padding:32px 42px;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;max-width:400px}
+h1{font-size:24px;margin:0 0 16px}
+p{opacity:.9;margin:0 0 12px;font-size:15px}
+.error{color:#ffcc00;font-size:14px;margin-top:12px}
+</style></head>
+<body><div class='card'>
+<h1>🔒 Access Required</h1>
+<p>This ShareJadPi instance requires a valid access token.</p>
+<p>If you have the link with token, please use that link to access.</p>
+<p class='error'>Unauthorized access is not permitted.</p>
+</div></body></html>
+"""), 401
 
 @app.after_request
 def _security_headers(resp):
@@ -811,17 +1383,30 @@ def _security_headers(resp):
 # Flask routes
 @app.route('/')
 def index():
+    # Use the entry registry instead of directly listing files
+    # This ensures consistency between local and online sharing
     files = []
-    if os.path.exists(UPLOAD_FOLDER):
-        for filename in os.listdir(UPLOAD_FOLDER):
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            if os.path.isfile(filepath):
-                size = os.path.getsize(filepath)
-                size_str = format_file_size(size)
-                modified = datetime.fromtimestamp(os.path.getmtime(filepath)).strftime('%Y-%m-%d %H:%M:%S')
-                files.append({'name': filename, 'size': size_str, 'modified': modified})
+    to_remove = []
+    
+    for e in list_entries():
+        if not os.path.exists(e['path']):
+            to_remove.append(e['id'])
+            continue
+        
+        files.append({
+            'name': e['name'],
+            'size': format_file_size(e['size']),
+            'modified': datetime.fromtimestamp(e['added_at']).strftime('%Y-%m-%d %H:%M:%S')
+        })
+    
+    # Clean up missing entries
+    for rid in to_remove:
+        remove_entry(rid)
+    
     files.sort(key=lambda x: x['modified'], reverse=True)
-    return render_template('index.html', files=files)
+    
+    # Pass is_host flag to template so we can hide settings from remote users
+    return render_template('index.html', files=files, is_host=is_request_from_host())
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -868,6 +1453,11 @@ def upload_file():
 def download_entry(entry_id):
     # Downloads are public - if you know the ID, you can download
     # (The file list itself is protected, so unauthorized users won't know IDs)
+    
+    # Update Cloudflare tunnel activity to prevent timeout during download
+    if cloudflare_manager.is_active():
+        cloudflare_manager.update_activity()
+    
     e = get_entry(entry_id)
     if not e:
         return jsonify({'error': 'Not found'}), 404
@@ -953,7 +1543,44 @@ def clear_all():
 
 @app.route('/qr')
 def qr_code():
-    return send_from_directory(STATIC_DIR, 'qr_code.png')
+    """Generate and serve QR code - local URL for local access, online URL for tunnel access."""
+    
+    # Detect if request is coming through Cloudflare Tunnel
+    is_cloudflare = bool(
+        request.headers.get('CF-Connecting-IP') or 
+        request.headers.get('CF-Ray') or 
+        request.headers.get('CF-Visitor')
+    )
+    
+    # Use appropriate URL based on access method
+    if is_cloudflare and cloudflare_manager.is_active():
+        # Request via Cloudflare Tunnel - show online URL
+        online_url = cloudflare_manager.public_url
+        if online_url:
+            qr_url = f"{online_url}/?k={SECRET_TOKEN}"
+        else:
+            qr_url = get_access_url(with_token=True)  # Fallback to local
+    else:
+        # Local access - show local URL
+        qr_url = get_access_url(with_token=True)
+    
+    # Generate QR code
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=2)
+        qr.add_data(qr_url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Save to memory buffer instead of file
+        from io import BytesIO
+        buffer = BytesIO()
+        qr_img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        return send_file(buffer, mimetype='image/png', as_attachment=False, download_name='qr_code.png')
+    except Exception as e:
+        print(f"[QR] Error generating QR code: {e}")
+        return "QR generation failed", 500
 
 @app.route('/health')
 def health():
@@ -962,7 +1589,8 @@ def health():
 @app.route('/popup')
 def popup():
     """Serve dynamic QR popup page."""
-    url = get_access_url(with_token=True)
+    # Get URL from query parameter, or fall back to local URL
+    url = request.args.get('url', get_access_url(with_token=True))
     # QR will be served from /qr with cache buster in img tag
     return f"""<!DOCTYPE html>
 <html><head><meta charset='utf-8'><title>ShareJadPi QR</title>
@@ -1383,6 +2011,316 @@ def api_share():
     created = share_file_or_folder(path)
     return jsonify({'shared': [ {'id':e['id'], 'name':e['name'], 'kind':e['kind'], 'size': format_file_size(e['size']) } for e in created ], 'count': len(created)})
 
+# ============================================================================
+# ONLINE SHARING ROUTES
+# ============================================================================
+
+@app.route('/api/share-online', methods=['POST'])
+def api_share_online():
+    """
+    Start Cloudflare tunnel and share the file via the main ShareJadPi interface.
+    This simply makes the entire app accessible online with automatic timeout.
+    """
+    if request.remote_addr not in ('127.0.0.1', '::1'):
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    # Cloudflare Tunnel is always available (bundled with installer)
+    
+    data = request.get_json(silent=True) or {}
+    path = data.get('path')
+    
+    if not path:
+        return jsonify({'error': 'Missing path'}), 400
+    
+    if not os.path.exists(path):
+        return jsonify({'error': 'Path does not exist'}), 404
+    
+    try:
+        print(f"[ONLINE] /api/share-online called for path: {path}")
+        # Share the file locally first (just like normal sharing, but don't show local QR)
+        created = share_file_or_folder(path, show_qr=False)
+        
+        if not created:
+            return jsonify({'error': 'Failed to share file locally'}), 500
+        
+        # Calculate size for timeout (use largest file if multiple)
+        max_size = max(e['size'] for e in created)
+        
+        # Start or get Cloudflare tunnel
+        if not cloudflare_manager.is_active():
+            public_url = cloudflare_manager.start_tunnel(PORT, max_size)
+            if not public_url:
+                return jsonify({'error': 'Failed to start Cloudflare tunnel'}), 500
+        else:
+            public_url = cloudflare_manager.public_url
+            cloudflare_manager.update_activity()
+        
+        # Build the public URL with token for access
+        share_url = f"{public_url}/?k={SECRET_TOKEN}"
+        
+        # Generate QR code for the public URL
+        qr_path = generate_qr_code(share_url)
+        
+        # Show QR popup
+        show_qr_popup(share_url)
+        
+        print(f"[ONLINE] ✓ Shared {len(created)} item(s) via Cloudflare Tunnel")
+        print(f"[ONLINE] Public URL: {share_url}")
+        print(f"[ONLINE] Timeout: {cloudflare_manager.timeout_minutes} minutes")
+        
+        return jsonify({
+            'success': True,
+            'url': share_url,
+            'public_url': public_url,
+            'shared_items': [{'id': e['id'], 'name': e['name'], 'size': format_file_size(e['size'])} for e in created],
+            'timeout_minutes': cloudflare_manager.timeout_minutes,
+            'qr_available': qr_path is not None
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tunnel/start', methods=['POST'])
+def api_tunnel_start():
+    """Start a Cloudflare tunnel to expose the full UI and return the public URL."""
+    if request.remote_addr not in ('127.0.0.1', '::1'):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Cloudflare Tunnel is always available (bundled with installer)
+
+    data = request.get_json(silent=True) or {}
+    size_hint = int(data.get('size_hint') or 0)
+    try:
+        # Non-blocking start: kick off a background thread if not active
+        if not cloudflare_manager.is_active():
+            print("[CLOUDFLARE] /api/tunnel/start requested - starting in background")
+            sys.stdout.flush()
+            def _bg_start():
+                print(f"[CLOUDFLARE DEBUG] Background thread started, calling start_tunnel(port={PORT}, size_hint={size_hint})")
+                sys.stdout.flush()
+                try:
+                    public = cloudflare_manager.start_tunnel(PORT, size_hint)
+                    if public:
+                        url2 = f"{public}/?k={SECRET_TOKEN}"
+                        try:
+                            generate_qr_code(url2)
+                        except Exception:
+                            pass
+                        print(f"[CLOUDFLARE] Public URL ready: {url2}")
+                except Exception as ex:
+                    print(f"[CLOUDFLARE] Background start error: {ex}")
+            threading.Thread(target=_bg_start, daemon=True).start()
+        else:
+            cloudflare_manager.update_activity()
+        # Respond immediately; client can poll status
+        public_url = cloudflare_manager.public_url
+        url = f"{public_url}/?k={SECRET_TOKEN}" if public_url else None
+        return jsonify({'success': True, 'starting': True, 'public_url': public_url, 'url': url, 'timeout_minutes': cloudflare_manager.timeout_minutes})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tunnel/status', methods=['GET'])
+def api_tunnel_status():
+    """Return current Cloudflare tunnel status and URL."""
+    active = cloudflare_manager.is_active()
+    public = cloudflare_manager.public_url if active else None
+    url = f"{public}/?k={SECRET_TOKEN}" if public else None
+    
+    # If tunnel is active and URL exists, verify it's reachable
+    reachable = False
+    if active and public:
+        try:
+            import requests
+            # Quick HEAD request to verify DNS is propagated
+            response = requests.head(url, timeout=5, allow_redirects=True)
+            reachable = response.status_code in [200, 301, 302, 303, 307, 308]
+        except:
+            reachable = False
+    
+    return jsonify({
+        'active': active, 
+        'public_url': public, 
+        'url': url, 
+        'reachable': reachable,
+        'timeout_minutes': cloudflare_manager.timeout_minutes if active else None, 
+        'last_error': cloudflare_manager.last_error
+    })
+
+@app.route('/api/tunnel/stop', methods=['POST'])
+def api_tunnel_stop():
+    """Manually stop the Cloudflare tunnel."""
+    if request.remote_addr not in ('127.0.0.1', '::1'):
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    try:
+        if cloudflare_manager.is_active():
+            cloudflare_manager.stop_tunnel()
+            print("[TUNNEL] ✓ Manually stopped via API")
+            return jsonify({'success': True, 'message': 'Tunnel stopped successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'No tunnel is currently active'})
+    except Exception as e:
+        print(f"[TUNNEL] Error stopping tunnel: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/online-wait')
+def online_wait():
+    """Dark themed waiting page with fast DNS verification."""
+    return '''<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ShareJadPi - Creating Tunnel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)}
+.container{background:rgba(30,30,50,0.95);backdrop-filter:blur(10px);border-radius:20px;padding:50px 60px;box-shadow:0 20px 60px rgba(0,0,0,0.5);max-width:600px;width:90%;text-align:center;border:1px solid rgba(102,126,234,0.2)}
+.logo{font-size:48px;margin-bottom:10px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+h1{color:#667eea;font-size:28px;margin-bottom:10px;font-weight:600;text-shadow:0 2px 10px rgba(102,126,234,0.3)}
+.subtitle{color:#aaa;font-size:14px;margin-bottom:35px;opacity:0.9}
+.progress-container{background:#1a1a2e;height:8px;border-radius:10px;overflow:hidden;margin:30px 0;box-shadow:inset 0 2px 8px rgba(0,0,0,0.5);border:1px solid rgba(102,126,234,0.2)}
+.progress-bar{height:100%;background:linear-gradient(90deg,#667eea,#764ba2,#667eea);background-size:200% 100%;border-radius:10px;width:0%;transition:width 0.3s ease;animation:shimmer 2s linear infinite;box-shadow:0 0 15px rgba(102,126,234,0.6)}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.status-box{background:linear-gradient(135deg,rgba(102,126,234,0.1) 0%,rgba(118,75,162,0.1) 100%);border-radius:12px;padding:20px;margin:25px 0;border-left:4px solid #667eea;position:relative;overflow:hidden;border:1px solid rgba(102,126,234,0.2)}
+.status-box::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(102,126,234,0.2),transparent);animation:scan 2s ease-in-out infinite}
+@keyframes scan{0%{left:-100%}100%{left:200%}}
+.status-icon{font-size:32px;margin-bottom:10px;display:inline-block;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:0.8}}
+.status-text{color:#fff;font-size:16px;font-weight:500;margin-bottom:8px}
+.status-detail{color:#aaa;font-size:13px;line-height:1.6}
+.steps{margin-top:30px;text-align:left}
+.step{display:flex;align-items:center;padding:12px 15px;margin:8px 0;border-radius:8px;background:rgba(20,20,35,0.6);transition:all 0.3s;border:1px solid rgba(102,126,234,0.1)}
+.step.active{background:linear-gradient(135deg,rgba(102,126,234,0.15),rgba(118,75,162,0.15));border-left:3px solid #667eea;border-color:rgba(102,126,234,0.3)}
+.step.complete{background:rgba(40,167,69,0.15);border-left:3px solid #28a745;border-color:rgba(40,167,69,0.3)}
+.step-icon{font-size:20px;margin-right:12px;min-width:24px}
+.step-text{color:#ddd;font-size:14px;flex:1}
+.step-status{font-size:11px;color:#999;margin-left:10px}
+.spinner{display:inline-block;width:40px;height:40px;border:4px solid rgba(102,126,234,0.2);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite;margin:20px 0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn{display:inline-block;margin-top:15px;padding:14px 32px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:25px;text-decoration:none;font-weight:600;font-size:15px;transition:all 0.3s;box-shadow:0 4px 15px rgba(102,126,234,0.4);border:none}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.6)}
+.hidden{display:none}
+.dots::after{content:'';animation:dots 1.5s steps(4) infinite}
+@keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+</style></head><body>
+<div class="container">
+  <div class="logo">&#128640;</div>
+  <h1>ShareJadPi Online</h1>
+  <div class="subtitle">Creating your secure public tunnel</div>
+  <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+  <div class="status-box">
+    <div class="status-icon" id="status-icon">&#128260;</div>
+    <div class="status-text" id="status-text">Initializing<span class="dots"></span></div>
+    <div class="status-detail" id="status-detail">Preparing secure tunnel infrastructure...</div>
+  </div>
+  <div class="steps">
+    <div class="step" id="step1">
+      <div class="step-icon">&#128225;</div>
+      <div class="step-text">Initialize Cloudflare Tunnel</div>
+      <div class="step-status">&#8987;</div>
+    </div>
+    <div class="step" id="step2">
+      <div class="step-icon">&#128274;</div>
+      <div class="step-text">Establish Encrypted Connection</div>
+      <div class="step-status">&#8987;</div>
+    </div>
+    <div class="step" id="step3">
+      <div class="step-icon">&#127758;</div>
+      <div class="step-text">Verify Global DNS Propagation</div>
+      <div class="step-status">&#8987;</div>
+    </div>
+  </div>
+  <div class="spinner" id="spinner"></div>
+</div>
+<script>
+let attempts=0,tunnelUrl=null,progress=0;
+function updateProgress(p){progress=Math.min(p,95);document.getElementById('progress').style.width=progress+'%'}
+function updateStep(id,s){const step=document.getElementById(id);if(!step)return;step.classList.remove('active','complete');if(s==='active'){step.classList.add('active');step.querySelector('.step-status').textContent='\\u23f3'}else if(s==='complete'){step.classList.add('complete');step.querySelector('.step-status').textContent='\\u2713'}}
+async function poll(){
+  attempts++;
+  try{
+    const r=await fetch('/api/tunnel/status',{cache:'no-store'});
+    const j=await r.json();
+    if(j&&j.url){
+      tunnelUrl=j.url;
+      if(j.reachable){
+        updateProgress(100);updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','complete');
+        document.getElementById('status-icon').textContent='\\u2705';
+        document.getElementById('status-text').innerHTML='Tunnel Ready<span class="dots"></span>';
+        document.getElementById('status-detail').textContent='Redirecting to your secure public link...';
+        setTimeout(()=>window.location.replace(tunnelUrl),500);
+        return;
+      }else{
+        updateProgress(60+(attempts*1.2));updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','active');
+        document.getElementById('status-icon').textContent='\\ud83c\\udf10';
+        document.getElementById('status-text').innerHTML='Verifying DNS Propagation<span class="dots"></span>';
+        document.getElementById('status-detail').textContent='Cloudflare is registering your tunnel URL globally. Attempt '+attempts+'/25';
+      }
+    }else{
+      updateProgress(Math.min(20+(attempts*1.5),55));updateStep('step1','complete');updateStep('step2','active');
+      document.getElementById('status-icon').textContent='\\ud83d\\udd04';
+      document.getElementById('status-text').innerHTML='Creating Secure Tunnel<span class="dots"></span>';
+      document.getElementById('status-detail').textContent='Establishing encrypted connection through Cloudflare network...';
+    }
+    if(attempts>25){
+      updateProgress(95);
+      document.getElementById('status-icon').textContent='\\u26a0\\ufe0f';
+      document.getElementById('status-text').textContent='DNS Propagation Delayed';
+      document.getElementById('status-detail').innerHTML='Your tunnel is created but taking longer than usual.<br><a href="'+tunnelUrl+'" class="btn" target="_blank">Open Tunnel Manually</a>';
+      document.querySelector('.spinner').classList.add('hidden');
+      return;
+    }
+  }catch(e){console.error('Poll error:',e)}
+  setTimeout(poll,800);
+}
+window.onload=()=>{updateStep('step1','active');poll()};
+</script></body></html>'''
+
+@app.route('/online-download/<token>', methods=['GET'])
+def online_download(token):
+    """Legacy endpoint - redirects to main interface."""
+    return redirect(f'/?k={SECRET_TOKEN}')
+
+
+@app.route('/api/online-shares', methods=['GET'])
+def api_online_shares():
+    """Get online sharing status."""
+    if request.remote_addr not in ('127.0.0.1', '::1'):
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    return jsonify({
+        'tunnel_active': cloudflare_manager.is_active(),
+        'public_url': cloudflare_manager.public_url,
+        'timeout_minutes': cloudflare_manager.timeout_minutes if cloudflare_manager.is_active() else None,
+        'share_url': f"{cloudflare_manager.public_url}/?k={SECRET_TOKEN}" if cloudflare_manager.public_url else None
+    })
+
+
+@app.route('/api/online-cleanup', methods=['POST'])
+def api_online_cleanup():
+    """Stop Cloudflare tunnel."""
+    if request.remote_addr not in ('127.0.0.1', '::1'):
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    cloudflare_manager.stop_tunnel()
+    
+    return jsonify({'success': True, 'message': 'Cloudflare tunnel stopped'})
+
+
+@app.route('/popup-online')
+def popup_online():
+    """Same as regular popup - just shows QR for the share URL."""
+    return redirect(f'/popup?ts={int(time.time())}')
+
+
+# ============================================================================
+# END OF ONLINE SHARING ROUTES
+# ============================================================================
+
 @app.route('/api/open_path', methods=['POST'])
 def api_open_path():
     if request.remote_addr not in ('127.0.0.1', '::1'):
@@ -1546,8 +2484,20 @@ def api_is_host():
 def is_request_from_host() -> bool:
     """Return True if the current request originates from the host machine.
     Recognizes loopback and all local interface IPs (IPv4/IPv6).
+    
+    IMPORTANT: Requests coming through Cloudflare Tunnel are NOT considered
+    from the host, even though they appear to come from 127.0.0.1.
     """
     try:
+        # Check if request is coming through Cloudflare Tunnel
+        # Cloudflare adds CF-* headers to proxied requests
+        if request.headers.get('CF-Connecting-IP') or \
+           request.headers.get('CF-Ray') or \
+           request.headers.get('CF-Visitor'):
+            # This is a Cloudflare proxied request - not from host
+            return False
+        
+        # Check if client IP is a local IP
         client_ip = request.remote_addr or ''
         return client_ip in _get_all_local_ips()
     except Exception:
@@ -1566,6 +2516,8 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "share":
         if len(sys.argv) > 2:
             file_path = sys.argv[2]
+            file_name = os.path.basename(file_path)
+            
             # Check if server is running
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
@@ -1579,6 +2531,12 @@ def main():
                     with _ur.urlopen(req, timeout=10) as resp:
                         body = resp.read().decode('utf-8', errors='ignore')
                         print("[SHARE] Server response:", body)
+                        
+                        # Show success notification
+                        show_windows_notification(
+                            "ShareJadPi - Local Sharing",
+                            f"✅ SHARED LOCALLY!\n\n{file_name}\n\n📱 Open your browser for QR code"
+                        )
                 except Exception as e:
                     print(f"[ERROR] Failed to instruct running server to share: {e}")
                     print("Ensure the server is running, then retry.")
@@ -1597,6 +2555,115 @@ def main():
                 except Exception:
                     pass
         sys.exit(0)
+    
+    # Handle online sharing
+    if len(sys.argv) > 1 and sys.argv[1] == "share-online":
+        if len(sys.argv) > 2:
+            file_path = sys.argv[2]
+            # Check if server is running
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect(('127.0.0.1', PORT))
+                s.close()
+                # Send request to running server for online share
+                try:
+                    import json as _json, urllib.request as _ur
+                    payload = _json.dumps({'path': file_path}).encode()
+                    req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share-online', data=payload, headers={'Content-Type': 'application/json'})
+                    with _ur.urlopen(req, timeout=30) as resp:  # Longer timeout for zipping
+                        body = resp.read().decode('utf-8', errors='ignore')
+                        print("[ONLINE] Server response:", body)
+                except Exception as e:
+                    print(f"[ERROR] Failed to create online share: {e}")
+                    print("Ensure cloudflared.exe is in the same directory as ShareJadPi.exe")
+                time.sleep(2)
+            except Exception:
+                print("\n[ERROR] ShareJadPi server is not running!")
+                print("Please start the server first by running: python sharejadpi.py")
+                print("\nPress Enter to exit...")
+                try:
+                    input()
+                except Exception:
+                    pass
+            finally:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+        sys.exit(0)
+
+    # Handle open-online (share file via Cloudflare Tunnel)
+    if len(sys.argv) > 1 and sys.argv[1] == "open-online":
+        # Get file path from argument
+        file_path = sys.argv[2] if len(sys.argv) > 2 else None
+        
+        if not file_path:
+            print("[ERROR] No file path provided")
+            sys.exit(1)
+        
+        file_name = os.path.basename(file_path)
+        
+        # Check server running
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect(('127.0.0.1', PORT))
+            s.close()
+            try:
+                import json as _json, urllib.request as _ur, webbrowser as _wb
+                print(f"[ONLINE] Sharing file via Cloudflare Tunnel: {file_path}")
+                
+                # Show notification: Building public link
+                show_windows_notification(
+                    "ShareJadPi - Online Sharing",
+                    f"⏳ BUILDING PUBLIC LINK...\n\n{file_name}\n\nPlease wait, tunnel is starting.\n📱 Browser will open shortly"
+                )
+                
+                # Call /api/share-online with the file path
+                payload = _json.dumps({'path': file_path}).encode()
+                req = _ur.Request(f'http://127.0.0.1:{PORT}/api/share-online', data=payload, headers={'Content-Type': 'application/json'})
+                with _ur.urlopen(req, timeout=60) as resp:  # Longer timeout for tunnel startup
+                    body = resp.read().decode('utf-8', errors='ignore')
+                    result = _json.loads(body)
+                    
+                    if result.get('success'):
+                        print(f"[ONLINE] ✓ File shared successfully!")
+                        print(f"[ONLINE] Public URL: {result.get('url')}")
+                        print(f"[ONLINE] Timeout: {result.get('timeout_minutes')} minutes")
+                        
+                        # Show success notification with browser reminder
+                        timeout_min = result.get('timeout_minutes', 10)
+                        show_windows_notification(
+                            "ShareJadPi - Online Sharing",
+                            f"✅ SHARED ONLINE!\n\n{file_name}\n\n📱 OPEN YOUR BROWSER FOR QR CODE\n⏱ Timeout: {timeout_min} min"
+                        )
+                    else:
+                        print(f"[ERROR] Failed to share: {result.get('error')}")
+                        show_windows_notification(
+                            "ShareJadPi - Error",
+                            f"❌ SHARING FAILED\n\n{file_name}\n\n{result.get('error', 'Unknown error')}"
+                        )
+                        
+            except Exception as e:
+                print(f"[ERROR] Failed to share file online: {e}")
+                print("Ensure cloudflared.exe is in the same directory as ShareJadPi.exe")
+                import traceback
+                traceback.print_exc()
+            time.sleep(2)
+        except Exception:
+            print("\n[ERROR] ShareJadPi server is not running!")
+            print("Please start the server first by running: python sharejadpi.py")
+            print("\nPress Enter to exit...")
+            try:
+                input()
+            except Exception:
+                pass
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+        sys.exit(0)
+    
     if len(sys.argv) > 1 and sys.argv[1] in ("install-context-menu", "uninstall-context-menu"):
         action = sys.argv[1]
         if action == "install-context-menu":
