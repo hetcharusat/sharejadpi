@@ -9,6 +9,20 @@
 ShareJadPi turns your Windows PC into a local file server accessible from any device on your network. Share files instantly, sync clipboard, upload from mobile, and more—all with a beautiful, modern web interface.
 
 ---
+## ✨ Key Features
+
+- 🖱️ **One-Click Sharing** - Right-click any file → "Share with ShareJadPi"
+- � **Token-Based Security** - Unique 32-char tokens protect your files, no unauthorized access
+- 📱 **QR Code Access** - Instant secure mobile connection
+- ⚡ **Background Folder Zipping** - Live progress with speed & ETA
+- 🎨 **Beautiful Dark UI** - Modern, responsive design
+- 📋 **Clipboard Sync** - Share text between devices
+- 🚀 **Network Speed Test** - Test local network performance
+- � **Large File Support** - Handle files up to 50GB
+- 🔥 **Multi-Select Actions** - Zip, pin, delete multiple files
+- ⚙️ **System Tray App** - Runs quietly in background
+
+---
 
 ## 📸 Screenshots & Demo
 
@@ -41,20 +55,7 @@ https://github.com/user-attachments/assets/fb9ed56a-fc1f-459b-abb0-86ee14cc620b
 
 ---
 
-## ✨ Key Features
 
-- 🖱️ **One-Click Sharing** - Right-click any file → "Share with ShareJadPi"
-- � **Token-Based Security** - Unique 32-char tokens protect your files, no unauthorized access
-- 📱 **QR Code Access** - Instant secure mobile connection
-- ⚡ **Background Folder Zipping** - Live progress with speed & ETA
-- 🎨 **Beautiful Dark UI** - Modern, responsive design
-- 📋 **Clipboard Sync** - Share text between devices
-- 🚀 **Network Speed Test** - Test local network performance
-- � **Large File Support** - Handle files up to 50GB
-- 🔥 **Multi-Select Actions** - Zip, pin, delete multiple files
-- ⚙️ **System Tray App** - Runs quietly in background
-
----
 
 ## 🎯 Quick Start
 
