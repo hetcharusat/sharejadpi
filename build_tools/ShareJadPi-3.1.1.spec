@@ -3,11 +3,11 @@
 block_cipher = None
 
 a = Analysis(
-    ['sharejadpi.py'],
+    ['../sharejadpi.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('templates', 'templates'),
+        ('../templates', 'templates'),
     ],
     hiddenimports=[
         'qrcode',
@@ -56,6 +56,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico',  # Custom green sphere icon
+    icon='../assets/icon.ico',  # Custom green sphere icon
     version_info=None,
 )

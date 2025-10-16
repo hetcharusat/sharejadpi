@@ -20,10 +20,10 @@ AppUpdatesURL={#MyAppURL}/releases
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=LICENSE
-OutputDir=installer_output
+LicenseFile=..\LICENSE
+OutputDir=..\installer_output
 OutputBaseFilename=ShareJadPi-3.1.1-Setup
-SetupIconFile=icon.ico
+SetupIconFile=..\assets\icon.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -44,21 +44,14 @@ Name: "firewall"; Description: "Add Windows Firewall rule (required for mobile a
 
 [Files]
 ; Main executable
-Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Icon file for context menu
-Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Documentation
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "TROUBLESHOOTING.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "RELEASE_NOTES_v3.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "EXE_FIX_NOTES.md"; DestDir: "{app}"; Flags: ignoreversion
-
-; Helper scripts
-Source: "fix_firewall.ps1"; DestDir: "{app}"; Flags: ignoreversion
-Source: "show_connection_info.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

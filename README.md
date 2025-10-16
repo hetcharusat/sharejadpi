@@ -44,28 +44,28 @@ ShareJadPi turns your Windows PC into a local file server accessible from any de
 https://github.com/user-attachments/assets/46c6b784-f82c-40e3-9c21-6bab15435278
 
 ### 🏠 Mobile Interface
-<img src="vidss/home-preview.jpg" width="280" alt="Home Preview">
+<img src="assets/vidss/home-preview.jpg" width="280" alt="Home Preview">
 
 ### 📂 System Tray Access
 https://github.com/user-attachments/assets/d1145397-81a6-4531-b606-34caf9a6c9b2
 
 ### ☑️ Multi-Select & Zip
-<img src="vidss/select-files-and-zip.jpg" width="280" alt="Select and Zip">
+<img src="assets/vidss/select-files-and-zip.jpg" width="280" alt="Select and Zip">
 
 ### 📤 File Upload
-<img src="vidss/uploading-files.jpg" width="280" alt="Uploading">
+<img src="assets/vidss/uploading-files.jpg" width="280" alt="Uploading">
 
 ### ⚙️ Settings Panel
 https://github.com/user-attachments/assets/fb9ed56a-fc1f-459b-abb0-86ee14cc620b
 
 ### 📋 Clipboard & Speed Test
-<img src="vidss/shared-clipboard-and-speedtest.jpg" width="280" alt="Clipboard">
+<img src="assets/vidss/shared-clipboard-and-speedtest.jpg" width="280" alt="Clipboard">
 
 ### 📁 File Management
-<img src="vidss/shared-files-component.jpg" width="280" alt="Files">
+<img src="assets/vidss/shared-files-component.jpg" width="280" alt="Files">
 
 ### 📦 Folder Zipping Progress
-<img src="vidss/zipping-the-folder.png" width="480" alt="Zipping">
+<img src="assets/vidss/zipping-the-folder.png" width="480" alt="Zipping">
 
 ---
 
@@ -92,10 +92,7 @@ python sharejadpi.py
 
 ## 📖 Documentation
 
-- **[Usage Guide](USAGE_GUIDE.md)** - How to use all features
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Fix common issues
-- **[Build Guide](BUILD_SUMMARY.md)** - Build your own .exe
-- **[Release Notes](RELEASE_NOTES_v3.md)** - What's new
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute to the project
 
 ---
 
@@ -104,12 +101,9 @@ python sharejadpi.py
 **#1 Issue:** Missed the firewall prompt!
 
 **Quick Fix:**
-1. Right-click `fix_firewall.ps1` → "Run as Administrator"
-2. Quit ShareJadPi (tray icon → Quit)
-3. Run ShareJadPi again
-4. Try mobile
-
-More help: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+1. Download and run the installer - it configures firewall automatically
+2. Or manually allow port 5000 in Windows Firewall
+3. Restart ShareJadPi
 
 ---
 
@@ -135,9 +129,9 @@ More help: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## 🤝 Contributing
 
-Fork → Branch → Commit → Push → PR 
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for development setup and guidelines.
 
-Welcome! 🎉
+Fork → Branch → Commit → Push → PR — Welcome! 🎉
 
 ---
 
