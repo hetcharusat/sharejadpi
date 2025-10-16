@@ -17,7 +17,9 @@ ShareJadPi turns your Windows PC into a local file server that you can access fr
 ### 🖱️ Context Menu Integration (PC)
 Right-click any file or folder to share instantly:
 
-<video src="vidss/context-menu-share.mp4" width="480" controls></video>
+https://github.com/user-attachments/assets/YOUR_VIDEO_ID_HERE
+
+*[Video: context-menu-share.mp4](vidss/context-menu-share.mp4)*
 
 ### 🏠 Home Interface (Mobile)
 Beautiful dark UI with all features at your fingertips:
@@ -27,7 +29,9 @@ Beautiful dark UI with all features at your fingertips:
 ### 📂 Opening ShareJadPi (PC)
 Quick access from system tray:
 
-<video src="vidss/open_sharejadpi.mp4" width="480" controls></video>
+https://github.com/user-attachments/assets/YOUR_VIDEO_ID_HERE
+
+*[Video: open_sharejadpi.mp4](vidss/open_sharejadpi.mp4)*
 
 ### ☑️ Multi-Select & Zip (Mobile)
 Select multiple files to download as a zip:
@@ -42,7 +46,9 @@ Drag & drop or choose files with live progress:
 ### ⚙️ Settings Panel (PC)
 Configure autostart, file expiry, and context menu:
 
-<video src="vidss/settings.mp4" width="480" controls></video>
+https://github.com/user-attachments/assets/YOUR_VIDEO_ID_HERE
+
+*[Video: settings.mp4](vidss/settings.mp4)*
 
 ### 📋 Shared Clipboard & Speed Test (Mobile)
 Sync text between devices and test network speed:
