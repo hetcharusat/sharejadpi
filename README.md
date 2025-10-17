@@ -37,7 +37,7 @@ Online Share (UNIQUE): Send files over the public internet in ~10–15s with Clo
 
 ---
 
-## Online Share (headline feature)
+## Online Share 
 
 <div align="center">
   <img src="assets/vidss/context-menu-wit-online-share.png" width="420" alt="Context Menu – Share Online">
