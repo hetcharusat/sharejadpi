@@ -11,44 +11,44 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}
-AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\ShareJadPi
-DisableProgramGroupPage=yes
+AppSupportURL={#MyAppURL}/issues
+AppUpdatesURL={#MyAppURL}/releases
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+AllowNoIcons=yes
 LicenseFile=..\LICENSE
 OutputDir=..\installer_output
 OutputBaseFilename=ShareJadPi-4.5.1-Setup
-SetupIconFile=..\assets\{#MyAppIcon}
-UninstallDisplayIcon={app}\{#MyAppIcon}
-Compression=lzma
+SetupIconFile=..\assets\icon.ico
+Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+PrivilegesRequired=admin
+ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
-PrivilegesRequired=lowest
-DisableWelcomePage=no
+ChangesAssociations=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startupicon"; Description: "Run at Windows startup"; GroupDescription: "Additional options:"; Flags: unchecked
-Name: "contextmenu"; Description: "Add 'Share with ShareJadPi' to context menu"; GroupDescription: "Additional options:"
-Name: "firewall"; Description: "Configure Windows Firewall for port 5000"; GroupDescription: "Additional options:"
+Name: "contextmenu"; Description: "Add 'Share with ShareJadPi' to right-click menu"; GroupDescription: "Integration:"; Flags: checkedonce
+Name: "autostart"; Description: "Start ShareJadPi when Windows starts"; GroupDescription: "Integration:"; Flags: checkedonce
+Name: "firewall"; Description: "Add Windows Firewall rule (required for mobile access)"; GroupDescription: "Network:"; Flags: checkedonce
 
 [Files]
-Source: "..\build\pyinstaller\ShareJadPi-{#MyAppVersion}\ShareJadPi-{#MyAppVersion}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\assets\{#MyAppIcon}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIcon}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIcon}"; Tasks: desktopicon
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIcon}"; Tasks: startupicon
-Name: "{autoprograms}\Fix Firewall (ShareJadPi)"; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\fix_firewall.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppIcon}"
-Name: "{autoprograms}\Show Connection Info (ShareJadPi)"; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{app}\scripts\show_connection_info.ps1"""; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppIcon}"
-Name: "{autoprograms}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"; IconFilename: "{app}\{#MyAppIcon}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: autostart
+Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
 [Registry]
 Root: HKCU; Subkey: "Software\Classes\*\shell\ShareJadPi"; ValueType: string; ValueName: ""; ValueData: "Share with ShareJadPi (Local)"; Flags: uninsdeletekey; Tasks: contextmenu

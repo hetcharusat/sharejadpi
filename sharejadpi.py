@@ -20,7 +20,7 @@ except ImportError:
     winreg = None
 
 # Version
-APP_VERSION = "4.5.1"
+APP_VERSION = "4.5.4"
 
 # Simple debug logger to help diagnose context-menu flows (windowless)
 def _debug_log(msg: str):
@@ -587,48 +587,89 @@ CLIPBOARD_UPDATED = 0.0
 SECRET_TOKEN = os.environ.get('SHAREJADPI_TOKEN') or secrets.token_urlsafe(24)
 OPEN_MODE = str(os.environ.get('SJ_OPEN', '0')).lower() in ('1','true','yes','on')
 
+# Cache: tunnel hostname -> last successful reachability timestamp (epoch seconds)
+TUNNEL_REACHABLE_CACHE = {}
+TUNNEL_REACHABLE_TTL_SEC = 120  # 2 minutes TTL to skip the wait page if recently verified
+
 RUN_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_RUN_NAME = "ShareJadPi"
 
-def show_windows_notification(title, message):
-    """Show a Windows 10/11 toast notification with winotify + pystray fallback.
+def show_windows_notification(title, message, url=None):
+    """Show a Windows 10/11 toast notification with action button support.
     
-    v4.5.1: Fixed notifications by using winotify with proper AppUserModelID.
-    Falls back to pystray balloon if winotify fails.
+    v4.5.1: Enhanced with action buttons and more reliable fallback system.
+    Args:
+        title: Notification title
+        message: Notification message
+        url: Optional URL to open when clicked (for browser actions)
     """
-    _debug_log(f"[NOTIF] Attempting to show: {title}")
+    _debug_log(f"[NOTIF] Attempting to show: {title} | URL: {url}")
     
-    # Try winotify first (proper Windows toast with AppUserModelID)
+    # Try winotify first (proper Windows toast with AppUserModelID + action buttons)
     try:
         from winotify import Notification, audio
         
-        toast = Notification(
-            app_id="ShareJadPi",
-            title=title,
-            msg=message,
-            duration="long",
-            icon=os.path.join(os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else __file__), 'assets', 'icon.ico')
-        )
+        # Get icon path
+        if getattr(sys, 'frozen', False):
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.dirname(__file__)
+        icon_path = os.path.join(base_path, 'assets', 'icon.ico')
+        
+        # Create notification with icon only if it exists
+        if os.path.exists(icon_path):
+            toast = Notification(
+                app_id="ShareJadPi",
+                title=title,
+                msg=message,
+                duration="long",
+                icon=icon_path
+            )
+        else:
+            toast = Notification(
+                app_id="ShareJadPi",
+                title=title,
+                msg=message,
+                duration="long"
+            )
+        
+        # Add action button if URL provided
+        if url:
+            toast.add_actions(label="Open Browser", launch=url)
+            _debug_log(f"[NOTIF] Added action button for URL: {url}")
+        
         toast.set_audio(audio.Default, loop=False)
         toast.show()
-        _debug_log(f"[NOTIF] winotify success")
+        _debug_log(f"[NOTIF] ✓ winotify success")
         return True
-    except ImportError:
-        _debug_log(f"[NOTIF] winotify not available, trying pystray balloon")
+    except ImportError as e:
+        _debug_log(f"[NOTIF] winotify not installed: {e}")
     except Exception as e:
         _debug_log(f"[NOTIF] winotify error: {e}")
     
-    # Fallback to pystray balloon notification
+    # Fallback 1: pystray balloon notification (no action buttons)
     try:
         global tray_icon
         if pystray and tray_icon:
-            tray_icon.notify(message, title)
-            _debug_log(f"[NOTIF] pystray balloon success")
+            # If URL provided, append it to message
+            balloon_msg = message
+            if url:
+                balloon_msg += f"\n\n🔗 Open: {url}"
+            tray_icon.notify(balloon_msg, title)
+            _debug_log(f"[NOTIF] ✓ pystray balloon success")
+            # If URL provided, also open browser directly
+            if url:
+                try:
+                    import webbrowser
+                    webbrowser.open(url)
+                    _debug_log(f"[NOTIF] ✓ Auto-opened browser: {url}")
+                except Exception as e:
+                    _debug_log(f"[NOTIF] Failed to open browser: {e}")
             return True
     except Exception as e:
         _debug_log(f"[NOTIF] pystray balloon error: {e}")
     
-    # Last fallback: PowerShell toast (unreliable without AppUserModelID)
+    # Fallback 2: PowerShell toast (no action buttons, unreliable)
     try:
         import subprocess as _sp
 
@@ -643,7 +684,9 @@ def show_windows_notification(title, message):
 
         title_xml = _xml_escape(title)
         msg_lines = [ln.strip() for ln in (message or '').split('\n') if ln.strip()]
-        msg_lines = msg_lines[:4]
+        if url:
+            msg_lines.append(f"🔗 {url}")
+        msg_lines = msg_lines[:5]  # Increased from 4 to 5 to show URL
         lines_xml = ''.join(f"<text hint-wrap='true'>{_xml_escape(ln)}</text>" for ln in msg_lines)
 
         ps_script = (
@@ -664,19 +707,38 @@ def show_windows_notification(title, message):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        _debug_log(f"[NOTIF] PowerShell toast attempted")
+        _debug_log(f"[NOTIF] ✓ PowerShell toast attempted")
+        # If URL provided, open browser directly
+        if url:
+            try:
+                import webbrowser
+                webbrowser.open(url)
+                _debug_log(f"[NOTIF] ✓ Auto-opened browser: {url}")
+            except Exception as e:
+                _debug_log(f"[NOTIF] Failed to open browser: {e}")
         return True
     except Exception as e:
         _debug_log(f"[NOTIF] PowerShell toast error: {e}")
     
-    # Final fallback: MessageBox (blocks)
+    # Fallback 3: MessageBox (blocks, but guaranteed to show)
     try:
         if platform.system() == 'Windows':
             import ctypes as _ct
             MB_OK = 0x00000000
             MB_ICONINFORMATION = 0x00000040
-            _ct.windll.user32.MessageBoxW(None, str(message), str(title), MB_OK | MB_ICONINFORMATION)
-            _debug_log(f"[NOTIF] MessageBox shown")
+            msg_box = str(message)
+            if url:
+                msg_box += f"\n\n🔗 {url}"
+            _ct.windll.user32.MessageBoxW(None, msg_box, str(title), MB_OK | MB_ICONINFORMATION)
+            _debug_log(f"[NOTIF] ✓ MessageBox shown")
+            # If URL provided, open browser after clicking OK
+            if url:
+                try:
+                    import webbrowser
+                    webbrowser.open(url)
+                    _debug_log(f"[NOTIF] ✓ Auto-opened browser: {url}")
+                except Exception as e:
+                    _debug_log(f"[NOTIF] Failed to open browser: {e}")
             return True
     except Exception as e:
         _debug_log(f"[NOTIF] MessageBox error: {e}")
@@ -1457,7 +1519,7 @@ def _token_gate():
     # NOTE: / is NOT public - it requires token authentication
     public_paths = [
         '/qr', '/popup', '/health', '/favicon.ico', '/api/status', '/api/is_host', '/login',
-        '/online-wait', '/api/tunnel/status', '/api/tunnel/start'
+        '/online-wait', '/api/tunnel/status', '/api/tunnel/start', '/auth/enter'
     ]
     if request.path.startswith('/static'):
         public_paths.append(request.path)
@@ -2276,27 +2338,60 @@ def api_tunnel_status():
     public = cloudflare_manager.public_url if active else None
     url = f"{public}/?k={SECRET_TOKEN}" if public else None
     
-    # If tunnel is active and URL exists, verify it's reachable
+    # If tunnel is active and URL exists, verify it's FULLY reachable
     reachable = False
     if active and public and url:
-        try:
-            # Quick HEAD using urllib to avoid extra deps
-            import urllib.request as _ur
-            req = _ur.Request(url, method='HEAD')
-            with _ur.urlopen(req, timeout=10) as resp:  # Increased timeout to 10s
-                code = getattr(resp, 'status', None)
-                reachable = code in (200, 301, 302, 303, 307, 308)
-        except Exception:
-            reachable = False
+        import time
+        # Cache shortcut based on hostname
+        host = public.replace('https://', '').replace('http://', '').split('/')[0]
+        ts = TUNNEL_REACHABLE_CACHE.get(host)
+        if ts and (time.time() - ts) < TUNNEL_REACHABLE_TTL_SEC:
+            reachable = True
+        else:
+            try:
+                # Do a REAL GET request to verify the full Flask app loads through tunnel
+                import urllib.request as _ur
+                # Use /health (public, tiny) to avoid token and reduce CORS/redirect noise
+                health_url = f"{public}/health"
+                req = _ur.Request(health_url, method='GET')
+                req.add_header('User-Agent', 'ShareJadPi-HealthCheck/1.0')
+                req.add_header('Accept', 'text/html')
+                
+                with _ur.urlopen(req, timeout=8) as resp:  # 8s timeout for full page load
+                    code = resp.getcode()
+                    reachable = (code == 200)
+            except Exception:
+                reachable = False
+            if reachable:
+                TUNNEL_REACHABLE_CACHE[host] = time.time()
     
     return jsonify({
         'active': active, 
         'public_url': public, 
-        'url': url, 
+        'url': public,  # return BASE url without token to avoid double-appending
         'reachable': reachable,
         'timeout_minutes': cloudflare_manager.timeout_minutes if active else None, 
         'last_error': cloudflare_manager.last_error
     })
+
+@app.route('/auth/enter', methods=['POST'])
+def auth_enter():
+    """Accept token via POST, set cookie, and redirect to clean root.
+
+    This prevents exposing the token in the URL and fixes double-token issues.
+    """
+    tok = request.form.get('k') if request.form else None
+    if not tok and request.is_json:
+        try:
+            data = request.get_json(silent=True) or {}
+            tok = data.get('k')
+        except Exception:
+            tok = None
+    if not tok or not secrets.compare_digest(tok, SECRET_TOKEN):
+        return jsonify({'success': False, 'error': 'Invalid token'}), 400
+    resp = make_response(redirect('/'))
+    resp.set_cookie('sjk', SECRET_TOKEN, max_age=7*24*3600, httponly=True, samesite='Lax', path='/')
+    return resp
 
 @app.route('/api/tunnel/stop', methods=['POST'])
 def api_tunnel_stop():
@@ -2317,7 +2412,7 @@ def api_tunnel_stop():
 
 @app.route('/online-wait')
 def online_wait():
-    """Dark themed waiting page with fast DNS verification."""
+    """Ultra-fast dynamic waiting page - redirects immediately when tunnel is ready."""
     return '''<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ShareJadPi - Creating Tunnel</title>
@@ -2388,7 +2483,21 @@ h1{color:#667eea;font-size:28px;margin-bottom:10px;font-weight:600;text-shadow:0
   <div class="spinner" id="spinner"></div>
 </div>
 <script>
-let attempts=0,tunnelUrl=null,progress=0,errorShown=false;
+let attempts=0,tunnelUrl=null,progress=0,errorShown=false,lastUrl=null,urlStableCount=0;
+
+// Local cache: hostname -> lastReachableTs (ms)
+function getReachTs(host){try{return parseInt(localStorage.getItem('sjp_host_'+host)||'0',10)||0}catch(e){return 0}}
+function setReachTs(host){try{localStorage.setItem('sjp_host_'+host, String(Date.now()))}catch(e){}}
+const REACH_TTL_MS = 2*60*1000; // 2 minutes
+
+async function dohHasRecords(host){
+    try{
+        const url='https://dns.google/resolve?name='+encodeURIComponent(host)+'&type=A';
+        const r=await fetch(url,{cache:'no-store'});
+        const j=await r.json();
+        return Array.isArray(j.Answer) && j.Answer.length>0;
+    }catch(e){return false}
+}
 function updateProgress(p){progress=Math.min(p,95);document.getElementById('progress').style.width=progress+'%'}
 function updateStep(id,s){const step=document.getElementById(id);if(!step)return;step.classList.remove('active','complete','error');if(s==='active'){step.classList.add('active');step.querySelector('.step-status').textContent='\\u23f3'}else if(s==='complete'){step.classList.add('complete');step.querySelector('.step-status').textContent='\\u2713'}else if(s==='error'){step.classList.add('error');step.querySelector('.step-status').textContent='\\u2717'}}
 function showError(msg){
@@ -2416,52 +2525,81 @@ async function poll(){
       showError(j.last_error);
       return;
     }
-    if(j&&j.url){
-      tunnelUrl=j.url;
-      if(j.reachable){
-        updateProgress(100);updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','complete');
-        document.getElementById('status-icon').textContent='\\u2705';
-        document.getElementById('status-text').innerHTML='Tunnel Ready<span class="dots"></span>';
-        document.getElementById('status-detail').textContent='Redirecting to your secure public link...';
-        setTimeout(()=>window.location.replace(tunnelUrl),500);
-        return;
-      }else{
-        updateProgress(60+(attempts*1.2));updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','active');
-        document.getElementById('status-icon').textContent='\\ud83c\\udf10';
-        document.getElementById('status-text').innerHTML='Verifying DNS Propagation<span class="dots"></span>';
-        document.getElementById('status-detail').textContent='Cloudflare is registering your tunnel URL globally. Attempt '+attempts+'/30';
-        if(attempts>=15){
-          updateProgress(95);updateStep('step3','complete');
-          document.getElementById('status-icon').textContent='\\u2705';
-          document.getElementById('status-text').innerHTML='Tunnel Created<span class="dots"></span>';
-          document.getElementById('status-detail').textContent='Opening your secure public link now...';
-          setTimeout(()=>window.location.replace(tunnelUrl),1000);
-          return;
-        }
-      }
+                if(j&&j.url&&j.reachable){
+            tunnelUrl=j.url; // base URL without token
+                    const host = (new URL(tunnelUrl)).host; setReachTs(host);
+      updateProgress(100);updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','complete');
+      document.getElementById('status-icon').textContent='\\u2705';
+            document.getElementById('status-text').textContent='✓ Ready!';
+            document.getElementById('status-detail').textContent='Opening your secure link...';
+                // Submit token via POST to avoid exposing it in URL
+                const form=document.createElement('form');
+                form.method='POST';
+                const base=tunnelUrl.endsWith('/')?tunnelUrl.slice(0,-1):tunnelUrl;
+                form.action=base+'/auth/enter';
+                const inp=document.createElement('input');
+                inp.type='hidden';inp.name='k';inp.value='{{SECRET_TOKEN}}';
+                form.appendChild(inp);document.body.appendChild(form);form.submit();
+      return;
+            }else if(j&&j.url){
+            tunnelUrl=j.url; // base URL
+            const host = (new URL(tunnelUrl)).host;
+            // If recently verified on this machine, skip immediately
+            if(Date.now()-getReachTs(host) < REACH_TTL_MS){
+                const form=document.createElement('form');
+                form.method='POST';
+                const base=tunnelUrl.endsWith('/')?tunnelUrl.slice(0,-1):tunnelUrl;
+                form.action=base+'/auth/enter';
+                const inp=document.createElement('input'); inp.type='hidden'; inp.name='k'; inp.value='{{SECRET_TOKEN}}';
+                form.appendChild(inp); document.body.appendChild(form); form.submit();
+                return;
+            }
+      updateProgress(Math.min(60+(attempts*2),90));updateStep('step1','complete');updateStep('step2','complete');updateStep('step3','active');
+      document.getElementById('status-icon').textContent='\\ud83c\\udf10';
+                document.getElementById('status-text').innerHTML='Verifying Full Site Access<span class="dots"></span>';
+                // Track URL stability (for progress display only)
+                if(lastUrl===tunnelUrl){ urlStableCount++; } else { urlStableCount=1; lastUrl=tunnelUrl; }
+                // DoH check only influences the message; we will not redirect based on DoH alone
+                if(urlStableCount===1){ dohHasRecords(host).then(ok=>{ if(ok) document.getElementById('status-detail').textContent='DNS found, waiting for edge to be ready...'; }).catch(()=>{}); }
+                document.getElementById('status-detail').textContent='Tunnel created, verifying app loads through Cloudflare... (stable '+urlStableCount+')';
+                // Do NOT redirect until backend reports reachable=true; only show fallback later
+                // (Redirect is handled in the reachable branch above.)
     }else{
-      updateProgress(Math.min(20+(attempts*1.5),55));updateStep('step1','complete');updateStep('step2','active');
-      document.getElementById('status-icon').textContent='\\ud83d\\udd04';
-      document.getElementById('status-text').innerHTML='Creating Secure Tunnel<span class="dots"></span>';
-      document.getElementById('status-detail').textContent='Establishing encrypted connection through Cloudflare network...';
+      updateProgress(Math.min(20+(attempts*2),55));
+      if(attempts<=2){updateStep('step1','active');document.getElementById('status-icon').textContent='\\ud83d\\udd04';document.getElementById('status-text').innerHTML='Initializing Tunnel<span class="dots"></span>';document.getElementById('status-detail').textContent='Starting Cloudflare tunnel process...'}
+      else{updateStep('step1','complete');updateStep('step2','active');document.getElementById('status-icon').textContent='\\ud83d\\udd10';document.getElementById('status-text').innerHTML='Creating Secure Connection<span class="dots"></span>';document.getElementById('status-detail').textContent='Establishing encrypted tunnel through Cloudflare edge network...'}
     }
-    if(attempts>30){
-      if(tunnelUrl){
-        updateProgress(95);
+        if(attempts>35){
+            if(tunnelUrl){
+        updateProgress(95);updateStep('step3','complete');
         document.getElementById('status-icon').textContent='\\u26a0\\ufe0f';
-        document.getElementById('status-text').textContent='DNS Propagation Delayed';
-        document.getElementById('status-detail').innerHTML='Your tunnel is created but taking longer than usual.<br><a href="'+tunnelUrl+'" class="btn" target="_blank">Open Tunnel Manually</a>';
+                document.getElementById('status-text').textContent='Taking Longer Than Usual';
+                document.getElementById('status-detail').innerHTML='Your tunnel is ready but DNS is slow.';
+                // Create a button that triggers secure POST open
+                const btn=document.createElement('button');
+                btn.className='btn'; btn.style.marginTop='10px';
+                btn.textContent='Open Link Now';
+                btn.onclick=()=>{
+                    const form=document.createElement('form');
+                    form.method='POST';
+                    const base=tunnelUrl.endsWith('/')?tunnelUrl.slice(0,-1):tunnelUrl;
+                    form.action=base+'/auth/enter';
+                    const inp=document.createElement('input');
+                    inp.type='hidden'; inp.name='k'; inp.value='{{SECRET_TOKEN}}';
+                    form.appendChild(inp); document.body.appendChild(form); form.submit();
+                };
+                document.getElementById('status-detail').appendChild(btn);
         document.querySelector('.spinner').classList.add('hidden');
       }else{
-        showError(j.last_error||'Tunnel did not start after 30 attempts. Please check the debug log at %TEMP%\\\\ShareJadPi.log');
+        showError(j.last_error||'Tunnel did not start. Please try again or check debug log.');
       }
       return;
     }
   }catch(e){console.error('Poll error:',e);if(attempts>5){showError('Network error: '+e.message);return;}}
-  setTimeout(poll,800);
+  setTimeout(poll,attempts<=3?400:(attempts<=10?600:800));
 }
 window.onload=()=>{updateStep('step1','active');poll()};
-</script></body></html>'''
+</script></body></html>'''.replace('{{SECRET_TOKEN}}',SECRET_TOKEN)
 
 @app.route('/online-download/<token>', methods=['GET'])
 def online_download(token):
@@ -2715,13 +2853,21 @@ def main():
                 with _ur.urlopen(req, timeout=20) as resp:
                     body = resp.read().decode('utf-8', errors='ignore')
                     print("[SHARE] Server response:", body)
+                    
+                    # Build URL for notification action button
+                    local_url = f'http://127.0.0.1:{PORT}/?k=' + urllib.parse.quote(SECRET_TOKEN)
+                    
+                    # Open browser
                     try:
-                        webbrowser.open(f'http://127.0.0.1:{PORT}/?k=' + urllib.parse.quote(SECRET_TOKEN))
+                        webbrowser.open(local_url)
                     except Exception:
                         pass
+                    
+                    # Show notification with action button
                     show_windows_notification(
                         "ShareJadPi - Local Sharing",
-                        f"✅ SHARED LOCALLY!\n\n{file_name}\n\n📱 Browser opened with QR"
+                        f"✅ SHARED LOCALLY!\n\n{file_name}\n\n📱 Click to open in browser",
+                        url=local_url
                     )
             except Exception as e:
                 print(f"[ERROR] Failed to share via server: {e}")
@@ -2827,9 +2973,14 @@ def main():
                     print(f"[ONLINE] Timeout: {result.get('timeout_minutes')} minutes")
 
                     timeout_min = result.get('timeout_minutes', 10)
+                    
+                    # Build local URL to show QR code
+                    local_url = f'http://127.0.0.1:{PORT}/?k=' + urllib.parse.quote(SECRET_TOKEN)
+                    
                     show_windows_notification(
                         "ShareJadPi - Online Sharing",
-                        f"✅ SHARED ONLINE!\n\n{file_name}\n\n📱 OPEN YOUR BROWSER FOR QR CODE\n⏱ Timeout: {timeout_min} min"
+                        f"✅ SHARED ONLINE!\n\n{file_name}\n\n📱 Click to view QR Code\n⏱ Timeout: {timeout_min} min",
+                        url=local_url
                     )
                 else:
                     print(f"[ERROR] Failed to share: {result.get('error')}")

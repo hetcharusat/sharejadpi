@@ -1,4 +1,4 @@
-# ShareJadPi v4.5.1
+# ShareJadPi v4.5.4
 
 Share files ANYWHERE with one click — Local WiFi AND Public Internet.
 
@@ -11,7 +11,7 @@ Share files ANYWHERE with one click — Local WiFi AND Public Internet.
 ### Download for Windows
 
 <a href="https://github.com/hetcharusat/sharejadpi/releases/latest">
-  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v4.5.1%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a" alt="Download ShareJadPi" width="400"/>
+  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v4.5.4%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a" alt="Download ShareJadPi" width="400"/>
  </a>
 
 <sub>Windows 10/11 (64‑bit) • One‑click installer • Firewall auto‑config</sub>
@@ -124,9 +124,10 @@ Online Share (UNIQUE): Send files over the public internet in ~10–15s with Clo
 
 ## Quick Start
 
-1) Download and run the v4.5.1 setup (above).
+1) Download and run the v4.5.4 setup (above).
 2) Right‑click a file/folder → "Share with ShareJadPi (Local/Online)".
-3) For Online Share, keep internet on; you'll receive a public https link.
+3) For Online Share, keep internet on; tunnel opens **instantly** when ready!
+4) Click the notification to open ShareJadPi in your browser!
 
 Run from source (optional):
 ```bash
@@ -150,19 +151,15 @@ For Online Share from source, place `cloudflared.exe` in the project root.
 
 ---
 
-## What's New in v4.5.1
+## What's New in v4.5.4
 
-**🔔 Notifications Fixed + RAM Optimized!**
+**⚡ Faster & More Reliable Online Redirects**
 
-### Critical Fixes:
-- ✅ **Fixed Windows notifications** - Now uses winotify with proper AppUserModelID + pystray balloon fallback
-- ✅ **Optimized RAM usage** - Reduced base timeout from 15→10 min for faster cleanup
-- ✅ **Improved notification reliability** - Triple fallback: winotify → pystray → PowerShell → MessageBox
-
-### What This Means:
-- 🔔 Notifications now appear reliably in Windows 10/11
-- 🧠 Lower memory footprint with faster idle cleanup
-- 💯 Rock-solid notification delivery
+- ✅ Redirect only when the Cloudflare tunnel truly answers `GET /health` (no more early NXDOMAIN)
+- ✅ Token never appears in the URL — secure POST to `/auth/enter` sets cookie then redirects to clean path
+- ✅ Fixed double-token in redirect edge cases
+- ✅ Caching for speed: 2‑minute server + client cache to skip the wait page when reopening the same tunnel
+- ✅ DoH (dns.google) assists the status messaging while waiting
 
 **Previous versions:**
 - v4.5.0: Fixed crash (stdout flush), infinite DNS wait, enhanced cloudflared paths
