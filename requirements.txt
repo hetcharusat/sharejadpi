@@ -3,3 +3,4 @@ qrcode[pil]
 Pillow
 pystray
 requests
+winotify

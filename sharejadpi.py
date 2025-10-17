@@ -19,6 +19,9 @@ try:
 except ImportError:
     winreg = None
 
+# Version
+APP_VERSION = "4.5.1"
+
 # Simple debug logger to help diagnose context-menu flows (windowless)
 def _debug_log(msg: str):
     try:
@@ -588,12 +591,44 @@ RUN_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_RUN_NAME = "ShareJadPi"
 
 def show_windows_notification(title, message):
-    """Show a Windows 10/11 toast notification with good multi-line formatting.
-
-    - Uses ToastGeneric with multiple <text> tags (first is title, rest are lines).
-    - Splits message on newlines and caps to 4 lines for reliability.
-    - Uses duration="long" so the toast stays visible a bit longer.
+    """Show a Windows 10/11 toast notification with winotify + pystray fallback.
+    
+    v4.5.1: Fixed notifications by using winotify with proper AppUserModelID.
+    Falls back to pystray balloon if winotify fails.
     """
+    _debug_log(f"[NOTIF] Attempting to show: {title}")
+    
+    # Try winotify first (proper Windows toast with AppUserModelID)
+    try:
+        from winotify import Notification, audio
+        
+        toast = Notification(
+            app_id="ShareJadPi",
+            title=title,
+            msg=message,
+            duration="long",
+            icon=os.path.join(os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else __file__), 'assets', 'icon.ico')
+        )
+        toast.set_audio(audio.Default, loop=False)
+        toast.show()
+        _debug_log(f"[NOTIF] winotify success")
+        return True
+    except ImportError:
+        _debug_log(f"[NOTIF] winotify not available, trying pystray balloon")
+    except Exception as e:
+        _debug_log(f"[NOTIF] winotify error: {e}")
+    
+    # Fallback to pystray balloon notification
+    try:
+        global tray_icon
+        if pystray and tray_icon:
+            tray_icon.notify(message, title)
+            _debug_log(f"[NOTIF] pystray balloon success")
+            return True
+    except Exception as e:
+        _debug_log(f"[NOTIF] pystray balloon error: {e}")
+    
+    # Last fallback: PowerShell toast (unreliable without AppUserModelID)
     try:
         import subprocess as _sp
 
@@ -607,7 +642,6 @@ def show_windows_notification(title, message):
             )
 
         title_xml = _xml_escape(title)
-        # Split message into lines and escape each; cap to 4 lines
         msg_lines = [ln.strip() for ln in (message or '').split('\n') if ln.strip()]
         msg_lines = msg_lines[:4]
         lines_xml = ''.join(f"<text hint-wrap='true'>{_xml_escape(ln)}</text>" for ln in msg_lines)
@@ -620,7 +654,7 @@ def show_windows_notification(title, message):
             "</binding></visual></toast>');"
             "$toast = [Windows.UI.Notifications.ToastNotification]::new($xml);"
             "$toast.Tag = 'ShareJadPi'; $toast.Group = 'ShareJadPi';"
-            "$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('ShareJadPi');"
+            "$notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('ShareJadPi.App');"
             "$notifier.Show($toast);"
         )
 
@@ -630,17 +664,24 @@ def show_windows_notification(title, message):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+        _debug_log(f"[NOTIF] PowerShell toast attempted")
+        return True
     except Exception as e:
-        print(f"[NOTIFICATION] Failed to show toast: {e}")
-        # Fallback: simple MessageBox on Windows
-        try:
-            if platform.system() == 'Windows':
-                import ctypes as _ct
-                MB_OK = 0x00000000
-                MB_ICONINFORMATION = 0x00000040
-                _ct.windll.user32.MessageBoxW(None, str(message), str(title), MB_OK | MB_ICONINFORMATION)
-        except Exception:
-            pass
+        _debug_log(f"[NOTIF] PowerShell toast error: {e}")
+    
+    # Final fallback: MessageBox (blocks)
+    try:
+        if platform.system() == 'Windows':
+            import ctypes as _ct
+            MB_OK = 0x00000000
+            MB_ICONINFORMATION = 0x00000040
+            _ct.windll.user32.MessageBoxW(None, str(message), str(title), MB_OK | MB_ICONINFORMATION)
+            _debug_log(f"[NOTIF] MessageBox shown")
+            return True
+    except Exception as e:
+        _debug_log(f"[NOTIF] MessageBox error: {e}")
+    
+    return False
 
 def get_python_exe():
     return sys.executable

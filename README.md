@@ -1,4 +1,4 @@
-# ShareJadPi v4.5.0
+# ShareJadPi v4.5.1
 
 Share files ANYWHERE with one click — Local WiFi AND Public Internet.
 
@@ -11,7 +11,7 @@ Share files ANYWHERE with one click — Local WiFi AND Public Internet.
 ### Download for Windows
 
 <a href="https://github.com/hetcharusat/sharejadpi/releases/latest">
-  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v4.5.0%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a" alt="Download ShareJadPi" width="400"/>
+  <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v4.5.1%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a" alt="Download ShareJadPi" width="400"/>
  </a>
 
 <sub>Windows 10/11 (64‑bit) • One‑click installer • Firewall auto‑config</sub>
@@ -124,9 +124,9 @@ Online Share (UNIQUE): Send files over the public internet in ~10–15s with Clo
 
 ## Quick Start
 
-1) Download and run the v4.5.0 setup (above).
-2) Right‑click a file/folder → “Share with ShareJadPi (Local/Online)”.
-3) For Online Share, keep internet on; you’ll receive a public https link.
+1) Download and run the v4.5.1 setup (above).
+2) Right‑click a file/folder → "Share with ShareJadPi (Local/Online)".
+3) For Online Share, keep internet on; you'll receive a public https link.
 
 Run from source (optional):
 ```bash
@@ -150,11 +150,24 @@ For Online Share from source, place `cloudflared.exe` in the project root.
 
 ---
 
-## What’s New in v4.5.0
+## What's New in v4.5.1
 
-- Fixed crash in windowless EXE (stdout flush on None)
-- Fixed “Verifying DNS propagation” infinite wait (now auto‑redirects)
-- More robust `cloudflared.exe` path detection and timeouts
+**🔔 Notifications Fixed + RAM Optimized!**
+
+### Critical Fixes:
+- ✅ **Fixed Windows notifications** - Now uses winotify with proper AppUserModelID + pystray balloon fallback
+- ✅ **Optimized RAM usage** - Reduced base timeout from 15→10 min for faster cleanup
+- ✅ **Improved notification reliability** - Triple fallback: winotify → pystray → PowerShell → MessageBox
+
+### What This Means:
+- 🔔 Notifications now appear reliably in Windows 10/11
+- 🧠 Lower memory footprint with faster idle cleanup
+- 💯 Rock-solid notification delivery
+
+**Previous versions:**
+- v4.5.0: Fixed crash (stdout flush), infinite DNS wait, enhanced cloudflared paths
+- v4.1.3: Final reliability pass for online sharing
+- v4.0.0: Enhanced security, smarter QR codes
 
 ---
 
