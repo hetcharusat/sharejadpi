@@ -57,6 +57,16 @@ Online Share (UNIQUE): Send files over the public internet in ~10–15s with Clo
 <div align="center">
 
 <details>
+ <h4>🖱️ Context Menu Share (expand to play)</h4>
+
+  https://github.com/user-attachments/assets/e3642d5a-b051-4c72-9e5e-9fe42629bb75
+
+  <br/>
+  <sub>If the preview doesn’t load, open the link above directly.</sub>
+</details>
+
+
+<details>
   <summary>⚙️ Settings Overview (expand to play)</summary>
 
   https://github.com/user-attachments/assets/62325df0-b18f-4106-847e-3807825160e3
@@ -65,14 +75,6 @@ Online Share (UNIQUE): Send files over the public internet in ~10–15s with Clo
   <sub>If the preview doesn’t load, open the link above directly.</sub>
 </details>
 
-<details>
-  <summary>🖱️ Context Menu Share (expand to play)</summary>
-
-  https://github.com/user-attachments/assets/e3642d5a-b051-4c72-9e5e-9fe42629bb75
-
-  <br/>
-  <sub>If the preview doesn’t load, open the link above directly.</sub>
-</details>
 
 <details>
   <summary>🧰 Tray Icon → Open Share Page (expand to play)</summary>
