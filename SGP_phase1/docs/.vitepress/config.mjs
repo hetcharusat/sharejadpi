@@ -44,30 +44,39 @@ export default withMermaid(defineConfig({
           ]
         },
         {
-          text: '🏗️ Understanding ShareJadPi',
-          collapsed: false,
+          text: '🏗️ Architecture & Design',
+          collapsed: true,
           items: [
-            { text: '8. How It Works', link: '/architecture' },
-            { text: '9. Features Breakdown', link: '/features' },
-            { text: '10. Development Timeline', link: '/timeline' }
+            { text: '8. System Architecture', link: '/architecture' },
+            { text: '9. Design Patterns', link: '/architecture#design-patterns' },
+            { text: '10. Data Flow', link: '/architecture#data-flow-diagrams' },
+            { text: '11. Security Model', link: '/architecture#security-architecture' }
+          ]
+        },
+        {
+          text: '✨ Features & Timeline',
+          collapsed: true,
+          items: [
+            { text: '12. Features Breakdown', link: '/features' },
+            { text: '13. Development Timeline', link: '/timeline' },
+            { text: '14. Future Roadmap', link: '/guide/roadmap' }
           ]
         },
         {
           text: '💻 For Developers',
-          collapsed: false,
+          collapsed: true,
           items: [
-            { text: '11. API Reference', link: '/api' },
-            { text: '12. Development Server', link: '/development/dev-server' },
-            { text: '13. Configuration Options', link: '/guide/configuration' },
-            { text: '14. Contributing', link: '/development/contributing' }
+            { text: '15. API Reference', link: '/api' },
+            { text: '16. Development Server', link: '/development/dev-server' },
+            { text: '17. Configuration', link: '/guide/configuration' },
+            { text: '18. Contributing', link: '/development/contributing' }
           ]
         },
         {
-          text: '🚀 Advanced',
-          collapsed: false,
+          text: '🚀 Deployment',
+          collapsed: true,
           items: [
-            { text: '15. Deployment Guide', link: '/DEPLOYMENT' },
-            { text: '16. Future Roadmap', link: '/guide/roadmap' }
+            { text: '19. Deployment Guide', link: '/DEPLOYMENT' }
           ]
         }
       ]
