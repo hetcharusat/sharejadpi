@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: "ShareJadPi Docs",
   description: "Modern File Sharing Application - Development Documentation",
   themeConfig: {
@@ -30,5 +31,9 @@ export default defineConfig({
     footer: {
       message: 'ShareJadPi - Modern File Sharing Application'
     }
+  },
+  
+  mermaid: {
+    theme: 'dark'
   }
-})
+}))
