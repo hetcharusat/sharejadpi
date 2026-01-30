@@ -4,8 +4,6 @@
 
 ### 1. Web-Based File Sharing ✅
 
-<div class="feature-card">
-
 #### Overview
 ShareJadPi provides seamless file sharing through an intuitive web interface accessible from any device on your local network.
 
@@ -36,18 +34,14 @@ def upload_file():
 
 #### Status: **Production Ready** (Phase 1)
 
-</div>
+---
 
 ### 2. Modern Dark UI ✅
-
-<div class="feature-card">
 
 #### Overview
 Beautiful, responsive interface with smooth animations and modern design patterns.
 
 #### Key Design Elements
-
-<div class="mermaid-container">
 
 ```mermaid
 graph LR
@@ -73,9 +67,7 @@ graph LR
     style A fill:#10b981
     style F fill:#1f2937
     style M fill:#3b82f6
-</mermaid>
-
-</div>
+```
 
 #### CSS Variables
 ```css
@@ -99,18 +91,14 @@ graph LR
 
 #### Status: **Production Ready** (Phase 2)
 
-</div>
+---
 
 ### 3. Network Discovery ✅
-
-<div class="feature-card">
 
 #### Overview
 Automatic network configuration and IP detection for hassle-free setup.
 
 #### Network Flow
-
-<div class="mermaid-container">
 
 ```mermaid
 sequenceDiagram
@@ -131,10 +119,8 @@ sequenceDiagram
     App->>App: Generate Access URL
     App->>App: Display QR Code (Phase 4)
     
-    Note over App,Router: Server Ready on<br/>http://192.168.x.x:5000
-</mermaid>
-
-</div>
+    Note over App,Router: Server Ready on http://192.168.x.x:5000
+```
 
 #### Implementation
 ```python
@@ -155,18 +141,14 @@ def start_server():
 
 #### Status: **Production Ready** (Phase 1)
 
-</div>
+---
 
 ### 4. Token Authentication System 📅
-
-<div class="feature-card planned">
 
 #### Overview
 Secure token-based authentication for controlled access to shared files.
 
 #### Authentication Flow
-
-<div class="mermaid-container">
 
 ```mermaid
 sequenceDiagram
@@ -197,9 +179,7 @@ sequenceDiagram
     Client->>Server: Logout
     Server->>TokenDB: Revoke Token
     TokenDB-->>Server: Token Revoked
-</mermaid>
-
-</div>
+```
 
 #### Planned Features
 - 🔐 JWT-based authentication
@@ -234,18 +214,14 @@ def validate_token(token):
 
 #### Status: **Planned** (Phase 3 - April 2024)
 
-</div>
+---
 
 ### 5. Windows Context Menu Integration 📅
-
-<div class="feature-card planned">
 
 #### Overview
 Right-click any file in Windows Explorer to instantly share it via ShareJadPi.
 
 #### Integration Flow
-
-<div class="mermaid-container">
 
 ```mermaid
 graph TB
@@ -268,9 +244,7 @@ graph TB
     style C fill:#10b981
     style E fill:#8b5cf6
     style I fill:#f59e0b
-</mermaid>
-
-</div>
+```
 
 #### Registry Integration (Planned)
 ```python
@@ -303,18 +277,14 @@ def add_context_menu():
 
 #### Status: **Planned** (Phase 3 - May 2024)
 
-</div>
+---
 
 ### 6. QR Code Generation 📅
-
-<div class="feature-card planned">
 
 #### Overview
 Generate QR codes for quick mobile device access to shared files.
 
 #### QR Code Flow
-
-<div class="mermaid-container">
 
 ```mermaid
 sequenceDiagram
@@ -334,9 +304,7 @@ sequenceDiagram
     Server->>Server: Validate Access
     Server-->>Mobile: Serve File
     Mobile->>Mobile: Download Complete
-</mermaid>
-
-</div>
+```
 
 #### Implementation (Planned)
 ```python
@@ -372,7 +340,7 @@ def generate_qr_code(url):
 
 #### Status: **Planned** (Phase 4 - June 2024)
 
-</div>
+---
 
 ## Feature Comparison Matrix
 
@@ -391,8 +359,6 @@ def generate_qr_code(url):
 | API Documentation | ❌ | ❌ | ✅ | ✅ | ✅ |
 
 ## Performance Metrics
-
-<div class="mermaid-container">
 
 ```mermaid
 gantt
@@ -416,8 +382,6 @@ gantt
     Heartbeat   :0, 30
 ```
 
-</div>
-
 ## Browser Compatibility
 
 | Browser | Version | Status | Notes |
@@ -429,118 +393,3 @@ gantt
 | Opera | 76+ | ✅ Full Support | Chromium-based |
 | Mobile Chrome | Latest | ✅ Full Support | Responsive design |
 | Mobile Safari | Latest | ⚠️ Partial | Some limitations |
-
-<style>
-.feature-card {
-  background: var(--vp-c-bg-soft);
-  border: 2px solid var(--vp-c-brand);
-  border-radius: 12px;
-  padding: 24px;
-  margin: 24px 0;
-}
-
-.feature-card.planned {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, var(--vp-c-bg-soft) 0%, rgba(245, 158, 11, 0.1) 100%);
-}
-
-.feature-card h4 {
-  margin-top: 0;
-  color: var(--vp-c-brand);
-}
-
-.feature-card.planned h4 {
-  color: #f59e0b;
-}
-
-.mermaid-container {
-  position: relative;
-  margin: 2rem 0;
-  padding: 1rem;
-  background: var(--vp-c-bg-soft);
-  border-radius: 12px;
-  border: 1px solid var(--vp-c-divider);
-  overflow: hidden;
-}
-
-.mermaid-container:hover .diagram-controls {
-  opacity: 1;
-}
-
-.diagram-controls {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-
-.diagram-controls button {
-  background: var(--vp-c-brand);
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.diagram-controls button:hover {
-  background: var(--vp-c-brand-dark);
-  transform: scale(1.05);
-}
-</style>
-
-<script setup>
-import { onMounted } from 'vue'
-
-onMounted(() => {
-  const containers = document.querySelectorAll('.mermaid-container')
-  
-  containers.forEach(container => {
-    const controls = document.createElement('div')
-    controls.className = 'diagram-controls'
-    controls.innerHTML = `
-      <button class="zoom-in">🔍+</button>
-      <button class="zoom-out">🔍-</button>
-      <button class="reset-zoom">↺</button>
-      <button class="fullscreen">⛶</button>
-    `
-    container.insertBefore(controls, container.firstChild)
-    
-    let scale = 1
-    const svg = container.querySelector('svg')
-    
-    controls.querySelector('.zoom-in').addEventListener('click', () => {
-      scale = Math.min(scale + 0.2, 3)
-      svg.style.transform = `scale(${scale})`
-    })
-    
-    controls.querySelector('.zoom-out').addEventListener('click', () => {
-      scale = Math.max(scale - 0.2, 0.5)
-      svg.style.transform = `scale(${scale})`
-    })
-    
-    controls.querySelector('.reset-zoom').addEventListener('click', () => {
-      scale = 1
-      svg.style.transform = `scale(${scale})`
-    })
-    
-    controls.querySelector('.fullscreen').addEventListener('click', () => {
-      container.classList.toggle('fullscreen')
-    })
-    
-    container.addEventListener('wheel', (e) => {
-      e.preventDefault()
-      const delta = e.deltaY > 0 ? -0.1 : 0.1
-      scale = Math.max(0.5, Math.min(3, scale + delta))
-      svg.style.transform = `scale(${scale})`
-    })
-  })
-})
-</script>

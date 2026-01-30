@@ -11,8 +11,6 @@ http://<local-ip>:5000/api
 
 ### Upload File
 
-<div class="api-card">
-
 **Endpoint:** `POST /upload`
 
 **Description:** Upload a file to the server
@@ -59,11 +57,9 @@ fetch('/upload', {
 }
 ```
 
-</div>
+---
 
 ### Download File
-
-<div class="api-card">
 
 **Endpoint:** `GET /download/<filename>`
 
@@ -98,15 +94,13 @@ fetch('/download/example.pdf')
 }
 ```
 
-</div>
+---
 
 ### List Files
 
-<div class="api-card">
-
 **Endpoint:** `GET /files`
 
-**Description:** Get list of all available files
+**Description:** Get a list of all uploaded files
 
 **Example Request:**
 ```javascript
@@ -120,31 +114,30 @@ fetch('/files')
 {
     "files": [
         {
-            "name": "document.pdf",
+            "name": "example.pdf",
             "size": 1048576,
-            "modified": "2024-03-15T10:30:00Z",
+            "uploaded": "2024-03-15T10:30:00Z",
             "type": "application/pdf"
         },
         {
-            "name": "image.jpg",
+            "name": "image.png",
             "size": 524288,
-            "modified": "2024-03-15T09:15:00Z",
-            "type": "image/jpeg"
+            "uploaded": "2024-03-15T11:00:00Z",
+            "type": "image/png"
         }
     ],
-    "total": 2
+    "total": 2,
+    "storage_used": 1572864
 }
 ```
 
-</div>
+---
 
 ### Delete File
 
-<div class="api-card">
+**Endpoint:** `DELETE /delete/<filename>`
 
-**Endpoint:** `DELETE /files/<filename>`
-
-**Description:** Delete a file from the server
+**Description:** Delete a previously uploaded file
 
 **Parameters:**
 | Parameter | Type | Required | Description |
@@ -153,7 +146,7 @@ fetch('/files')
 
 **Example Request:**
 ```javascript
-fetch('/files/example.pdf', {
+fetch('/delete/example.pdf', {
     method: 'DELETE'
 })
 .then(response => response.json())
@@ -168,76 +161,74 @@ fetch('/files/example.pdf', {
 }
 ```
 
-</div>
+**Error Response (404):**
+```json
+{
+    "error": "File not found",
+    "code": "FILE_NOT_FOUND"
+}
+```
+
+---
 
 ## Authentication API (Phase 3)
 
-### Generate Token
-
-<div class="api-card planned">
+### Get Access Token
 
 **Endpoint:** `POST /auth/token`
 
-**Description:** Generate an authentication token
+**Description:** Generate an access token for API authentication (Planned for Phase 3)
 
 **Request Body:**
 ```json
 {
     "username": "user@example.com",
-    "password": "secure_password"
+    "password": "securepassword"
 }
 ```
 
 **Success Response (200):**
 ```json
 {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 86400,
-    "token_type": "Bearer"
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 86400
 }
 ```
 
-**Error Response (401):**
-```json
-{
-    "error": "Invalid credentials",
-    "code": "INVALID_CREDENTIALS"
-}
-```
-
-</div>
+---
 
 ### Validate Token
 
-<div class="api-card planned">
-
 **Endpoint:** `GET /auth/validate`
 
+**Description:** Validate an existing access token (Planned for Phase 3)
+
 **Headers:**
-```
-Authorization: Bearer <token>
+```http
+Authorization: Bearer <access_token>
 ```
 
 **Success Response (200):**
 ```json
 {
     "valid": true,
-    "user_id": 123,
+    "user_id": "user123",
     "expires_at": "2024-03-16T10:30:00Z"
 }
 ```
 
-</div>
+---
 
 ### Revoke Token
 
-<div class="api-card planned">
+**Endpoint:** `POST /auth/revoke`
 
-**Endpoint:** `DELETE /auth/token`
+**Description:** Revoke an access token (Planned for Phase 3)
 
 **Headers:**
-```
-Authorization: Bearer <token>
+```http
+Authorization: Bearer <access_token>
 ```
 
 **Success Response (200):**
@@ -248,11 +239,9 @@ Authorization: Bearer <token>
 }
 ```
 
-</div>
+---
 
 ## API Flow Diagram
-
-<div class="mermaid-container">
 
 ```mermaid
 sequenceDiagram
@@ -293,9 +282,7 @@ sequenceDiagram
     API->>Storage: List Files
     Storage-->>API: File Metadata
     API-->>Client: 200 + JSON
-</mermaid>
-
-</div>
+```
 
 ## Error Codes Reference
 
@@ -314,8 +301,6 @@ sequenceDiagram
 
 ## Rate Limiting (Phase 3)
 
-<div class="mermaid-container">
-
 ```mermaid
 graph LR
     A[API Request] --> B{Check Rate Limit}
@@ -331,9 +316,7 @@ graph LR
     style A fill:#3b82f6
     style C fill:#10b981
     style D fill:#ef4444
-</mermaid>
-
-</div>
+```
 
 **Rate Limits (Planned):**
 - Upload: 10 files per minute
@@ -348,68 +331,52 @@ X-RateLimit-Remaining: 7
 X-RateLimit-Reset: 1647345600
 ```
 
-## WebSocket API (Phase 3)
+---
 
-### Real-Time File Updates
+## WebSocket API (Phase 4)
 
-<div class="api-card planned">
+### Real-time File Updates
 
 **Endpoint:** `ws://<local-ip>:5000/ws`
 
-**Events:**
+**Description:** WebSocket connection for real-time file updates (Planned)
 
-#### `file.uploaded`
+**Connection:**
+```javascript
+const socket = new WebSocket('ws://192.168.1.100:5000/ws');
+
+socket.onopen = () => {
+    console.log('Connected to ShareJadPi');
+};
+
+socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Update:', data);
+};
+```
+
+**Event Types:**
+| Event | Description |
+|-------|-------------|
+| `file_uploaded` | A new file was uploaded |
+| `file_deleted` | A file was deleted |
+| `file_downloaded` | A file was downloaded |
+| `storage_update` | Storage status changed |
+
+**Example Message:**
 ```json
 {
-    "event": "file.uploaded",
+    "event": "file_uploaded",
     "data": {
-        "filename": "newfile.pdf",
+        "filename": "document.pdf",
         "size": 1048576,
-        "uploader": "user@example.com",
+        "uploaded_by": "192.168.1.50",
         "timestamp": "2024-03-15T10:30:00Z"
     }
 }
 ```
 
-#### `file.deleted`
-```json
-{
-    "event": "file.deleted",
-    "data": {
-        "filename": "oldfile.pdf",
-        "timestamp": "2024-03-15T10:35:00Z"
-    }
-}
-```
-
-#### `upload.progress`
-```json
-{
-    "event": "upload.progress",
-    "data": {
-        "filename": "largefile.zip",
-        "progress": 45,
-        "bytes_transferred": 472907776,
-        "total_bytes": 1048576000
-    }
-}
-```
-
-**Example Client:**
-```javascript
-const ws = new WebSocket('ws://192.168.1.100:5000/ws');
-
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Event:', data.event, 'Data:', data.data);
-};
-
-ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-};
-```
-
-</div>
+---
 
 ## SDK Examples
 
@@ -423,32 +390,40 @@ class ShareJadPiClient:
         self.base_url = base_url
         self.session = requests.Session()
     
-    def upload_file(self, filepath):
-        with open(filepath, 'rb') as f:
+    def upload_file(self, file_path):
+        with open(file_path, 'rb') as f:
             files = {'file': f}
             response = self.session.post(
-                f'{self.base_url}/upload',
+                f"{self.base_url}/upload",
                 files=files
             )
-            return response.json()
-    
-    def list_files(self):
-        response = self.session.get(f'{self.base_url}/files')
         return response.json()
     
     def download_file(self, filename, save_path):
         response = self.session.get(
-            f'{self.base_url}/download/{filename}',
+            f"{self.base_url}/download/{filename}",
             stream=True
         )
         with open(save_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
+        return save_path
+    
+    def list_files(self):
+        response = self.session.get(f"{self.base_url}/files")
+        return response.json()
+    
+    def delete_file(self, filename):
+        response = self.session.delete(
+            f"{self.base_url}/delete/{filename}"
+        )
+        return response.json()
 
 # Usage
 client = ShareJadPiClient('http://192.168.1.100:5000')
-result = client.upload_file('document.pdf')
-print(f"Uploaded: {result['filename']}")
+client.upload_file('document.pdf')
+files = client.list_files()
+client.download_file('document.pdf', './downloads/document.pdf')
 ```
 
 ### JavaScript SDK
@@ -468,158 +443,137 @@ class ShareJadPiClient {
             body: formData
         });
         
-        return await response.json();
-    }
-    
-    async listFiles() {
-        const response = await fetch(`${this.baseUrl}/files`);
-        return await response.json();
+        return response.json();
     }
     
     async downloadFile(filename) {
         const response = await fetch(
             `${this.baseUrl}/download/${filename}`
         );
-        const blob = await response.blob();
-        
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        return response.blob();
+    }
+    
+    async listFiles() {
+        const response = await fetch(`${this.baseUrl}/files`);
+        return response.json();
+    }
+    
+    async deleteFile(filename) {
+        const response = await fetch(
+            `${this.baseUrl}/delete/${filename}`,
+            { method: 'DELETE' }
+        );
+        return response.json();
     }
 }
 
 // Usage
 const client = new ShareJadPiClient('http://192.168.1.100:5000');
+
+// Upload
+const fileInput = document.querySelector('#fileInput');
 await client.uploadFile(fileInput.files[0]);
+
+// List files
 const files = await client.listFiles();
+console.log(files);
+
+// Download
+const blob = await client.downloadFile('document.pdf');
 ```
 
-## API Testing
+---
 
-### cURL Examples
+## cURL Examples
 
-**Upload File:**
+### Upload a File
 ```bash
-curl -X POST http://192.168.1.100:5000/upload \
-  -F "file=@/path/to/file.pdf"
+curl -X POST -F "file=@document.pdf" http://192.168.1.100:5000/upload
 ```
 
-**List Files:**
+### Download a File
+```bash
+curl -O http://192.168.1.100:5000/download/document.pdf
+```
+
+### List All Files
 ```bash
 curl http://192.168.1.100:5000/files
 ```
 
-**Download File:**
+### Delete a File
 ```bash
-curl http://192.168.1.100:5000/download/file.pdf \
-  -o downloaded_file.pdf
+curl -X DELETE http://192.168.1.100:5000/delete/document.pdf
 ```
 
-**Delete File:**
+### With Authentication (Phase 3)
 ```bash
-curl -X DELETE http://192.168.1.100:5000/files/file.pdf
+# Get token
+curl -X POST -H "Content-Type: application/json" \
+    -d '{"username":"user","password":"pass"}' \
+    http://192.168.1.100:5000/auth/token
+
+# Use token
+curl -H "Authorization: Bearer <token>" \
+    http://192.168.1.100:5000/files
 ```
 
-### Postman Collection
+---
 
-Import this collection for testing:
+## Postman Collection
+
+Import this collection into Postman for easy API testing:
 
 ```json
 {
-  "info": {
-    "name": "ShareJadPi API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/"
-  },
-  "item": [
-    {
-      "name": "Upload File",
-      "request": {
-        "method": "POST",
-        "url": "{{base_url}}/upload",
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "file",
-              "type": "file",
-              "src": []
-            }
-          ]
-        }
-      }
+    "info": {
+        "name": "ShareJadPi API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    {
-      "name": "List Files",
-      "request": {
-        "method": "GET",
-        "url": "{{base_url}}/files"
-      }
-    }
-  ],
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://192.168.1.100:5000"
-    }
-  ]
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://192.168.1.100:5000"
+        }
+    ],
+    "item": [
+        {
+            "name": "Upload File",
+            "request": {
+                "method": "POST",
+                "url": "{{base_url}}/upload",
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "file",
+                            "type": "file"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "List Files",
+            "request": {
+                "method": "GET",
+                "url": "{{base_url}}/files"
+            }
+        },
+        {
+            "name": "Download File",
+            "request": {
+                "method": "GET",
+                "url": "{{base_url}}/download/example.pdf"
+            }
+        },
+        {
+            "name": "Delete File",
+            "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/delete/example.pdf"
+            }
+        }
+    ]
 }
 ```
-
-<style>
-.api-card {
-  background: var(--vp-c-bg-soft);
-  border-left: 4px solid var(--vp-c-brand);
-  padding: 20px;
-  margin: 20px 0;
-  border-radius: 8px;
-}
-
-.api-card.planned {
-  border-left-color: #f59e0b;
-  background: linear-gradient(135deg, var(--vp-c-bg-soft) 0%, rgba(245, 158, 11, 0.05) 100%);
-}
-
-.api-card h4 {
-  margin-top: 0;
-}
-
-.mermaid-container {
-  position: relative;
-  margin: 2rem 0;
-  padding: 1rem;
-  background: var(--vp-c-bg-soft);
-  border-radius: 12px;
-  border: 1px solid var(--vp-c-divider);
-  overflow: hidden;
-}
-
-code {
-  background: var(--vp-c-bg-mute);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-</style>
-
-<script setup>
-import { onMounted } from 'vue'
-
-onMounted(() => {
-  const containers = document.querySelectorAll('.mermaid-container')
-  
-  containers.forEach(container => {
-    const controls = document.createElement('div')
-    controls.className = 'diagram-controls'
-    controls.innerHTML = `
-      <button class="zoom-in">🔍+</button>
-      <button class="zoom-out">🔍-</button>
-      <button class="reset-zoom">↺</button>
-      <button class="fullscreen">⛶</button>
-    `
-    container.style.position = 'relative'
-    container.insertBefore(controls, container.firstChild)
-  })
-})
-</script>
