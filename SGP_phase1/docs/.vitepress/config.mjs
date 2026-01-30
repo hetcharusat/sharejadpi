@@ -15,44 +15,59 @@ export default withMermaid(defineConfig({
     siteTitle: 'ShareJadPi',
     
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'Development', link: '/development/dev-server' },
-      { text: 'API', link: '/api' },
-      { text: 'GitHub', link: 'https://github.com/hetcharusat/sharejadpi' }
+      { text: '🏠 Home', link: '/' },
+      { text: '📖 Learn', link: '/guide/introduction' },
+      { text: '🔧 Development', link: '/development/dev-server' },
+      { text: '⚡ API', link: '/api' },
+      { text: '🌟 GitHub', link: 'https://github.com/hetcharusat/sharejadpi' }
     ],
 
     sidebar: {
       '/': [
         {
-          text: '📚 Introduction',
+          text: '👋 Start Here',
+          collapsed: false,
           items: [
-            { text: 'Overview', link: '/' },
-            { text: 'Features', link: '/features' },
-            { text: 'Timeline', link: '/timeline' }
+            { text: '1. Introduction', link: '/guide/introduction' },
+            { text: '2. What is ShareJadPi?', link: '/guide/what-is-sharejadpi' },
+            { text: '3. Installation', link: '/guide/installation' }
           ]
         },
         {
-          text: '🚀 Getting Started',
+          text: '🎓 Learn the Basics',
+          collapsed: false,
           items: [
-            { text: 'Installation', link: '/guide/getting-started' },
-            { text: 'Quick Start', link: '/guide/quick-start' },
-            { text: 'Configuration', link: '/guide/configuration' }
+            { text: '4. First Steps', link: '/guide/quick-start' },
+            { text: '5. Uploading Files', link: '/guide/uploading' },
+            { text: '6. Downloading Files', link: '/guide/downloading' },
+            { text: '7. Managing Files', link: '/guide/managing-files' }
           ]
         },
         {
-          text: '💻 Development',
+          text: '🏗️ Understanding ShareJadPi',
+          collapsed: false,
           items: [
-            { text: 'Dev Server', link: '/development/dev-server' },
-            { text: 'Architecture', link: '/architecture' },
-            { text: 'Contributing', link: '/development/contributing' }
+            { text: '8. How It Works', link: '/architecture' },
+            { text: '9. Features Breakdown', link: '/features' },
+            { text: '10. Development Timeline', link: '/timeline' }
           ]
         },
         {
-          text: '📖 Reference',
+          text: '💻 For Developers',
+          collapsed: false,
           items: [
-            { text: 'API Documentation', link: '/api' },
-            { text: 'Deployment', link: '/DEPLOYMENT' }
+            { text: '11. API Reference', link: '/api' },
+            { text: '12. Development Server', link: '/development/dev-server' },
+            { text: '13. Configuration Options', link: '/guide/configuration' },
+            { text: '14. Contributing', link: '/development/contributing' }
+          ]
+        },
+        {
+          text: '🚀 Advanced',
+          collapsed: false,
+          items: [
+            { text: '15. Deployment Guide', link: '/DEPLOYMENT' },
+            { text: '16. Future Roadmap', link: '/guide/roadmap' }
           ]
         }
       ]
