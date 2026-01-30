@@ -1,55 +1,114 @@
-# API Documentation
+# 📡 API Reference
 
-## REST API Endpoints
+<div class="api-hero">
+  <h2>Complete REST API Documentation</h2>
+  <p>ShareJadPi exposes a powerful REST API for all file operations. Build integrations, automate workflows, or create custom clients.</p>
+</div>
 
-### Base URL
+## 🌐 Base URL
+
 ```
-http://<local-ip>:5000/api
+http://<your-ip>:5000
 ```
 
-## File Operations
+Replace `<your-ip>` with your server's IP address or `localhost` for local development.
 
-### Upload File
+---
 
-**Endpoint:** `POST /upload`
+## 📋 API Overview
 
-**Description:** Upload a file to the server
+```mermaid
+flowchart TB
+    subgraph Core["📁 Core APIs"]
+        Upload["/upload"]
+        Download["/download/<id>"]
+        Delete["/delete/<id>"]
+        Files["/api/files"]
+    end
+    
+    subgraph Management["⚙️ Management"]
+        Status["/api/status"]
+        Clear["/api/clear"]
+        Pin["/api/pin"]
+        Settings["/settings"]
+    end
+    
+    subgraph Sharing["🌐 Online Sharing"]
+        Share["/api/share-online"]
+        Tunnel["/api/tunnel/*"]
+        OnlineDownload["/online-download/<token>"]
+    end
+    
+    subgraph Utilities["🛠️ Utilities"]
+        Clipboard["/api/clipboard"]
+        Speed["/api/speedtest/*"]
+        QR["/qr"]
+    end
+    
+    style Core fill:#065f46,stroke:#10b981,color:#fff
+    style Management fill:#1e40af,stroke:#3b82f6,color:#fff
+    style Sharing fill:#7c2d12,stroke:#f97316,color:#fff
+    style Utilities fill:#581c87,stroke:#a855f7,color:#fff
+```
 
-**Request:**
+---
+
+## 📤 File Upload
+
+### `POST /upload`
+
+Upload one or more files to the server.
+
+<div class="endpoint-card">
+
+**Request**
 ```http
 POST /upload HTTP/1.1
 Content-Type: multipart/form-data
 ```
 
-**Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| file | File | Yes | The file to upload |
+**Form Data**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | File | ✅ | File(s) to upload. Can send multiple. |
 
-**Example Request:**
+**Example (JavaScript)**
 ```javascript
 const formData = new FormData();
 formData.append('file', fileInput.files[0]);
+formData.append('file', fileInput.files[1]); // Multiple files
 
-fetch('/upload', {
+const response = await fetch('/upload', {
     method: 'POST',
     body: formData
-})
-.then(response => response.json())
-.then(data => console.log(data));
+});
+
+const result = await response.json();
+console.log(result);
 ```
 
-**Success Response (200):**
+**Example (cURL)**
+```bash
+curl -X POST http://localhost:5000/upload \
+  -F "file=@/path/to/document.pdf" \
+  -F "file=@/path/to/image.png"
+```
+
+**Success Response** `200 OK`
 ```json
 {
     "success": true,
-    "filename": "example.pdf",
-    "size": 1048576,
-    "upload_time": "2024-03-15T10:30:00Z"
+    "files": [
+        {
+            "name": "document.pdf",
+            "size": 1048576,
+            "id": "abc123"
+        }
+    ]
 }
 ```
 
-**Error Response (400):**
+**Error Response** `400 Bad Request`
 ```json
 {
     "error": "No file provided",
@@ -57,36 +116,70 @@ fetch('/upload', {
 }
 ```
 
+</div>
+
 ---
 
-### Download File
+### `POST /upload_folder`
 
-**Endpoint:** `GET /download/<filename>`
+Upload an entire folder with preserved structure.
 
-**Description:** Download a previously uploaded file
+<div class="endpoint-card">
 
-**Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| filename | String | Yes | Name of the file to download |
-
-**Example Request:**
-```javascript
-fetch('/download/example.pdf')
-    .then(response => response.blob())
-    .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'example.pdf';
-        a.click();
-    });
+**Request**
+```http
+POST /upload_folder HTTP/1.1
+Content-Type: multipart/form-data
 ```
 
-**Success Response (200):**
-- Returns file binary data with appropriate Content-Type header
+**Form Data**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `files` | File[] | ✅ | Files with relative paths |
+| `paths` | String[] | ✅ | Relative path for each file |
 
-**Error Response (404):**
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "uploaded": 15,
+    "folder": "my-project"
+}
+```
+
+</div>
+
+---
+
+## 📥 File Download
+
+### `GET /download/<entry_id>`
+
+Download a specific file.
+
+<div class="endpoint-card">
+
+**URL Parameters**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `entry_id` | String | Unique file identifier |
+
+**Example**
+```javascript
+// Direct download
+window.location.href = '/download/abc123';
+
+// Fetch as blob
+const response = await fetch('/download/abc123');
+const blob = await response.blob();
+const url = URL.createObjectURL(blob);
+```
+
+**Success Response** `200 OK`
+- Returns file binary with appropriate `Content-Type` header
+- `Content-Disposition: attachment; filename="example.pdf"`
+
+**Error Response** `404 Not Found`
 ```json
 {
     "error": "File not found",
@@ -94,486 +187,680 @@ fetch('/download/example.pdf')
 }
 ```
 
+</div>
+
 ---
 
-### List Files
+## 📁 File Listing
 
-**Endpoint:** `GET /files`
+### `GET /api/files`
 
-**Description:** Get a list of all uploaded files
+Get a list of all uploaded files.
 
-**Example Request:**
+<div class="endpoint-card">
+
+**Example**
 ```javascript
-fetch('/files')
-    .then(response => response.json())
-    .then(data => console.log(data));
+const response = await fetch('/api/files');
+const data = await response.json();
+console.log(data.files);
 ```
 
-**Success Response (200):**
+**Success Response** `200 OK`
 ```json
 {
     "files": [
         {
-            "name": "example.pdf",
+            "id": "abc123",
+            "name": "document.pdf",
             "size": 1048576,
-            "uploaded": "2024-03-15T10:30:00Z",
-            "type": "application/pdf"
+            "size_formatted": "1.0 MB",
+            "ext": "PDF",
+            "modified": "2024-01-15 10:30",
+            "pinned": false
         },
         {
+            "id": "def456",
             "name": "image.png",
             "size": 524288,
-            "uploaded": "2024-03-15T11:00:00Z",
-            "type": "image/png"
+            "size_formatted": "512 KB",
+            "ext": "PNG",
+            "modified": "2024-01-15 11:00",
+            "pinned": true
         }
     ],
     "total": 2,
-    "storage_used": 1572864
+    "total_size": 1572864,
+    "total_size_formatted": "1.5 MB"
 }
 ```
 
+</div>
+
 ---
 
-### Delete File
+## 🗑️ File Deletion
 
-**Endpoint:** `DELETE /delete/<filename>`
+### `POST /delete/<entry_id>`
 
-**Description:** Delete a previously uploaded file
+Delete a specific file.
 
-**Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| filename | String | Yes | Name of the file to delete |
+<div class="endpoint-card">
 
-**Example Request:**
+**URL Parameters**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `entry_id` | String | File to delete |
+
+**Example**
 ```javascript
-fetch('/delete/example.pdf', {
-    method: 'DELETE'
-})
-.then(response => response.json())
-.then(data => console.log(data));
+const response = await fetch('/delete/abc123', {
+    method: 'POST'
+});
+const result = await response.json();
 ```
 
-**Success Response (200):**
+**Success Response** `200 OK`
 ```json
 {
     "success": true,
-    "message": "File deleted successfully"
+    "deleted": "document.pdf"
 }
 ```
 
-**Error Response (404):**
-```json
-{
-    "error": "File not found",
-    "code": "FILE_NOT_FOUND"
-}
-```
+</div>
 
 ---
 
-## Authentication API (Phase 3)
+### `POST /delete_bulk`
 
-### Get Access Token
+Delete multiple files at once.
 
-**Endpoint:** `POST /auth/token`
+<div class="endpoint-card">
 
-**Description:** Generate an access token for API authentication (Planned for Phase 3)
-
-**Request Body:**
+**Request Body**
 ```json
 {
-    "username": "user@example.com",
-    "password": "securepassword"
+    "ids": ["abc123", "def456", "ghi789"]
 }
 ```
 
-**Success Response (200):**
-```json
-{
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "token_type": "bearer",
-    "expires_in": 86400
-}
-```
-
----
-
-### Validate Token
-
-**Endpoint:** `GET /auth/validate`
-
-**Description:** Validate an existing access token (Planned for Phase 3)
-
-**Headers:**
-```http
-Authorization: Bearer <access_token>
-```
-
-**Success Response (200):**
-```json
-{
-    "valid": true,
-    "user_id": "user123",
-    "expires_at": "2024-03-16T10:30:00Z"
-}
-```
-
----
-
-### Revoke Token
-
-**Endpoint:** `POST /auth/revoke`
-
-**Description:** Revoke an access token (Planned for Phase 3)
-
-**Headers:**
-```http
-Authorization: Bearer <access_token>
-```
-
-**Success Response (200):**
+**Success Response** `200 OK`
 ```json
 {
     "success": true,
-    "message": "Token revoked successfully"
+    "deleted": 3
 }
 ```
 
+</div>
+
 ---
 
-## API Flow Diagram
+### `POST /api/clear`
+
+Delete all files.
+
+<div class="endpoint-card">
+
+**⚠️ Warning:** This action is irreversible!
+
+**Example**
+```javascript
+if (confirm('Delete ALL files?')) {
+    await fetch('/api/clear', { method: 'POST' });
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "deleted": 15
+}
+```
+
+</div>
+
+---
+
+## 📌 Pin Files
+
+### `POST /api/pin`
+
+Pin or unpin a file (prevents accidental deletion).
+
+<div class="endpoint-card">
+
+**Request Body**
+```json
+{
+    "id": "abc123",
+    "pinned": true
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "pinned": true
+}
+```
+
+</div>
+
+---
+
+## 🗜️ ZIP Downloads
+
+### `POST /zip_selected`
+
+Create a ZIP archive of selected files.
+
+<div class="endpoint-card">
+
+**Request Body**
+```json
+{
+    "ids": ["abc123", "def456", "ghi789"]
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "job_id": "zip_12345",
+    "status": "processing"
+}
+```
+
+</div>
+
+---
+
+### `GET /api/zip_jobs/<job_id>`
+
+Check ZIP job status.
+
+<div class="endpoint-card">
+
+**Response (Processing)**
+```json
+{
+    "status": "processing",
+    "progress": 45
+}
+```
+
+**Response (Complete)**
+```json
+{
+    "status": "complete",
+    "download_url": "/download/zip_12345.zip"
+}
+```
+
+</div>
+
+---
+
+## 🌐 Online Sharing
+
+### `POST /api/share-online`
+
+Create an internet-accessible share link via Cloudflare tunnel.
+
+<div class="endpoint-card highlight">
+
+**Request Body**
+```json
+{
+    "file_id": "abc123"
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "url": "https://random-words.trycloudflare.com",
+    "token": "a1b2c3d4e5f6",
+    "qr_code": "data:image/png;base64,iVBORw0KG...",
+    "expires_at": "2024-01-15T12:00:00Z"
+}
+```
+
+**Error Response** `503 Service Unavailable`
+```json
+{
+    "error": "Cloudflare tunnel not available",
+    "code": "TUNNEL_UNAVAILABLE"
+}
+```
+
+</div>
+
+---
+
+### `POST /api/tunnel/start`
+
+Manually start the Cloudflare tunnel.
+
+<div class="endpoint-card">
+
+**Request Body**
+```json
+{
+    "port": 5000,
+    "file_size": 10485760
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "url": "https://random-words.trycloudflare.com",
+    "status": "running"
+}
+```
+
+</div>
+
+---
+
+### `GET /api/tunnel/status`
+
+Check tunnel status.
+
+<div class="endpoint-card">
+
+**Response (Active)**
+```json
+{
+    "active": true,
+    "url": "https://random-words.trycloudflare.com",
+    "uptime": 3600,
+    "shares": 3
+}
+```
+
+**Response (Inactive)**
+```json
+{
+    "active": false,
+    "url": null
+}
+```
+
+</div>
+
+---
+
+### `POST /api/tunnel/stop`
+
+Stop the Cloudflare tunnel.
+
+<div class="endpoint-card">
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "message": "Tunnel stopped"
+}
+```
+
+</div>
+
+---
+
+### `POST /auth/enter`
+
+Authenticate with a share token.
+
+<div class="endpoint-card">
+
+**Request Body**
+```json
+{
+    "token": "a1b2c3d4e5f6"
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "file": "document.pdf",
+    "size": 1048576
+}
+```
+
+**Error Response** `403 Forbidden`
+```json
+{
+    "error": "Invalid or expired token",
+    "code": "INVALID_TOKEN"
+}
+```
+
+</div>
+
+---
+
+## 📋 Shared Clipboard
+
+### `GET /api/clipboard`
+
+Get current clipboard content.
+
+<div class="endpoint-card">
+
+**Success Response** `200 OK`
+```json
+{
+    "content": "Hello, World!",
+    "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+</div>
+
+---
+
+### `POST /api/clipboard`
+
+Set clipboard content.
+
+<div class="endpoint-card">
+
+**Request Body**
+```json
+{
+    "content": "Text to copy across devices"
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true
+}
+```
+
+</div>
+
+---
+
+### `DELETE /api/clipboard`
+
+Clear clipboard.
+
+<div class="endpoint-card">
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "message": "Clipboard cleared"
+}
+```
+
+</div>
+
+---
+
+## ⚡ Speed Test
+
+### `GET /api/speedtest/down`
+
+Download test data for speed testing.
+
+<div class="endpoint-card">
+
+**Response**
+- Returns 10MB of random binary data
+- Use to measure download speed
+
+**Example**
+```javascript
+const startTime = Date.now();
+const response = await fetch('/api/speedtest/down');
+const data = await response.arrayBuffer();
+const duration = (Date.now() - startTime) / 1000;
+const speedMbps = (data.byteLength * 8) / duration / 1000000;
+console.log(`Download: ${speedMbps.toFixed(2)} Mbps`);
+```
+
+</div>
+
+---
+
+### `POST /api/speedtest/up`
+
+Upload test data for speed testing.
+
+<div class="endpoint-card">
+
+**Request Body**
+- Binary data (any size)
+
+**Success Response** `200 OK`
+```json
+{
+    "received": 10485760,
+    "success": true
+}
+```
+
+</div>
+
+---
+
+## 📱 QR Code
+
+### `GET /qr`
+
+Get QR code for the current server URL.
+
+<div class="endpoint-card">
+
+**Response**
+- Returns PNG image of QR code
+- Encodes: `http://<server-ip>:5000`
+
+**Usage in HTML**
+```html
+<img src="/qr" alt="QR Code" />
+```
+
+</div>
+
+---
+
+## ⚙️ Status & Settings
+
+### `GET /api/status`
+
+Get server status and statistics.
+
+<div class="endpoint-card">
+
+**Success Response** `200 OK`
+```json
+{
+    "status": "running",
+    "version": "4.5.4",
+    "uptime": 3600,
+    "files": 15,
+    "total_size": "150.5 MB",
+    "network": {
+        "ip": "192.168.1.100",
+        "port": 5000
+    }
+}
+```
+
+</div>
+
+---
+
+### `GET /settings`
+
+Get settings page HTML.
+
+### `GET /api/autostart`
+
+Get autostart status.
+
+<div class="endpoint-card">
+
+**Success Response** `200 OK`
+```json
+{
+    "enabled": true
+}
+```
+
+</div>
+
+---
+
+### `POST /api/autostart`
+
+Toggle autostart on Windows startup.
+
+<div class="endpoint-card">
+
+**Request Body**
+```json
+{
+    "enabled": true
+}
+```
+
+**Success Response** `200 OK`
+```json
+{
+    "success": true,
+    "enabled": true
+}
+```
+
+</div>
+
+---
+
+## 🔍 API Flow Diagram
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant API
-    participant Auth
     participant Storage
+    participant Cloudflare
     
-    Note over Client,Storage: File Upload Flow
-    
-    Client->>API: POST /upload
-    API->>Auth: Validate Token (Phase 3)
-    
-    alt Token Valid
-        Auth-->>API: Authorized
-        API->>Storage: Save File
-        Storage-->>API: File Saved
-        API-->>Client: 200 Success
-    else Token Invalid
-        Auth-->>API: Unauthorized
-        API-->>Client: 401 Error
+    rect rgb(6, 95, 70)
+        Note over Client,Storage: Upload Flow
+        Client->>API: POST /upload
+        API->>Storage: Save file
+        Storage-->>API: File ID
+        API-->>Client: { success, files }
     end
     
-    Note over Client,Storage: File Download Flow
+    rect rgb(30, 64, 175)
+        Note over Client,Storage: Download Flow
+        Client->>API: GET /api/files
+        API->>Storage: List files
+        Storage-->>API: File list
+        API-->>Client: { files }
+        Client->>API: GET /download/<id>
+        API->>Storage: Read file
+        Storage-->>API: File bytes
+        API-->>Client: File stream
+    end
     
-    Client->>API: GET /download/:filename
-    API->>Auth: Validate Token
-    Auth-->>API: Authorized
-    API->>Storage: Retrieve File
-    Storage-->>API: File Data
-    API-->>Client: 200 + File Stream
-    
-    Note over Client,Storage: File List Flow
-    
-    Client->>API: GET /files
-    API->>Auth: Validate Token
-    Auth-->>API: Authorized
-    API->>Storage: List Files
-    Storage-->>API: File Metadata
-    API-->>Client: 200 + JSON
-```
-
-## Error Codes Reference
-
-| Code | HTTP Status | Description | Solution |
-|------|-------------|-------------|----------|
-| MISSING_FILE | 400 | No file in request | Include file in FormData |
-| FILE_TOO_LARGE | 413 | File exceeds size limit | Reduce file size |
-| INVALID_FILE_TYPE | 415 | File type not allowed | Check allowed types |
-| FILE_NOT_FOUND | 404 | File doesn't exist | Verify filename |
-| STORAGE_FULL | 507 | Server storage full | Free up space |
-| INVALID_CREDENTIALS | 401 | Wrong username/password | Check credentials |
-| TOKEN_EXPIRED | 401 | Auth token expired | Request new token |
-| INSUFFICIENT_PERMISSIONS | 403 | No access permission | Contact admin |
-| RATE_LIMIT_EXCEEDED | 429 | Too many requests | Wait and retry |
-| INTERNAL_ERROR | 500 | Server error | Report to admin |
-
-## Rate Limiting (Phase 3)
-
-```mermaid
-graph LR
-    A[API Request] --> B{Check Rate Limit}
-    
-    B -->|Under Limit| C[Process Request]
-    B -->|Over Limit| D[Return 429 Error]
-    
-    C --> E[Update Counter]
-    E --> F[Return Response]
-    
-    D --> G[Include Retry-After Header]
-    
-    style A fill:#3b82f6
-    style C fill:#10b981
-    style D fill:#ef4444
-```
-
-**Rate Limits (Planned):**
-- Upload: 10 files per minute
-- Download: 50 files per minute
-- List Files: 30 requests per minute
-- Authentication: 5 attempts per minute
-
-**Headers:**
-```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 7
-X-RateLimit-Reset: 1647345600
+    rect rgb(124, 45, 18)
+        Note over Client,Cloudflare: Online Sharing
+        Client->>API: POST /api/share-online
+        API->>Cloudflare: Start tunnel
+        Cloudflare-->>API: Public URL
+        API-->>Client: { url, token, qr }
+    end
 ```
 
 ---
 
-## WebSocket API (Phase 4)
+## 📦 Error Codes
 
-### Real-time File Updates
-
-**Endpoint:** `ws://<local-ip>:5000/ws`
-
-**Description:** WebSocket connection for real-time file updates (Planned)
-
-**Connection:**
-```javascript
-const socket = new WebSocket('ws://192.168.1.100:5000/ws');
-
-socket.onopen = () => {
-    console.log('Connected to ShareJadPi');
-};
-
-socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log('Update:', data);
-};
-```
-
-**Event Types:**
-| Event | Description |
-|-------|-------------|
-| `file_uploaded` | A new file was uploaded |
-| `file_deleted` | A file was deleted |
-| `file_downloaded` | A file was downloaded |
-| `storage_update` | Storage status changed |
-
-**Example Message:**
-```json
-{
-    "event": "file_uploaded",
-    "data": {
-        "filename": "document.pdf",
-        "size": 1048576,
-        "uploaded_by": "192.168.1.50",
-        "timestamp": "2024-03-15T10:30:00Z"
-    }
-}
-```
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `MISSING_FILE` | 400 | No file in upload request |
+| `FILE_NOT_FOUND` | 404 | Requested file doesn't exist |
+| `FILE_TOO_LARGE` | 413 | File exceeds size limit |
+| `INVALID_TOKEN` | 403 | Token expired or invalid |
+| `TUNNEL_UNAVAILABLE` | 503 | Cloudflare not available |
+| `SERVER_ERROR` | 500 | Internal server error |
 
 ---
 
-## SDK Examples
+## 🔧 Rate Limits
 
-### Python SDK
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| `POST /upload` | 100 | 1 hour |
+| `GET /download/*` | 1000 | 1 hour |
+| `POST /api/share-online` | 10 | 1 hour |
+| `GET /api/speedtest/*` | 20 | 1 hour |
 
-```python
-import requests
+---
 
-class ShareJadPiClient:
-    def __init__(self, base_url):
-        self.base_url = base_url
-        self.session = requests.Session()
-    
-    def upload_file(self, file_path):
-        with open(file_path, 'rb') as f:
-            files = {'file': f}
-            response = self.session.post(
-                f"{self.base_url}/upload",
-                files=files
-            )
-        return response.json()
-    
-    def download_file(self, filename, save_path):
-        response = self.session.get(
-            f"{self.base_url}/download/{filename}",
-            stream=True
-        )
-        with open(save_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        return save_path
-    
-    def list_files(self):
-        response = self.session.get(f"{self.base_url}/files")
-        return response.json()
-    
-    def delete_file(self, filename):
-        response = self.session.delete(
-            f"{self.base_url}/delete/{filename}"
-        )
-        return response.json()
+<div class="api-footer">
+  <p>📖 Need help? Check out the <a href="/guide/getting-started">Getting Started Guide</a> or <a href="/development/contributing">contribute</a> to the project!</p>
+</div>
 
-# Usage
-client = ShareJadPiClient('http://192.168.1.100:5000')
-client.upload_file('document.pdf')
-files = client.list_files()
-client.download_file('document.pdf', './downloads/document.pdf')
-```
-
-### JavaScript SDK
-
-```javascript
-class ShareJadPiClient {
-    constructor(baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-    
-    async uploadFile(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch(`${this.baseUrl}/upload`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        return response.json();
-    }
-    
-    async downloadFile(filename) {
-        const response = await fetch(
-            `${this.baseUrl}/download/${filename}`
-        );
-        return response.blob();
-    }
-    
-    async listFiles() {
-        const response = await fetch(`${this.baseUrl}/files`);
-        return response.json();
-    }
-    
-    async deleteFile(filename) {
-        const response = await fetch(
-            `${this.baseUrl}/delete/${filename}`,
-            { method: 'DELETE' }
-        );
-        return response.json();
-    }
+<style>
+.api-hero {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1));
+  border-radius: 16px;
+  margin-bottom: 40px;
 }
 
-// Usage
-const client = new ShareJadPiClient('http://192.168.1.100:5000');
-
-// Upload
-const fileInput = document.querySelector('#fileInput');
-await client.uploadFile(fileInput.files[0]);
-
-// List files
-const files = await client.listFiles();
-console.log(files);
-
-// Download
-const blob = await client.downloadFile('document.pdf');
-```
-
----
-
-## cURL Examples
-
-### Upload a File
-```bash
-curl -X POST -F "file=@document.pdf" http://192.168.1.100:5000/upload
-```
-
-### Download a File
-```bash
-curl -O http://192.168.1.100:5000/download/document.pdf
-```
-
-### List All Files
-```bash
-curl http://192.168.1.100:5000/files
-```
-
-### Delete a File
-```bash
-curl -X DELETE http://192.168.1.100:5000/delete/document.pdf
-```
-
-### With Authentication (Phase 3)
-```bash
-# Get token
-curl -X POST -H "Content-Type: application/json" \
-    -d '{"username":"user","password":"pass"}' \
-    http://192.168.1.100:5000/auth/token
-
-# Use token
-curl -H "Authorization: Bearer <token>" \
-    http://192.168.1.100:5000/files
-```
-
----
-
-## Postman Collection
-
-Import this collection into Postman for easy API testing:
-
-```json
-{
-    "info": {
-        "name": "ShareJadPi API",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "variable": [
-        {
-            "key": "base_url",
-            "value": "http://192.168.1.100:5000"
-        }
-    ],
-    "item": [
-        {
-            "name": "Upload File",
-            "request": {
-                "method": "POST",
-                "url": "{{base_url}}/upload",
-                "body": {
-                    "mode": "formdata",
-                    "formdata": [
-                        {
-                            "key": "file",
-                            "type": "file"
-                        }
-                    ]
-                }
-            }
-        },
-        {
-            "name": "List Files",
-            "request": {
-                "method": "GET",
-                "url": "{{base_url}}/files"
-            }
-        },
-        {
-            "name": "Download File",
-            "request": {
-                "method": "GET",
-                "url": "{{base_url}}/download/example.pdf"
-            }
-        },
-        {
-            "name": "Delete File",
-            "request": {
-                "method": "DELETE",
-                "url": "{{base_url}}/delete/example.pdf"
-            }
-        }
-    ]
+.api-hero h2 {
+  margin: 0 0 12px 0;
+  font-size: 1.8rem;
 }
-```
+
+.api-hero p {
+  color: var(--vp-c-text-2);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.endpoint-card {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-left: 4px solid var(--vp-c-brand);
+  border-radius: 0 12px 12px 0;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.endpoint-card.highlight {
+  border-left-color: #f97316;
+  background: linear-gradient(135deg, var(--vp-c-bg-soft), rgba(249,115,22,0.05));
+}
+
+.api-footer {
+  text-align: center;
+  padding: 40px;
+  background: var(--vp-c-bg-soft);
+  border-radius: 12px;
+  margin-top: 40px;
+}
+</style>

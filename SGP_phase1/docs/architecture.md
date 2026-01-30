@@ -1,441 +1,526 @@
-# System Architecture
+# 🏗️ System Architecture
 
-## Overview
+<div class="arch-hero">
+  <h2>Under the Hood of ShareJadPi</h2>
+  <p>A deep dive into the technical architecture, design patterns, and system components that power ShareJadPi.</p>
+</div>
 
-ShareJadPi follows a modern client-server architecture with Flask backend and responsive web frontend.
+## 🎯 Architecture Overview
 
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        A[Web Browser] --> B[HTML/CSS/JS Frontend]
-        B --> C[File Upload Interface]
-        B --> D[File Browser]
-        B --> E[Settings Panel]
-    end
-    
-    subgraph "Network Layer"
-        F[HTTP/HTTPS Protocol]
-        G[Local Network]
-        H[Port 5000]
-    end
-    
-    subgraph "Server Layer"
-        I[Flask Application]
-        I --> J[Route Handlers]
-        I --> K[Template Engine]
-        I --> L[Static File Server]
-    end
-    
-    subgraph "Business Logic"
-        M[File Manager]
-        N[Network Manager]
-        O[Security Handler]
-        P[Error Handler]
-    end
-    
-    subgraph "Storage Layer"
-        Q[(File System)]
-        R[(Temp Storage)]
-        S[(Configuration)]
-    end
-    
-    B --> F
-    F --> I
-    J --> M
-    J --> N
-    J --> O
-    M --> Q
-    M --> R
-    N --> S
-    O --> S
-    
-    style A fill:#3b82f6
-    style I fill:#10b981
-    style Q fill:#f59e0b
-    style M fill:#8b5cf6
-```
-
-## Component Architecture
+ShareJadPi follows a **monolithic architecture** optimized for simplicity and performance. A single Python application handles everything from HTTP routing to file management.
 
 ```mermaid
-graph LR
-    subgraph "Frontend Components"
-        A1[Upload Component]
-        A2[File List Component]
-        A3[Progress Bar Component]
-        A4[Notification Component]
-        A5[Theme Manager]
+flowchart TB
+    subgraph Presentation["🎨 Presentation Layer"]
+        direction LR
+        HTML["HTML Templates"]
+        CSS["CSS Styling"]
+        JS["JavaScript"]
     end
     
-    subgraph "Backend Modules"
-        B1[app.py - Main Server]
-        B2[file_handler.py]
-        B3[network_utils.py]
-        B4[config_manager.py]
+    subgraph Application["⚡ Application Layer"]
+        direction TB
+        Flask["Flask App"]
+        Routes["Route Handlers"]
+        Middleware["Middleware"]
     end
     
-    subgraph "Core Services"
-        C1[File Upload Service]
-        C2[File Download Service]
-        C3[Network Discovery]
-        C4[Error Logging]
+    subgraph Business["🧠 Business Logic"]
+        direction TB
+        FileManager["File Manager"]
+        AuthManager["Auth Manager"]
+        ShareManager["Share Manager"]
+        CloudflareManager["Cloudflare Manager"]
     end
     
-    A1 --> B1
-    A2 --> B1
-    A3 --> B1
-    A4 --> B1
+    subgraph Infrastructure["🔧 Infrastructure"]
+        direction LR
+        FileSystem["File System"]
+        Config["Configuration"]
+        Cache["In-Memory Cache"]
+    end
     
-    B1 --> C1
-    B1 --> C2
-    B1 --> C3
-    B1 --> C4
+    subgraph External["🌐 External Services"]
+        Cloudflare["Cloudflare Tunnel"]
+    end
     
-    B2 --> C1
-    B2 --> C2
-    B3 --> C3
-    B4 --> C4
+    Presentation --> Application
+    Application --> Business
+    Business --> Infrastructure
+    Business --> External
     
-    style B1 fill:#10b981
-    style C1 fill:#3b82f6
-    style C2 fill:#3b82f6
+    style Presentation fill:#581c87,stroke:#a855f7,color:#fff
+    style Application fill:#065f46,stroke:#10b981,color:#fff
+    style Business fill:#1e40af,stroke:#3b82f6,color:#fff
+    style Infrastructure fill:#7c2d12,stroke:#f97316,color:#fff
+    style External fill:#166534,stroke:#22c55e,color:#fff
 ```
 
-## Data Flow Architecture
+---
+
+## 📁 Project Structure
+
+```
+sharejadpi/
+├── 📄 sharejadpi.py          # Main application (3000+ lines)
+├── 📄 requirements.txt       # Python dependencies
+├── 📁 templates/             # HTML templates
+│   └── index.html           # Main UI template
+├── 📁 static/                # Static assets
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── 📁 SGP_phase1/            # Development tools
+│   ├── sharejadpi-dev.py    # Dev server
+│   └── docs/                # This documentation
+├── 📁 build_tools/           # Build configurations
+│   ├── *.spec               # PyInstaller specs
+│   └── *.iss                # Installer scripts
+└── 📁 scripts/               # Utility scripts
+    ├── fix_firewall.ps1
+    └── show_connection_info.ps1
+```
+
+---
+
+## 🔄 Request Flow
+
+How a request travels through ShareJadPi:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Flask
+    participant Router
+    participant Handler
+    participant FileSystem
+    participant Response
+    
+    Client->>Flask: HTTP Request
+    Flask->>Flask: Parse Request
+    Flask->>Router: Match Route
+    Router->>Handler: Call Handler
+    
+    alt File Operation
+        Handler->>FileSystem: Read/Write
+        FileSystem-->>Handler: Result
+    end
+    
+    Handler->>Response: Build Response
+    Response-->>Flask: Response Object
+    Flask-->>Client: HTTP Response
+```
+
+---
+
+## 🧩 Core Components
+
+### 1. Flask Application
+
+The heart of ShareJadPi - a Flask application that handles all HTTP requests.
+
+```python
+# Application setup
+app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB
+app.config['SECRET_KEY'] = secrets.token_hex(32)
+```
+
+**Key Features:**
+- Multi-threaded request handling
+- Automatic content negotiation
+- Built-in development server
+- Extension ecosystem
+
+---
+
+### 2. File Manager
+
+Handles all file operations with safety and performance optimizations.
+
+```mermaid
+flowchart LR
+    subgraph Input["📥 Input"]
+        Upload["File Upload"]
+        Path["File Path"]
+    end
+    
+    subgraph FileManager["📁 File Manager"]
+        Validate["Validate"]
+        Secure["Secure Name"]
+        Store["Store"]
+        Index["Update Index"]
+    end
+    
+    subgraph Storage["💾 Storage"]
+        Disk["Local Disk"]
+        Temp["Temp Files"]
+    end
+    
+    Input --> FileManager --> Storage
+    
+    style FileManager fill:#065f46,stroke:#10b981,color:#fff
+```
+
+**Responsibilities:**
+- Secure filename handling
+- Duplicate file naming
+- File type detection
+- Size validation
+- Directory management
+
+---
+
+### 3. Cloudflare Manager
+
+Manages Cloudflare tunnel connections for internet sharing.
+
+```python
+class CloudflareManager:
+    def __init__(self):
+        self.process = None
+        self.url = None
+        self.active = False
+        
+    def start_tunnel(self, port=5000, file_size=0):
+        """Start Cloudflare tunnel with dynamic timeout"""
+        timeout = self.calculate_timeout(file_size)
+        # Launch cloudflared process
+        # Parse URL from output
+        # Monitor for idle
+        
+    def stop_tunnel(self):
+        """Stop the tunnel and cleanup"""
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Stopped
+    Stopped --> Starting: start_tunnel()
+    Starting --> Running: URL received
+    Starting --> Error: Failed
+    Running --> Monitoring: Activity check
+    Monitoring --> Running: Active
+    Monitoring --> Stopping: Idle timeout
+    Stopping --> Stopped: stop_tunnel()
+    Error --> Stopped: Retry
+```
+
+---
+
+### 4. Online Share Manager
+
+Manages share tokens and access control for public links.
+
+```mermaid
+flowchart TB
+    subgraph Create["📤 Create Share"]
+        File["Select File"]
+        Token["Generate Token"]
+        URL["Build URL"]
+        QR["Generate QR"]
+    end
+    
+    subgraph Store["💾 Share Store"]
+        TokenDB["Token Registry"]
+        Expiry["Expiry Timer"]
+        Access["Access Log"]
+    end
+    
+    subgraph Access["📥 Access Share"]
+        Validate["Validate Token"]
+        Serve["Serve File"]
+        Cleanup["Auto Cleanup"]
+    end
+    
+    Create --> Store
+    Store --> Access
+    
+    style Create fill:#065f46,stroke:#10b981,color:#fff
+    style Store fill:#1e40af,stroke:#3b82f6,color:#fff
+    style Access fill:#7c2d12,stroke:#f97316,color:#fff
+```
+
+---
+
+## 🔐 Security Architecture
+
+### Authentication Flow
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Browser
-    participant Flask
-    participant FileSystem
-    participant Network
+    participant Server
+    participant TokenStore
     
-    User->>Browser: Open ShareJadPi
-    Browser->>Flask: GET /
-    Flask->>Browser: Return index.html
+    rect rgb(6, 95, 70)
+        Note over User,TokenStore: Token Generation
+        User->>Server: Request Share
+        Server->>Server: Generate Token
+        Server->>TokenStore: Store Token + Metadata
+        Server-->>User: Token + URL
+    end
     
-    User->>Browser: Select File
-    Browser->>Browser: Validate File
+    rect rgb(30, 64, 175)
+        Note over User,TokenStore: Token Validation
+        User->>Server: Access with Token
+        Server->>TokenStore: Validate Token
+        TokenStore-->>Server: Valid/Invalid
+        alt Valid
+            Server-->>User: Serve Content
+        else Invalid
+            Server-->>User: 403 Forbidden
+        end
+    end
     
-    Browser->>Flask: POST /upload
-    Flask->>Flask: Validate Request
-    Flask->>FileSystem: Save File
-    FileSystem-->>Flask: Confirm Save
-    Flask-->>Browser: Success Response
-    Browser-->>User: Show Success Notification
-    
-    User->>Browser: Request File List
-    Browser->>Flask: GET /files
-    Flask->>FileSystem: Read Directory
-    FileSystem-->>Flask: File List
-    Flask-->>Browser: JSON Response
-    Browser-->>User: Display Files
-    
-    User->>Browser: Download File
-    Browser->>Flask: GET /download/filename
-    Flask->>FileSystem: Read File
-    FileSystem-->>Flask: File Stream
-    Flask-->>Browser: File Response
-    Browser-->>User: Download Complete
+    rect rgb(124, 45, 18)
+        Note over User,TokenStore: Cleanup
+        Server->>TokenStore: Check Expiry
+        TokenStore-->>Server: Expired Tokens
+        Server->>Server: Cleanup Resources
+    end
 ```
 
-## Network Architecture
+### Security Measures
+
+| Layer | Protection |
+|-------|------------|
+| **Network** | Local network by default |
+| **Authentication** | Token-based access |
+| **Files** | Secure filename sanitization |
+| **Upload** | Size limits, type validation |
+| **Tunnel** | Cloudflare encryption |
+
+---
+
+## 🌐 Network Architecture
+
+### Local Network Mode
 
 ```mermaid
-graph TB
-    subgraph "Local Network 192.168.x.x"
-        subgraph "Server Machine"
-            A[ShareJadPi Server]
-            A --> B[Flask :5000]
-            B --> C[Network Interface]
+flowchart LR
+    subgraph Network["🏠 Local Network (192.168.x.x)"]
+        subgraph Host["Host Machine"]
+            Server["ShareJadPi :5000"]
         end
         
-        subgraph "Client Devices"
-            D1[Desktop PC]
-            D2[Laptop]
-            D3[Mobile Device]
-            D4[Tablet]
-        end
-        
-        C <--> E[Router/Switch]
-        E <--> D1
-        E <--> D2
-        E <--> D3
-        E <--> D4
+        Desktop["💻 Desktop"]
+        Laptop["💻 Laptop"]
+        Phone["📱 Phone"]
+        Tablet["📱 Tablet"]
     end
     
-    subgraph "External Access - Phase 3"
-        F[Cloudflare Tunnel]
-        G[Public Internet]
-        F -.-> C
-        G -.-> F
-    end
+    Server <--> Desktop
+    Server <--> Laptop
+    Server <--> Phone
+    Server <--> Tablet
     
-    style A fill:#10b981
-    style E fill:#3b82f6
-    style F fill:#f59e0b
+    style Network fill:#1e40af,stroke:#3b82f6,color:#fff
+    style Host fill:#065f46,stroke:#10b981,color:#fff
 ```
 
-## Security Architecture (Phase 3)
+### Internet Sharing Mode
 
 ```mermaid
-graph TB
-    subgraph "Authentication Layer"
-        A[Token Generator]
-        B[Token Validator]
-        C[Session Manager]
+flowchart TB
+    subgraph Local["🏠 Private Network"]
+        Server["ShareJadPi"]
     end
     
-    subgraph "Authorization Layer"
-        D[Access Control]
-        E[Permission Manager]
-        F[Role Manager]
+    subgraph Cloudflare["☁️ Cloudflare Edge"]
+        Tunnel["Encrypted Tunnel"]
+        Edge["Edge Servers"]
     end
     
-    subgraph "Encryption Layer"
-        G[HTTPS/TLS]
-        H[File Encryption]
-        I[Password Hashing]
+    subgraph Internet["🌐 Public Internet"]
+        User1["User (USA)"]
+        User2["User (Europe)"]
+        User3["User (Asia)"]
     end
     
-    subgraph "Security Monitoring"
-        J[Access Logger]
-        K[Intrusion Detection]
-        L[Rate Limiter]
-    end
+    Server <-->|"TLS 1.3"| Tunnel
+    Tunnel <--> Edge
+    Edge <--> User1
+    Edge <--> User2
+    Edge <--> User3
     
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    
-    G --> H
-    H --> I
-    
-    J --> K
-    K --> L
-    
-    style A fill:#ef4444
-    style G fill:#10b981
-    style J fill:#f59e0b
+    style Local fill:#065f46,stroke:#10b981,color:#fff
+    style Cloudflare fill:#f97316,stroke:#fb923c,color:#000
+    style Internet fill:#1e40af,stroke:#3b82f6,color:#fff
 ```
 
-## Database Schema (Phase 3)
+---
+
+## 💾 Data Flow
+
+### Upload Flow
 
 ```mermaid
-erDiagram
-    USERS ||--o{ FILES : uploads
-    USERS ||--o{ TOKENS : generates
-    USERS ||--o{ SESSIONS : creates
-    FILES ||--o{ DOWNLOADS : tracked_by
+flowchart TB
+    A["📁 User selects file"] --> B["🌐 Browser reads file"]
+    B --> C["📤 POST /upload"]
+    C --> D["⚡ Flask receives request"]
+    D --> E["🔒 Secure filename"]
+    E --> F["📝 Check duplicates"]
+    F --> G["💾 Write to disk"]
+    G --> H["📊 Update file index"]
+    H --> I["✅ Return success"]
     
-    USERS {
-        int id PK
-        string username
-        string password_hash
-        string email
-        datetime created_at
-        boolean is_active
-    }
-    
-    FILES {
-        int id PK
-        string filename
-        string filepath
-        int size
-        string mime_type
-        int uploader_id FK
-        datetime uploaded_at
-        int download_count
-    }
-    
-    TOKENS {
-        int id PK
-        string token_value
-        int user_id FK
-        datetime created_at
-        datetime expires_at
-        boolean is_active
-    }
-    
-    SESSIONS {
-        int id PK
-        string session_id
-        int user_id FK
-        string ip_address
-        datetime created_at
-        datetime last_activity
-    }
-    
-    DOWNLOADS {
-        int id PK
-        int file_id FK
-        int user_id FK
-        string ip_address
-        datetime downloaded_at
-    }
+    style A fill:#581c87,stroke:#a855f7,color:#fff
+    style D fill:#065f46,stroke:#10b981,color:#fff
+    style G fill:#7c2d12,stroke:#f97316,color:#fff
+    style I fill:#166534,stroke:#22c55e,color:#fff
 ```
 
-## Deployment Architecture
+### Download Flow
 
 ```mermaid
-graph TB
-    subgraph "Development Environment"
-        A[Python 3.x]
-        B[Flask Dev Server]
-        C[Local Testing]
-    end
+flowchart TB
+    A["👆 User clicks download"] --> B["📡 GET /download/<id>"]
+    B --> C["⚡ Flask routes request"]
+    C --> D["🔍 Find file by ID"]
+    D --> E{"File exists?"}
+    E -->|Yes| F["📖 Read file"]
+    E -->|No| G["❌ 404 Not Found"]
+    F --> H["📤 Stream to client"]
+    H --> I["✅ Download complete"]
     
-    subgraph "Build Process"
-        D[PyInstaller]
-        E[Asset Bundling]
-        F[Icon Generation]
-    end
-    
-    subgraph "Distribution"
-        G[Standalone EXE]
-        H[Installer Package]
-        I[GitHub Release]
-    end
-    
-    subgraph "Production Deployment"
-        J[Windows Machine]
-        K[Auto-Start Service]
-        L[Firewall Configuration]
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-    H --> I
-    I --> J
-    J --> K
-    K --> L
-    
-    style D fill:#10b981
-    style G fill:#3b82f6
-    style J fill:#f59e0b
+    style A fill:#581c87,stroke:#a855f7,color:#fff
+    style C fill:#065f46,stroke:#10b981,color:#fff
+    style I fill:#166534,stroke:#22c55e,color:#fff
+    style G fill:#dc2626,stroke:#ef4444,color:#fff
 ```
 
-## Technology Stack
+---
+
+## ⚙️ Configuration
+
+### Application Config
+
+```python
+# Core settings
+UPLOAD_FOLDER = os.path.join(os.path.expanduser('~'), 'ShareJadPi', 'uploads')
+MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500MB
+SECRET_KEY = secrets.token_hex(32)
+
+# Server settings
+HOST = '0.0.0.0'  # Listen on all interfaces
+PORT = 5000
+DEBUG = False
+THREADED = True
+
+# Cloudflare settings
+TUNNEL_IDLE_TIMEOUT = 300  # 5 minutes
+TUNNEL_MAX_RUNTIME = 3600  # 1 hour
+```
+
+---
+
+## 🔄 State Management
+
+ShareJadPi uses in-memory state for performance:
 
 ```mermaid
-mindmap
-  root((ShareJadPi))
-    Backend
-      Python 3.x
-      Flask 3.x
-      Werkzeug
-      Jinja2
-    Frontend
-      HTML5
-      CSS3
-        Animations
-        Grid/Flexbox
-        Dark Theme
-      JavaScript
-        ES6+
-        Fetch API
-        DOM Manipulation
-    Packaging
-      PyInstaller
-      InnoSetup
-      Auto-py-to-exe
-    Development
-      VS Code
-      Git
-      GitHub
-      VitePress
-    Testing
-      Pytest
-      Unit Tests
-      Integration Tests
-    Future
-      Socket.IO
-      SQLite
-      Redis
-      Docker
+flowchart LR
+    subgraph Memory["🧠 In-Memory State"]
+        Files["File Index"]
+        Shares["Active Shares"]
+        Clipboard["Clipboard"]
+        Settings["Settings"]
+    end
+    
+    subgraph Disk["💾 Persistent Storage"]
+        Uploads["Upload Files"]
+        Config["Config File"]
+    end
+    
+    Memory <--> Disk
+    
+    style Memory fill:#065f46,stroke:#10b981,color:#fff
+    style Disk fill:#7c2d12,stroke:#f97316,color:#fff
 ```
 
-## Module Dependency Graph
+---
+
+## 📊 Performance Considerations
+
+### Optimizations
+
+| Area | Optimization |
+|------|-------------|
+| **File I/O** | Streaming for large files |
+| **Memory** | Chunked uploads |
+| **Network** | Keep-alive connections |
+| **UI** | Lazy loading, virtual scrolling |
+| **Cache** | In-memory file index |
+
+### Benchmarks
 
 ```mermaid
-graph LR
-    A[sharejadpi.py] --> B[Flask]
-    A --> C[werkzeug]
-    A --> D[os/sys]
-    A --> E[socket]
-    
-    B --> F[render_template]
-    B --> G[request]
-    B --> H[send_file]
-    B --> I[jsonify]
-    
-    C --> J[secure_filename]
-    C --> K[FileStorage]
-    
-    E --> L[gethostname]
-    E --> M[gethostbyname]
-    
-    style A fill:#10b981
-    style B fill:#3b82f6
-    style C fill:#8b5cf6
-    style E fill:#f59e0b
+xychart-beta
+    title Upload Speed by File Size
+    x-axis ["1MB", "10MB", "100MB", "500MB"]
+    y-axis "Speed (MB/s)" 0 --> 100
+    bar [85, 72, 58, 45]
 ```
 
-## Performance Optimization Strategy
+---
+
+## 🔧 Technology Stack
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Backend** | Python 3.8+ | Core language |
+| **Framework** | Flask 3.x | HTTP routing |
+| **File Handling** | Werkzeug | Secure uploads |
+| **QR Codes** | qrcode + Pillow | QR generation |
+| **Tunneling** | cloudflared | Internet access |
+| **Build** | PyInstaller | Executable creation |
+| **Installer** | Inno Setup | Windows installer |
+
+---
+
+## 🚀 Deployment Options
 
 ```mermaid
-graph TB
-    subgraph "Frontend Optimization"
-        A1[Code Minification]
-        A2[Image Optimization]
-        A3[Lazy Loading]
-        A4[Browser Caching]
+flowchart TB
+    subgraph Development["💻 Development"]
+        Python["python sharejadpi.py"]
     end
     
-    subgraph "Backend Optimization"
-        B1[File Streaming]
-        B2[Memory Management]
-        B3[Connection Pooling]
-        B4[Response Compression]
+    subgraph Production["🏭 Production"]
+        EXE["ShareJadPi.exe"]
+        Installer["Windows Installer"]
     end
     
-    subgraph "Network Optimization"
-        C1[HTTP/2 Support]
-        C2[Keep-Alive]
-        C3[CDN Integration]
-        C4[Load Balancing]
+    subgraph Server["🖥️ Server"]
+        Gunicorn["gunicorn"]
+        Waitress["waitress"]
     end
     
-    subgraph "Database Optimization"
-        D1[Query Optimization]
-        D2[Indexing]
-        D3[Caching Layer]
-        D4[Connection Pooling]
-    end
+    Development --> Production
+    Development --> Server
     
-    A1 --> E[Faster Page Load]
-    A2 --> E
-    B1 --> F[Reduced Memory Usage]
-    B2 --> F
-    C1 --> G[Lower Latency]
-    C2 --> G
-    D1 --> H[Faster Queries]
-    D2 --> H
-    
-    style E fill:#10b981
-    style F fill:#3b82f6
-    style G fill:#8b5cf6
-    style H fill:#f59e0b
+    style Development fill:#065f46,stroke:#10b981,color:#fff
+    style Production fill:#1e40af,stroke:#3b82f6,color:#fff
+    style Server fill:#7c2d12,stroke:#f97316,color:#fff
 ```
 
-::: tip Interactive Diagrams
-All diagrams above are rendered with Mermaid and support interactive features when viewed in the documentation.
-:::
+<style>
+.arch-hero {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1));
+  border-radius: 16px;
+  margin-bottom: 40px;
+}
+
+.arch-hero h2 {
+  margin: 0 0 12px 0;
+}
+
+.arch-hero p {
+  color: var(--vp-c-text-2);
+  margin: 0;
+}
+</style>

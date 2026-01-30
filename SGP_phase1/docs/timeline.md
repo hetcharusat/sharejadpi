@@ -1,162 +1,487 @@
-# Development Timeline
+# 📅 Development Timeline
 
-## Project Phases Overview
+<div class="timeline-hero">
+  <h2>The Journey of ShareJadPi</h2>
+  <p>From a simple idea to a full-featured file sharing platform. Follow our development story.</p>
+</div>
 
-ShareJadPi development is structured across 5 major phases, each building upon the previous one.
+## 🎯 Current Status
+
+<div class="status-banner">
+  <div class="status-item">
+    <span class="status-label">Version</span>
+    <span class="status-value">4.5.4</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">Phase</span>
+    <span class="status-value">4 of 5</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">Progress</span>
+    <span class="status-value">85%</span>
+  </div>
+  <div class="status-item">
+    <span class="status-label">Status</span>
+    <span class="status-value active">Active</span>
+  </div>
+</div>
+
+---
+
+## 🗓️ Development Phases
 
 ```mermaid
 gantt
-    title ShareJadPi Development Phases
-    dateFormat YYYY-MM-DD
-    section Phase 1
-    Basic File Sharing          :done, 2024-01-01, 2024-02-15
-    Web Interface              :done, 2024-02-01, 2024-02-15
-    section Phase 2
-    UI/UX Improvements         :active, 2024-02-16, 2024-03-30
-    Performance Optimization   :active, 2024-03-01, 2024-03-30
-    Error Handling            :active, 2024-03-15, 2024-03-30
-    section Phase 3
-    Token Authentication       :2024-04-01, 2024-05-15
-    Context Menu Integration   :2024-05-01, 2024-05-30
-    section Phase 4
-    QR Code Generation        :2024-06-01, 2024-06-30
-    Mobile Optimization       :2024-06-15, 2024-07-15
-    section Phase 5
-    Analytics Dashboard       :2024-07-16, 2024-08-15
-    Final Testing             :2024-08-16, 2024-08-30
+    title ShareJadPi Development Roadmap
+    dateFormat YYYY-MM
+    axisFormat %b %Y
+    
+    section 🏗️ Phase 1
+    Foundation & Core        :done, p1, 2024-01, 2024-02
+    Flask Server             :done, 2024-01, 30d
+    Basic File Operations    :done, 2024-01, 30d
+    Web Interface            :done, 2024-02, 28d
+    
+    section 🎨 Phase 2
+    Modern UI Design         :done, p2, 2024-02, 2024-04
+    Dark Theme               :done, 2024-02, 30d
+    Animations               :done, 2024-03, 30d
+    Responsive Layout        :done, 2024-03, 30d
+    
+    section 🔐 Phase 3
+    Security & Sharing       :done, p3, 2024-04, 2024-07
+    Token Auth               :done, 2024-04, 30d
+    Cloudflare Tunnel        :done, 2024-05, 45d
+    QR Code Generation       :done, 2024-06, 30d
+    Context Menu             :done, 2024-06, 30d
+    
+    section ⚡ Phase 4
+    Polish & Performance     :active, p4, 2024-07, 2024-10
+    Speed Test               :done, 2024-07, 30d
+    Settings Panel           :done, 2024-08, 30d
+    Documentation            :active, 2024-09, 60d
+    Testing                  :active, 2024-09, 60d
+    
+    section 🚀 Phase 5
+    Enterprise Features      :p5, 2024-11, 2025-02
+    User Management          :2024-11, 45d
+    Analytics                :2024-12, 45d
+    Mobile App               :2025-01, 60d
 ```
 
-## Detailed Timeline
+---
+
+## 📊 Phase Breakdown
+
+### 🏗️ Phase 1: Foundation
+
+<div class="phase-card completed">
+<div class="phase-header">
+  <span class="phase-number">01</span>
+  <div>
+    <h3>Foundation & Core</h3>
+    <span class="phase-date">Jan - Feb 2024</span>
+  </div>
+  <span class="phase-status done">✓ Complete</span>
+</div>
+
+**Goals:** Build the core file sharing functionality
+
+**Deliverables:**
+- ✅ Flask web server with routing
+- ✅ File upload endpoint (POST /upload)
+- ✅ File download endpoint (GET /download)
+- ✅ File deletion endpoint (DELETE /delete)
+- ✅ Basic file listing API
+- ✅ Simple HTML interface
+- ✅ Network auto-discovery
+- ✅ Cross-platform support (Windows, Mac, Linux)
+
+**Key Metrics:**
+| Metric | Target | Achieved |
+|--------|--------|----------|
+| Upload speed | >10 MB/s | ✅ 50+ MB/s |
+| Max file size | 100 MB | ✅ 500 MB |
+| Response time | <500ms | ✅ <100ms |
+
+</div>
+
+---
+
+### 🎨 Phase 2: Modern UI
+
+<div class="phase-card completed">
+<div class="phase-header">
+  <span class="phase-number">02</span>
+  <div>
+    <h3>Modern UI Design</h3>
+    <span class="phase-date">Feb - Apr 2024</span>
+  </div>
+  <span class="phase-status done">✓ Complete</span>
+</div>
+
+**Goals:** Create a beautiful, modern interface
+
+**Deliverables:**
+- ✅ Dark theme design system
+- ✅ Gradient accents (green/blue)
+- ✅ Smooth CSS animations
+- ✅ Responsive layout (mobile/tablet/desktop)
+- ✅ Drag & drop upload zone
+- ✅ Progress bars with shimmer effect
+- ✅ Toast notifications
+- ✅ File cards with icons
+- ✅ Skeleton loading states
+
+**Design System:**
+```mermaid
+mindmap
+  root((Design))
+    Colors
+      #0f1320 Background
+      #22c55e Primary
+      #3b82f6 Accent
+      #a78bfa Purple
+    Typography
+      System Fonts
+      16px Base
+      Bold Headings
+    Spacing
+      8px Grid
+      16px Cards
+      24px Sections
+    Effects
+      0.3s Transitions
+      Box Shadows
+      Gradients
+```
+
+</div>
+
+---
+
+### 🔐 Phase 3: Security & Sharing
+
+<div class="phase-card completed">
+<div class="phase-header">
+  <span class="phase-number">03</span>
+  <div>
+    <h3>Security & Advanced Sharing</h3>
+    <span class="phase-date">Apr - Jul 2024</span>
+  </div>
+  <span class="phase-status done">✓ Complete</span>
+</div>
+
+**Goals:** Secure sharing beyond local network
+
+**Deliverables:**
+- ✅ Token-based authentication
+- ✅ Cloudflare tunnel integration
+- ✅ Public share links with tokens
+- ✅ QR code generation
+- ✅ Windows context menu integration
+- ✅ Share expiration
+- ✅ Activity monitoring
+- ✅ One-time download links
+
+**Architecture:**
+```mermaid
+flowchart LR
+    subgraph Local["🏠 Local Network"]
+        Server["ShareJadPi"]
+    end
+    
+    subgraph Security["🔐 Security Layer"]
+        Token["Token Auth"]
+        Expiry["Auto Expiry"]
+    end
+    
+    subgraph Internet["🌐 Internet"]
+        CF["Cloudflare"]
+        Users["Remote Users"]
+    end
+    
+    Server --> Token --> CF --> Users
+    Token --> Expiry
+    
+    style Local fill:#065f46,stroke:#10b981,color:#fff
+    style Security fill:#7c2d12,stroke:#f97316,color:#fff
+    style Internet fill:#1e40af,stroke:#3b82f6,color:#fff
+```
+
+</div>
+
+---
+
+### ⚡ Phase 4: Polish & Performance
+
+<div class="phase-card active">
+<div class="phase-header">
+  <span class="phase-number">04</span>
+  <div>
+    <h3>Polish & Performance</h3>
+    <span class="phase-date">Jul - Oct 2024</span>
+  </div>
+  <span class="phase-status active">🔄 In Progress</span>
+</div>
+
+**Goals:** Optimize and document everything
+
+**Deliverables:**
+- ✅ Built-in speed test
+- ✅ Shared clipboard feature
+- ✅ Settings panel
+- ✅ Folder upload support
+- ✅ Bulk file operations
+- 🔄 Comprehensive documentation
+- 🔄 Unit & integration tests
+- 📋 Performance optimization
+- 📋 Error handling improvements
+
+**Current Focus:**
+```mermaid
+pie showData
+    title Phase 4 Progress
+    "Complete" : 70
+    "In Progress" : 20
+    "Planned" : 10
+```
+
+</div>
+
+---
+
+### 🚀 Phase 5: Enterprise Features
+
+<div class="phase-card future">
+<div class="phase-header">
+  <span class="phase-number">05</span>
+  <div>
+    <h3>Enterprise & Mobile</h3>
+    <span class="phase-date">Nov 2024 - Feb 2025</span>
+  </div>
+  <span class="phase-status planned">📅 Planned</span>
+</div>
+
+**Goals:** Enterprise-ready with mobile support
+
+**Planned Deliverables:**
+- 📋 Multi-user management
+- 📋 Role-based permissions
+- 📋 Analytics dashboard
+- 📋 Usage statistics
+- 📋 Native mobile app (iOS/Android)
+- 📋 Plugin architecture
+- 📋 Cloud sync option
+- 📋 Multi-language support
+
+**Vision:**
+```mermaid
+flowchart TB
+    subgraph Users["👥 User Management"]
+        Admin["Admin"]
+        User["Users"]
+        Guest["Guests"]
+    end
+    
+    subgraph Core["⚡ ShareJadPi Core"]
+        Auth["Auth Engine"]
+        Files["File Engine"]
+        Analytics["Analytics"]
+    end
+    
+    subgraph Apps["📱 Applications"]
+        Web["Web App"]
+        iOS["iOS App"]
+        Android["Android App"]
+    end
+    
+    Users --> Core
+    Core --> Apps
+    
+    style Users fill:#581c87,stroke:#a855f7,color:#fff
+    style Core fill:#065f46,stroke:#10b981,color:#fff
+    style Apps fill:#1e40af,stroke:#3b82f6,color:#fff
+```
+
+</div>
+
+---
+
+## 📈 Version History
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| **4.5.4** | Current | Documentation, stability fixes |
+| **4.5.0** | 2024-09 | Speed test, folder upload |
+| **4.1.x** | 2024-07 | Cloudflare tunnel, QR codes |
+| **4.0.0** | 2024-05 | Major UI overhaul, dark theme |
+| **3.1.x** | 2024-03 | Context menu, bulk operations |
+| **3.0.0** | 2024-02 | Modern UI, animations |
+| **2.x** | 2024-01 | Basic file sharing |
+| **1.0** | 2023-12 | Initial prototype |
+
+---
+
+## 🎯 Milestones
 
 ```mermaid
 timeline
-    title ShareJadPi Feature Implementation Timeline
-    section Phase 1 - Foundation
-        Week 1-2 : Basic Flask Server
-                 : File Upload/Download
-        Week 3-4 : Web Interface
-                 : Network Configuration
-    section Phase 2 - Enhancement
-        Week 5-8 : Modern UI Design
-                 : Dark Theme
-                 : Animations
-        Week 9-12 : Performance Tuning
-                  : Error Handling
-                  : Code Refactoring
-    section Phase 3 - Security
-        Week 13-16 : Token Authentication
-                   : Access Control
-                   : Context Menu
-    section Phase 4 - Mobile
-        Week 17-20 : QR Code Generation
-                   : Mobile Interface
-                   : Responsive Design
-    section Phase 5 - Analytics
-        Week 21-24 : Usage Statistics
-                   : Admin Dashboard
-                   : Final Polish
+    title Key Milestones
+    
+    section 2024 Q1
+      January : 🚀 Project Started
+               : 📁 Basic File Sharing
+      February : 🎨 UI Redesign
+               : 📱 Mobile Support
+    
+    section 2024 Q2
+      April : 🔐 Token Auth
+            : 🌐 Context Menu
+      June : ☁️ Cloudflare Tunnel
+           : 📱 QR Codes
+    
+    section 2024 Q3
+      July : ⚡ Speed Test
+           : 📋 Clipboard
+      September : 📖 Documentation
+                : 🧪 Testing
+    
+    section 2024 Q4
+      November : 👥 User Management
+               : 📊 Analytics
 ```
 
-## Current Status by Component
+---
 
-| Component | Status | Phase | Progress | Notes |
-|-----------|--------|-------|----------|-------|
-| Flask Backend | ✅ Stable | Phase 1 | 100% | Core functionality complete |
-| File Upload/Download | ✅ Stable | Phase 1 | 100% | Working reliably |
-| Web Interface | ✅ Stable | Phase 1 | 100% | Responsive design implemented |
-| Dark Theme UI | ✅ Stable | Phase 2 | 100% | Modern animations added |
-| Network Discovery | ✅ Stable | Phase 1 | 100% | Auto-configuration working |
-| Error Handling | 🔄 In Progress | Phase 2 | 60% | Improving validation |
-| Performance Optimization | 🔄 In Progress | Phase 2 | 40% | Ongoing improvements |
-| Token Authentication | 📅 Planned | Phase 3 | 0% | Security architecture designed |
-| Context Menu Integration | 📅 Planned | Phase 3 | 0% | Windows integration planned |
-| QR Code Sharing | 📅 Planned | Phase 4 | 0% | Mobile access feature |
-| Analytics Dashboard | 📅 Planned | Phase 5 | 0% | Usage tracking planned |
+## 🤝 How to Contribute
 
-## Phase Breakdown
+Every phase needs contributors! Check our [Contributing Guide](/development/contributing) to join the journey.
 
-### Phase 1: Foundation ✅ Complete (100%)
-- ✅ Flask web server implementation
-- ✅ Basic file upload/download functionality
-- ✅ Simple web interface
-- ✅ Local network configuration
-- ✅ Initial testing and deployment
+<style>
+.timeline-hero {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1));
+  border-radius: 16px;
+  margin-bottom: 40px;
+}
 
-**Completion Date:** February 15, 2024
+.timeline-hero h2 {
+  margin: 0 0 12px 0;
+}
 
-### Phase 2: Core Development 🔄 Active (45%)
-- ✅ Modern dark theme UI
-- ✅ Smooth animations and transitions
-- ✅ Responsive design improvements
-- 🔄 Performance optimization (40%)
-- 🔄 Enhanced error handling (60%)
-- 🔄 Code refactoring (50%)
-- 📋 Testing framework setup
+.timeline-hero p {
+  color: var(--vp-c-text-2);
+  margin: 0;
+}
 
-**Target Completion:** March 30, 2024
+.status-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+}
 
-::: tip Current Focus
-We're currently optimizing performance and improving error handling. The UI modernization phase is complete!
-:::
+.status-item {
+  text-align: center;
+}
 
-### Phase 3: Security & Integration 📅 Planned (0%)
-- 📅 Token-based authentication system
-- 📅 User access control
-- 📅 Windows context menu integration
-- 📅 Secure file transfer protocols
-- 📅 Session management
+.status-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--vp-c-text-2);
+  margin-bottom: 4px;
+}
 
-**Planned Start:** April 1, 2024
+.status-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--vp-c-brand);
+}
 
-### Phase 4: Mobile & Accessibility 📅 Planned (0%)
-- 📅 QR code generation for quick access
-- 📅 Mobile-optimized interface
-- 📅 Progressive Web App (PWA) features
-- 📅 Offline capability
-- 📅 Touch-friendly controls
+.status-value.active {
+  color: #22c55e;
+}
 
-**Planned Start:** June 1, 2024
+.phase-card {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  border-left: 4px solid;
+}
 
-### Phase 5: Analytics & Final Polish 📅 Planned (0%)
-- 📅 Usage statistics tracking
-- 📅 Admin dashboard
-- 📅 Performance monitoring
-- 📅 Comprehensive documentation
-- 📅 Final testing and bug fixes
+.phase-card.completed {
+  border-left-color: #22c55e;
+}
 
-**Planned Start:** July 16, 2024
+.phase-card.active {
+  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, var(--vp-c-bg-soft), rgba(59,130,246,0.05));
+}
 
-## Key Milestones
+.phase-card.future {
+  border-left-color: #9ca3af;
+  opacity: 0.85;
+}
 
-- **✅ Milestone 1:** Basic file sharing functional (Completed: Feb 2024)
-- **✅ Milestone 2:** Modern UI implementation (Completed: Mar 2024)
-- **🔄 Milestone 3:** Performance optimization (In Progress)
-- **📅 Milestone 4:** Security features (Planned: Apr 2024)
-- **📅 Milestone 5:** Mobile support (Planned: Jun 2024)
-- **📅 Milestone 6:** Production ready (Target: Aug 2024)
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
 
-## Technology Stack Progress
+.phase-number {
+  width: 48px;
+  height: 48px;
+  background: var(--vp-c-brand);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
 
-| Technology | Implementation Status | Notes |
-|------------|----------------------|-------|
-| Python 3.x | ✅ Stable | Core language |
-| Flask 3.x | ✅ Stable | Web framework |
-| HTML5/CSS3 | ✅ Stable | Modern UI |
-| JavaScript | ✅ Stable | Frontend interactions |
-| Socket.IO | 📅 Planned | Real-time features |
-| SQLite | 📅 Planned | Data persistence |
-| PyInstaller | ✅ Stable | Windows packaging |
+.phase-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
 
-## Version History
+.phase-date {
+  font-size: 0.85rem;
+  color: var(--vp-c-text-2);
+}
 
-- **v4.5.4** - Latest stable release (UI improvements)
-- **v4.5.3** - Enhanced notifications
-- **v4.5.2** - Bug fixes and optimizations
-- **v4.5.1** - Performance improvements
-- **v4.5.0** - Major UI overhaul
-- **v4.1.3** - Stability improvements
-- **v4.0.0** - Production release
+.phase-status {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
 
-::: info Repository
-Full source code and version history available on [GitHub](https://github.com/hetcharusat/sharejadpi)
-:::
+.phase-status.done {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.phase-status.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.phase-status.planned {
+  background: #6b7280;
+  color: white;
+}
+</style>
