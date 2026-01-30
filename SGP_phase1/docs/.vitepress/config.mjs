@@ -15,7 +15,10 @@ export default defineConfig({
         text: 'Documentation',
         items: [
           { text: 'Introduction', link: '/' },
-          { text: 'Development Timeline', link: '/timeline' }
+          { text: 'Development Timeline', link: '/timeline' },
+          { text: 'System Architecture', link: '/architecture' },
+          { text: 'Features', link: '/features' },
+          { text: 'API Documentation', link: '/api' }
         ]
       }
     ],
