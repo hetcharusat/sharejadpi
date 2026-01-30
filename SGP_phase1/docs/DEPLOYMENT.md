@@ -255,7 +255,7 @@ npm run build
 npm run preview
 ```
 
-Visit: http://localhost:4173
+After running preview, visit `localhost:4173` in your browser.
 
 ## Deployment Checklist
 
