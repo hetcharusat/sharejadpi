@@ -4,8 +4,6 @@
 
 ShareJadPi follows a modern client-server architecture with Flask backend and responsive web frontend.
 
-<div class="mermaid-container">
-
 ```mermaid
 graph TB
     subgraph "Client Layer"
@@ -55,13 +53,9 @@ graph TB
     style I fill:#10b981
     style Q fill:#f59e0b
     style M fill:#8b5cf6
-</mermaid>
-
-</div>
+```
 
 ## Component Architecture
-
-<div class="mermaid-container">
 
 ```mermaid
 graph LR
@@ -105,13 +99,9 @@ graph LR
     style B1 fill:#10b981
     style C1 fill:#3b82f6
     style C2 fill:#3b82f6
-</mermaid>
-
-</div>
+```
 
 ## Data Flow Architecture
-
-<div class="mermaid-container">
 
 ```mermaid
 sequenceDiagram
@@ -148,13 +138,9 @@ sequenceDiagram
     FileSystem-->>Flask: File Stream
     Flask-->>Browser: File Response
     Browser-->>User: Download Complete
-</mermaid>
-
-</div>
+```
 
 ## Network Architecture
-
-<div class="mermaid-container">
 
 ```mermaid
 graph TB
@@ -189,13 +175,9 @@ graph TB
     style A fill:#10b981
     style E fill:#3b82f6
     style F fill:#f59e0b
-</mermaid>
-
-</div>
+```
 
 ## Security Architecture (Phase 3)
-
-<div class="mermaid-container">
 
 ```mermaid
 graph TB
@@ -238,13 +220,9 @@ graph TB
     style A fill:#ef4444
     style G fill:#10b981
     style J fill:#f59e0b
-</mermaid>
-
-</div>
+```
 
 ## Database Schema (Phase 3)
-
-<div class="mermaid-container">
 
 ```mermaid
 erDiagram
@@ -298,13 +276,9 @@ erDiagram
         string ip_address
         datetime downloaded_at
     }
-</mermaid>
-
-</div>
+```
 
 ## Deployment Architecture
-
-<div class="mermaid-container">
 
 ```mermaid
 graph TB
@@ -347,13 +321,9 @@ graph TB
     style D fill:#10b981
     style G fill:#3b82f6
     style J fill:#f59e0b
-</mermaid>
-
-</div>
+```
 
 ## Technology Stack
-
-<div class="mermaid-container">
 
 ```mermaid
 mindmap
@@ -391,13 +361,9 @@ mindmap
       SQLite
       Redis
       Docker
-</mermaid>
-
-</div>
+```
 
 ## Module Dependency Graph
-
-<div class="mermaid-container">
 
 ```mermaid
 graph LR
@@ -421,13 +387,9 @@ graph LR
     style B fill:#3b82f6
     style C fill:#8b5cf6
     style E fill:#f59e0b
-</mermaid>
-
-</div>
+```
 
 ## Performance Optimization Strategy
-
-<div class="mermaid-container">
 
 ```mermaid
 graph TB
@@ -472,185 +434,8 @@ graph TB
     style F fill:#3b82f6
     style G fill:#8b5cf6
     style H fill:#f59e0b
-</mermaid>
-
-</div>
-
-<style>
-.mermaid-container {
-  position: relative;
-  margin: 2rem 0;
-  padding: 1rem;
-  background: var(--vp-c-bg-soft);
-  border-radius: 12px;
-  border: 1px solid var(--vp-c-divider);
-  overflow: hidden;
-}
-
-.mermaid-container:hover .diagram-controls {
-  opacity: 1;
-}
-
-.diagram-controls {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-
-.diagram-controls button {
-  background: var(--vp-c-brand);
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.diagram-controls button:hover {
-  background: var(--vp-c-brand-dark);
-  transform: scale(1.05);
-}
-
-.mermaid-container.fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
-  margin: 0;
-  border-radius: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--vp-c-bg);
-}
-
-.mermaid-container.fullscreen .diagram-controls {
-  opacity: 1;
-  top: 20px;
-  right: 20px;
-}
-
-.mermaid-container svg {
-  max-width: 100%;
-  height: auto;
-  transition: transform 0.3s ease;
-  cursor: grab;
-}
-
-.mermaid-container svg:active {
-  cursor: grabbing;
-}
-
-.mermaid-container.zoomed svg {
-  transform-origin: center center;
-}
-</style>
-
-<script setup>
-import { onMounted } from 'vue'
-
-onMounted(() => {
-  // Add zoom and fullscreen controls to all mermaid containers
-  const containers = document.querySelectorAll('.mermaid-container')
-  
-  containers.forEach(container => {
-    const controls = document.createElement('div')
-    controls.className = 'diagram-controls'
-    controls.innerHTML = `
-      <button class="zoom-in">🔍+</button>
-      <button class="zoom-out">🔍-</button>
-      <button class="reset-zoom">↺</button>
-      <button class="fullscreen">⛶</button>
-    `
-    container.insertBefore(controls, container.firstChild)
-    
-    let scale = 1
-    let posX = 0
-    let posY = 0
-    let isDragging = false
-    let startX = 0
-    let startY = 0
-    
-    const svg = container.querySelector('svg')
-    
-    // Zoom controls
-    controls.querySelector('.zoom-in').addEventListener('click', () => {
-      scale = Math.min(scale + 0.2, 3)
-      updateTransform()
-    })
-    
-    controls.querySelector('.zoom-out').addEventListener('click', () => {
-      scale = Math.max(scale - 0.2, 0.5)
-      updateTransform()
-    })
-    
-    controls.querySelector('.reset-zoom').addEventListener('click', () => {
-      scale = 1
-      posX = 0
-      posY = 0
-      updateTransform()
-    })
-    
-    controls.querySelector('.fullscreen').addEventListener('click', () => {
-      container.classList.toggle('fullscreen')
-      if (container.classList.contains('fullscreen')) {
-        controls.querySelector('.fullscreen').textContent = '✕'
-      } else {
-        controls.querySelector('.fullscreen').textContent = '⛶'
-      }
-    })
-    
-    // Scroll zoom
-    container.addEventListener('wheel', (e) => {
-      e.preventDefault()
-      const delta = e.deltaY > 0 ? -0.1 : 0.1
-      scale = Math.max(0.5, Math.min(3, scale + delta))
-      updateTransform()
-    })
-    
-    // Pan with mouse drag
-    svg.addEventListener('mousedown', (e) => {
-      isDragging = true
-      startX = e.clientX - posX
-      startY = e.clientY - posY
-      svg.style.cursor = 'grabbing'
-    })
-    
-    document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return
-      posX = e.clientX - startX
-      posY = e.clientY - startY
-      updateTransform()
-    })
-    
-    document.addEventListener('mouseup', () => {
-      isDragging = false
-      svg.style.cursor = 'grab'
-    })
-    
-    function updateTransform() {
-      svg.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`
-    }
-  })
-})
-</script>
+```
 
 ::: tip Interactive Diagrams
-All diagrams support:
-- **Zoom In/Out**: Use the 🔍 buttons or scroll wheel
-- **Pan**: Click and drag the diagram
-- **Fullscreen**: Click ⛶ for fullscreen view
-- **Reset**: Click ↺ to reset zoom and position
+All diagrams above are rendered with Mermaid and support interactive features when viewed in the documentation.
 :::
