@@ -136,7 +136,7 @@ def get_html_template():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0f1320">
-    <title>ShareJadPi Dev - Local File Sharing</title>
+    <title>ShareJadPi - Local File Sharing</title>
     <style>
         :root {{
             --bg: #0f1320;
@@ -548,7 +548,7 @@ def get_html_template():
         <!-- Header -->
         <div class="header">
             <div>
-                <h1>📁 ShareJadPi Dev</h1>
+                <h1>📁 ShareJadPi</h1>
             </div>
             <div class="header-right">
                 <span class="badge connected">● Online</span>
@@ -596,7 +596,7 @@ def get_html_template():
         
         <!-- Footer -->
         <div class="footer">
-            ShareJadPi Dev v{APP_VERSION} • 
+            ShareJadPi v v{APP_VERSION} • 
             <a href="https://github.com/hetcharusat/sharejadpi" target="_blank">GitHub</a>
         </div>
     </div>
