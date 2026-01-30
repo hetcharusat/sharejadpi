@@ -1,0 +1,192 @@
+/* Mermaid Diagram Interactive Styles */
+
+.mermaid-wrapper {
+  position: relative;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: var(--vp-c-bg-soft);
+  border-radius: 12px;
+  border: 1px solid var(--vp-c-divider);
+  overflow: hidden;
+  min-height: 200px;
+}
+
+.mermaid-wrapper:hover .mermaid-controls {
+  opacity: 1;
+}
+
+.mermaid-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 100;
+}
+
+.mermaid-btn {
+  background: var(--vp-c-brand-1);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.mermaid-btn:hover {
+  background: var(--vp-c-brand-2);
+  transform: scale(1.1);
+}
+
+.mermaid-btn:active {
+  transform: scale(0.95);
+}
+
+.mermaid-interactive {
+  transition: transform 0.1s ease-out;
+  transform-origin: 0 0;
+  user-select: none;
+}
+
+.mermaid-interactive svg {
+  max-width: none !important;
+  height: auto;
+}
+
+/* Fullscreen Mode */
+.mermaid-fullscreen {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999;
+  margin: 0 !important;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vp-c-bg);
+  overflow: auto;
+}
+
+.mermaid-fullscreen .mermaid-controls {
+  opacity: 1;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
+.mermaid-fullscreen .mermaid-interactive {
+  max-width: none;
+  max-height: none;
+}
+
+/* Dark theme adjustments */
+.dark .mermaid-wrapper {
+  background: rgba(30, 30, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .mermaid-btn {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mermaid-controls {
+    opacity: 1;
+    top: 5px;
+    right: 5px;
+    gap: 4px;
+  }
+  
+  .mermaid-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
+/* Nice scrollbar for overflow */
+.mermaid-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.mermaid-wrapper::-webkit-scrollbar-track {
+  background: var(--vp-c-bg-soft);
+  border-radius: 4px;
+}
+
+.mermaid-wrapper::-webkit-scrollbar-thumb {
+  background: var(--vp-c-brand-1);
+  border-radius: 4px;
+}
+
+.mermaid-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--vp-c-brand-2);
+}
+
+/* Feature cards styling */
+.feature-card {
+  background: var(--vp-c-bg-soft);
+  border: 2px solid var(--vp-c-brand-1);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.feature-card.planned {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, var(--vp-c-bg-soft) 0%, rgba(245, 158, 11, 0.1) 100%);
+}
+
+/* API card styling */
+.api-card {
+  background: var(--vp-c-bg-soft);
+  border-left: 4px solid var(--vp-c-brand-1);
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.api-card.planned {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, var(--vp-c-bg-soft) 0%, rgba(245, 158, 11, 0.05) 100%);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.complete {
+  background: #10b981;
+  color: white;
+}
+
+.status-badge.in-progress {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-badge.planned {
+  background: #f59e0b;
+  color: white;
+}
