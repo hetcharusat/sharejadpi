@@ -1,866 +1,691 @@
-# 📡 API Reference
+# 🔌 API Reference
 
 <div class="api-hero">
-  <h2>Complete REST API Documentation</h2>
-  <p>ShareJadPi exposes a powerful REST API for all file operations. Build integrations, automate workflows, or create custom clients.</p>
+  <h2>ShareJadPi Dev API Documentation</h2>
+  <p>Simple REST API for file sharing operations. All endpoints return JSON responses.</p>
 </div>
 
-## 🌐 Base URL
+## 📋 Quick Reference
 
-```
-http://<your-ip>:5000
-```
-
-Replace `<your-ip>` with your server's IP address or `localhost` for local development.
-
----
-
-## 📋 API Overview
-
-```mermaid
-flowchart TB
-    subgraph Core["📁 Core APIs"]
-        Upload["/upload"]
-        Download["/download/<id>"]
-        Delete["/delete/<id>"]
-        Files["/api/files"]
-    end
-    
-    subgraph Management["⚙️ Management"]
-        Status["/api/status"]
-        Clear["/api/clear"]
-        Pin["/api/pin"]
-        Settings["/settings"]
-    end
-    
-    subgraph Sharing["🌐 Online Sharing"]
-        Share["/api/share-online"]
-        Tunnel["/api/tunnel/*"]
-        OnlineDownload["/online-download/<token>"]
-    end
-    
-    subgraph Utilities["🛠️ Utilities"]
-        Clipboard["/api/clipboard"]
-        Speed["/api/speedtest/*"]
-        QR["/qr"]
-    end
-    
-    style Core fill:#065f46,stroke:#10b981,color:#fff
-    style Management fill:#1e40af,stroke:#3b82f6,color:#fff
-    style Sharing fill:#7c2d12,stroke:#f97316,color:#fff
-    style Utilities fill:#581c87,stroke:#a855f7,color:#fff
-```
+<div class="endpoint-grid">
+  <div class="endpoint-card">
+    <span class="method post">POST</span>
+    <span class="route">/upload</span>
+    <span class="desc">Upload files</span>
+  </div>
+  <div class="endpoint-card">
+    <span class="method get">GET</span>
+    <span class="route">/files</span>
+    <span class="desc">List all files</span>
+  </div>
+  <div class="endpoint-card">
+    <span class="method get">GET</span>
+    <span class="route">/download/:filename</span>
+    <span class="desc">Download file</span>
+  </div>
+  <div class="endpoint-card">
+    <span class="method delete">DELETE</span>
+    <span class="route">/delete/:filename</span>
+    <span class="desc">Delete file</span>
+  </div>
+  <div class="endpoint-card">
+    <span class="method get">GET</span>
+    <span class="route">/api/status</span>
+    <span class="desc">Server status</span>
+  </div>
+  <div class="endpoint-card">
+    <span class="method get">GET</span>
+    <span class="route">/</span>
+    <span class="desc">Web interface</span>
+  </div>
+</div>
 
 ---
 
-## 📤 File Upload
+## 🔗 Base URL
+
+```
+http://localhost:5000
+```
+
+Or use your network IP:
+```
+http://192.168.1.100:5000
+```
+
+---
+
+## 📤 Upload Files
 
 ### `POST /upload`
 
 Upload one or more files to the server.
 
-<div class="endpoint-card">
+#### Request
 
-**Request**
-```http
-POST /upload HTTP/1.1
-Content-Type: multipart/form-data
-```
+**Content-Type:** `multipart/form-data`
 
-**Form Data**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `file` | File | ✅ | File(s) to upload. Can send multiple. |
+**Form Fields:**
+- `file` (file, required): One or more files to upload
 
-**Example (JavaScript)**
+#### Example (JavaScript)
+
 ```javascript
+// Upload single file
 const formData = new FormData();
 formData.append('file', fileInput.files[0]);
-formData.append('file', fileInput.files[1]); // Multiple files
 
 const response = await fetch('/upload', {
-    method: 'POST',
-    body: formData
+  method: 'POST',
+  body: formData
 });
 
 const result = await response.json();
 console.log(result);
 ```
 
-**Example (cURL)**
+#### Example (cURL)
+
 ```bash
+# Upload single file
 curl -X POST http://localhost:5000/upload \
-  -F "file=@/path/to/document.pdf" \
-  -F "file=@/path/to/image.png"
+  -F "file=@document.pdf"
+
+# Upload multiple files
+curl -X POST http://localhost:5000/upload \
+  -F "file=@photo1.jpg" \
+  -F "file=@photo2.jpg" \
+  -F "file=@photo3.jpg"
 ```
 
-**Success Response** `200 OK`
+#### Response (Success)
+
 ```json
 {
-    "success": true,
-    "files": [
-        {
-            "name": "document.pdf",
-            "size": 1048576,
-            "id": "abc123"
-        }
-    ]
+  "success": true,
+  "files": [
+    {
+      "name": "document.pdf",
+      "size": 1048576
+    },
+    {
+      "name": "photo.jpg",
+      "size": 524288
+    }
+  ]
 }
 ```
 
-**Error Response** `400 Bad Request`
+#### Response (Error)
+
 ```json
 {
-    "error": "No file provided",
-    "code": "MISSING_FILE"
+  "error": "No file provided"
 }
 ```
 
-</div>
+**Status Codes:**
+- `200 OK` - Files uploaded successfully
+- `400 Bad Request` - No file provided or invalid request
+- `413 Payload Too Large` - File exceeds size limit (500MB)
 
 ---
 
-### `POST /upload_folder`
+## 📋 List Files
 
-Upload an entire folder with preserved structure.
+### `GET /files`
 
-<div class="endpoint-card">
+Get a list of all uploaded files with metadata.
 
-**Request**
-```http
-POST /upload_folder HTTP/1.1
-Content-Type: multipart/form-data
-```
+#### Request
 
-**Form Data**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `files` | File[] | ✅ | Files with relative paths |
-| `paths` | String[] | ✅ | Relative path for each file |
+No parameters required.
 
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "uploaded": 15,
-    "folder": "my-project"
-}
-```
+#### Example (JavaScript)
 
-</div>
-
----
-
-## 📥 File Download
-
-### `GET /download/<entry_id>`
-
-Download a specific file.
-
-<div class="endpoint-card">
-
-**URL Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `entry_id` | String | Unique file identifier |
-
-**Example**
 ```javascript
-// Direct download
-window.location.href = '/download/abc123';
-
-// Fetch as blob
-const response = await fetch('/download/abc123');
-const blob = await response.blob();
-const url = URL.createObjectURL(blob);
-```
-
-**Success Response** `200 OK`
-- Returns file binary with appropriate `Content-Type` header
-- `Content-Disposition: attachment; filename="example.pdf"`
-
-**Error Response** `404 Not Found`
-```json
-{
-    "error": "File not found",
-    "code": "FILE_NOT_FOUND"
-}
-```
-
-</div>
-
----
-
-## 📁 File Listing
-
-### `GET /api/files`
-
-Get a list of all uploaded files.
-
-<div class="endpoint-card">
-
-**Example**
-```javascript
-const response = await fetch('/api/files');
+const response = await fetch('/files');
 const data = await response.json();
-console.log(data.files);
-```
 
-**Success Response** `200 OK`
-```json
-{
-    "files": [
-        {
-            "id": "abc123",
-            "name": "document.pdf",
-            "size": 1048576,
-            "size_formatted": "1.0 MB",
-            "ext": "PDF",
-            "modified": "2024-01-15 10:30",
-            "pinned": false
-        },
-        {
-            "id": "def456",
-            "name": "image.png",
-            "size": 524288,
-            "size_formatted": "512 KB",
-            "ext": "PNG",
-            "modified": "2024-01-15 11:00",
-            "pinned": true
-        }
-    ],
-    "total": 2,
-    "total_size": 1572864,
-    "total_size_formatted": "1.5 MB"
+if (data.success) {
+  data.files.forEach(file => {
+    console.log(`${file.name} - ${file.size} bytes`);
+  });
 }
 ```
 
-</div>
+#### Example (cURL)
+
+```bash
+curl http://localhost:5000/files
+```
+
+#### Response (Success)
+
+```json
+{
+  "success": true,
+  "files": [
+    {
+      "name": "document.pdf",
+      "size": 1048576,
+      "modified": "2024-01-31T10:30:00Z"
+    },
+    {
+      "name": "photo.jpg",
+      "size": 524288,
+      "modified": "2024-01-31T11:15:00Z"
+    },
+    {
+      "name": "presentation.pptx",
+      "size": 2097152,
+      "modified": "2024-01-31T14:45:00Z"
+    }
+  ]
+}
+```
+
+#### Response (Empty)
+
+```json
+{
+  "success": true,
+  "files": []
+}
+```
+
+**Status Codes:**
+- `200 OK` - Files listed successfully
 
 ---
 
-## 🗑️ File Deletion
+## 📥 Download File
 
-### `POST /delete/<entry_id>`
+### `GET /download/:filename`
 
-Delete a specific file.
+Download a specific file by filename.
 
-<div class="endpoint-card">
+#### Parameters
 
-**URL Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `entry_id` | String | File to delete |
+- `filename` (string, required): The name of the file to download
 
-**Example**
+#### Example (JavaScript)
+
 ```javascript
-const response = await fetch('/delete/abc123', {
-    method: 'POST'
-});
-const result = await response.json();
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "deleted": "document.pdf"
+// Download and save file
+async function downloadFile(filename) {
+  const response = await fetch(`/download/${filename}`);
+  const blob = await response.blob();
+  
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.URL.revokeObjectURL(url);
 }
+
+downloadFile('document.pdf');
 ```
 
-</div>
+#### Example (cURL)
+
+```bash
+# Download file
+curl -O http://localhost:5000/download/document.pdf
+
+# Download with custom name
+curl -o myfile.pdf http://localhost:5000/download/document.pdf
+```
+
+#### Response
+
+The file is streamed directly with appropriate headers:
+
+**Headers:**
+- `Content-Type`: Detected MIME type (e.g., `application/pdf`)
+- `Content-Disposition`: `attachment; filename="document.pdf"`
+
+**Status Codes:**
+- `200 OK` - File downloaded successfully
+- `404 Not Found` - File doesn't exist
 
 ---
 
-### `POST /delete_bulk`
+## 🗑️ Delete File
 
-Delete multiple files at once.
+### `DELETE /delete/:filename`
 
-<div class="endpoint-card">
+Delete a specific file from the server.
 
-**Request Body**
-```json
-{
-    "ids": ["abc123", "def456", "ghi789"]
-}
-```
+#### Parameters
 
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "deleted": 3
-}
-```
+- `filename` (string, required): The name of the file to delete
 
-</div>
+#### Example (JavaScript)
 
----
-
-### `POST /api/clear`
-
-Delete all files.
-
-<div class="endpoint-card">
-
-**⚠️ Warning:** This action is irreversible!
-
-**Example**
 ```javascript
-if (confirm('Delete ALL files?')) {
-    await fetch('/api/clear', { method: 'POST' });
+async function deleteFile(filename) {
+  const response = await fetch(`/delete/${filename}`, {
+    method: 'DELETE'
+  });
+  
+  const result = await response.json();
+  
+  if (result.success) {
+    console.log('File deleted successfully');
+  }
 }
+
+deleteFile('document.pdf');
 ```
 
-**Success Response** `200 OK`
+#### Example (cURL)
+
+```bash
+curl -X DELETE http://localhost:5000/delete/document.pdf
+```
+
+#### Response (Success)
+
 ```json
 {
-    "success": true,
-    "deleted": 15
+  "success": true,
+  "message": "File deleted successfully"
 }
 ```
 
-</div>
+#### Response (Error)
+
+```json
+{
+  "error": "File not found"
+}
+```
+
+**Status Codes:**
+- `200 OK` - File deleted successfully
+- `404 Not Found` - File doesn't exist
+- `500 Internal Server Error` - Failed to delete file
 
 ---
 
-## 📌 Pin Files
-
-### `POST /api/pin`
-
-Pin or unpin a file (prevents accidental deletion).
-
-<div class="endpoint-card">
-
-**Request Body**
-```json
-{
-    "id": "abc123",
-    "pinned": true
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "pinned": true
-}
-```
-
-</div>
-
----
-
-## 🗜️ ZIP Downloads
-
-### `POST /zip_selected`
-
-Create a ZIP archive of selected files.
-
-<div class="endpoint-card">
-
-**Request Body**
-```json
-{
-    "ids": ["abc123", "def456", "ghi789"]
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "job_id": "zip_12345",
-    "status": "processing"
-}
-```
-
-</div>
-
----
-
-### `GET /api/zip_jobs/<job_id>`
-
-Check ZIP job status.
-
-<div class="endpoint-card">
-
-**Response (Processing)**
-```json
-{
-    "status": "processing",
-    "progress": 45
-}
-```
-
-**Response (Complete)**
-```json
-{
-    "status": "complete",
-    "download_url": "/download/zip_12345.zip"
-}
-```
-
-</div>
-
----
-
-## 🌐 Online Sharing
-
-### `POST /api/share-online`
-
-Create an internet-accessible share link via Cloudflare tunnel.
-
-<div class="endpoint-card highlight">
-
-**Request Body**
-```json
-{
-    "file_id": "abc123"
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "url": "https://random-words.trycloudflare.com",
-    "token": "a1b2c3d4e5f6",
-    "qr_code": "data:image/png;base64,iVBORw0KG...",
-    "expires_at": "2024-01-15T12:00:00Z"
-}
-```
-
-**Error Response** `503 Service Unavailable`
-```json
-{
-    "error": "Cloudflare tunnel not available",
-    "code": "TUNNEL_UNAVAILABLE"
-}
-```
-
-</div>
-
----
-
-### `POST /api/tunnel/start`
-
-Manually start the Cloudflare tunnel.
-
-<div class="endpoint-card">
-
-**Request Body**
-```json
-{
-    "port": 5000,
-    "file_size": 10485760
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "url": "https://random-words.trycloudflare.com",
-    "status": "running"
-}
-```
-
-</div>
-
----
-
-### `GET /api/tunnel/status`
-
-Check tunnel status.
-
-<div class="endpoint-card">
-
-**Response (Active)**
-```json
-{
-    "active": true,
-    "url": "https://random-words.trycloudflare.com",
-    "uptime": 3600,
-    "shares": 3
-}
-```
-
-**Response (Inactive)**
-```json
-{
-    "active": false,
-    "url": null
-}
-```
-
-</div>
-
----
-
-### `POST /api/tunnel/stop`
-
-Stop the Cloudflare tunnel.
-
-<div class="endpoint-card">
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "message": "Tunnel stopped"
-}
-```
-
-</div>
-
----
-
-### `POST /auth/enter`
-
-Authenticate with a share token.
-
-<div class="endpoint-card">
-
-**Request Body**
-```json
-{
-    "token": "a1b2c3d4e5f6"
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "file": "document.pdf",
-    "size": 1048576
-}
-```
-
-**Error Response** `403 Forbidden`
-```json
-{
-    "error": "Invalid or expired token",
-    "code": "INVALID_TOKEN"
-}
-```
-
-</div>
-
----
-
-## 📋 Shared Clipboard
-
-### `GET /api/clipboard`
-
-Get current clipboard content.
-
-<div class="endpoint-card">
-
-**Success Response** `200 OK`
-```json
-{
-    "content": "Hello, World!",
-    "timestamp": "2024-01-15T10:30:00Z"
-}
-```
-
-</div>
-
----
-
-### `POST /api/clipboard`
-
-Set clipboard content.
-
-<div class="endpoint-card">
-
-**Request Body**
-```json
-{
-    "content": "Text to copy across devices"
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true
-}
-```
-
-</div>
-
----
-
-### `DELETE /api/clipboard`
-
-Clear clipboard.
-
-<div class="endpoint-card">
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "message": "Clipboard cleared"
-}
-```
-
-</div>
-
----
-
-## ⚡ Speed Test
-
-### `GET /api/speedtest/down`
-
-Download test data for speed testing.
-
-<div class="endpoint-card">
-
-**Response**
-- Returns 10MB of random binary data
-- Use to measure download speed
-
-**Example**
-```javascript
-const startTime = Date.now();
-const response = await fetch('/api/speedtest/down');
-const data = await response.arrayBuffer();
-const duration = (Date.now() - startTime) / 1000;
-const speedMbps = (data.byteLength * 8) / duration / 1000000;
-console.log(`Download: ${speedMbps.toFixed(2)} Mbps`);
-```
-
-</div>
-
----
-
-### `POST /api/speedtest/up`
-
-Upload test data for speed testing.
-
-<div class="endpoint-card">
-
-**Request Body**
-- Binary data (any size)
-
-**Success Response** `200 OK`
-```json
-{
-    "received": 10485760,
-    "success": true
-}
-```
-
-</div>
-
----
-
-## 📱 QR Code
-
-### `GET /qr`
-
-Get QR code for the current server URL.
-
-<div class="endpoint-card">
-
-**Response**
-- Returns PNG image of QR code
-- Encodes: `http://<server-ip>:5000`
-
-**Usage in HTML**
-```html
-<img src="/qr" alt="QR Code" />
-```
-
-</div>
-
----
-
-## ⚙️ Status & Settings
+## ✅ Server Status
 
 ### `GET /api/status`
 
-Get server status and statistics.
+Check server status and get version information.
 
-<div class="endpoint-card">
+#### Request
 
-**Success Response** `200 OK`
+No parameters required.
+
+#### Example (JavaScript)
+
+```javascript
+const response = await fetch('/api/status');
+const status = await response.json();
+
+console.log(`Server: ${status.server} v${status.version}`);
+console.log(`Status: ${status.status}`);
+```
+
+#### Example (cURL)
+
+```bash
+curl http://localhost:5000/api/status
+```
+
+#### Response
+
 ```json
 {
-    "status": "running",
-    "version": "4.5.4",
-    "uptime": 3600,
-    "files": 15,
-    "total_size": "150.5 MB",
-    "network": {
-        "ip": "192.168.1.100",
-        "port": 5000
-    }
+  "status": "running",
+  "server": "ShareJadPi Dev",
+  "version": "4.5.4-dev",
+  "upload_folder": "/Users/username/ShareJadPi-Dev/uploads"
 }
 ```
 
-</div>
+**Status Codes:**
+- `200 OK` - Server is running
 
 ---
 
-### `GET /settings`
+## 🌐 Web Interface
 
-Get settings page HTML.
+### `GET /`
 
-### `GET /api/autostart`
+Access the web-based user interface.
 
-Get autostart status.
+#### Request
 
-<div class="endpoint-card">
+Open in a web browser:
 
-**Success Response** `200 OK`
-```json
-{
-    "enabled": true
-}
+```
+http://localhost:5000
 ```
 
-</div>
+Or from another device on your network:
+
+```
+http://192.168.1.100:5000
+```
+
+#### Response
+
+HTML page with:
+- File upload interface (drag & drop)
+- File list with download/delete buttons
+- Network information
+- Dark theme UI
 
 ---
 
-### `POST /api/autostart`
-
-Toggle autostart on Windows startup.
-
-<div class="endpoint-card">
-
-**Request Body**
-```json
-{
-    "enabled": true
-}
-```
-
-**Success Response** `200 OK`
-```json
-{
-    "success": true,
-    "enabled": true
-}
-```
-
-</div>
-
----
-
-## 🔍 API Flow Diagram
+## 🔄 API Flow Diagram
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Storage
-    participant Cloudflare
+    participant 👤 as Client
+    participant 🌐 as Browser
+    participant ⚡ as Server
+    participant 💾 as Storage
     
-    rect rgb(6, 95, 70)
-        Note over Client,Storage: Upload Flow
-        Client->>API: POST /upload
-        API->>Storage: Save file
-        Storage-->>API: File ID
-        API-->>Client: { success, files }
-    end
+    Note over 👤,💾: Upload Flow
+    👤->>🌐: Select files
+    🌐->>⚡: POST /upload
+    ⚡->>💾: Save files
+    💾-->>⚡: Saved
+    ⚡-->>🌐: {success, files}
     
-    rect rgb(30, 64, 175)
-        Note over Client,Storage: Download Flow
-        Client->>API: GET /api/files
-        API->>Storage: List files
-        Storage-->>API: File list
-        API-->>Client: { files }
-        Client->>API: GET /download/<id>
-        API->>Storage: Read file
-        Storage-->>API: File bytes
-        API-->>Client: File stream
-    end
+    Note over 👤,💾: List Flow
+    👤->>⚡: GET /files
+    ⚡->>💾: Read directory
+    💾-->>⚡: File list
+    ⚡-->>👤: {success, files}
     
-    rect rgb(124, 45, 18)
-        Note over Client,Cloudflare: Online Sharing
-        Client->>API: POST /api/share-online
-        API->>Cloudflare: Start tunnel
-        Cloudflare-->>API: Public URL
-        API-->>Client: { url, token, qr }
-    end
+    Note over 👤,💾: Download Flow
+    👤->>⚡: GET /download/:file
+    ⚡->>💾: Read file
+    💾-->>⚡: File data
+    ⚡-->>👤: File stream
+    
+    Note over 👤,💾: Delete Flow
+    👤->>⚡: DELETE /delete/:file
+    ⚡->>💾: Delete file
+    💾-->>⚡: Deleted
+    ⚡-->>👤: {success}
 ```
 
 ---
 
-## 📦 Error Codes
+## ⚠️ Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `MISSING_FILE` | 400 | No file in upload request |
-| `FILE_NOT_FOUND` | 404 | Requested file doesn't exist |
-| `FILE_TOO_LARGE` | 413 | File exceeds size limit |
-| `INVALID_TOKEN` | 403 | Token expired or invalid |
-| `TUNNEL_UNAVAILABLE` | 503 | Cloudflare not available |
-| `SERVER_ERROR` | 500 | Internal server error |
+| Code | Error | Description |
+|------|-------|-------------|
+| `400` | Bad Request | Missing required parameters or invalid request |
+| `404` | Not Found | Requested file doesn't exist |
+| `413` | Payload Too Large | File exceeds 500MB limit |
+| `500` | Internal Server Error | Server-side error occurred |
 
 ---
 
-## 🔧 Rate Limits
+## 🎯 Rate Limits
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| `POST /upload` | 100 | 1 hour |
-| `GET /download/*` | 1000 | 1 hour |
-| `POST /api/share-online` | 10 | 1 hour |
-| `GET /api/speedtest/*` | 20 | 1 hour |
+**None** - This is a development server for local networks. No rate limiting is applied.
+
+For production use, consider implementing:
+- Request rate limiting per IP
+- Upload bandwidth throttling
+- Concurrent upload limits
 
 ---
 
-<div class="api-footer">
-  <p>📖 Need help? Check out the <a href="/guide/getting-started">Getting Started Guide</a> or <a href="/development/contributing">contribute</a> to the project!</p>
-</div>
+## 📦 Response Format
+
+All API endpoints (except file downloads and the web interface) return JSON responses with this structure:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": { /* endpoint-specific data */ }
+}
+```
+
+### Error Response
+
+```json
+{
+  "error": "Error message description",
+  "details": "Optional additional details"
+}
+```
+
+---
+
+## 🔒 Security Notes
+
+### Development Mode
+
+This is a **development server** designed for local networks. Security features are minimal:
+
+- ❌ No authentication required
+- ❌ No HTTPS/TLS encryption
+- ❌ No rate limiting
+- ❌ No CORS restrictions
+
+### Best Practices
+
+For development use:
+- ✅ Use only on trusted local networks
+- ✅ Don't expose to the internet
+- ✅ Don't store sensitive files
+- ✅ Clear uploads regularly
+
+For production use, consider adding:
+- 🔐 Token-based authentication
+- 🔒 HTTPS/TLS encryption
+- 🚦 Rate limiting
+- 🛡️ CORS configuration
+- 📊 Audit logging
+
+---
+
+## 💡 Usage Examples
+
+### Complete Upload Workflow
+
+```javascript
+// Complete file upload with progress
+async function uploadWithProgress(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const xhr = new XMLHttpRequest();
+  
+  // Track progress
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      const percent = (e.loaded / e.total) * 100;
+      console.log(`Upload: ${percent.toFixed(0)}%`);
+    }
+  });
+  
+  // Handle completion
+  xhr.addEventListener('load', () => {
+    if (xhr.status === 200) {
+      const result = JSON.parse(xhr.responseText);
+      console.log('✅ Upload complete:', result);
+    }
+  });
+  
+  xhr.open('POST', '/upload');
+  xhr.send(formData);
+}
+```
+
+### Complete File Manager
+
+```javascript
+class FileManager {
+  async uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch('/upload', {
+      method: 'POST',
+      body: formData
+    });
+    
+    return await response.json();
+  }
+  
+  async listFiles() {
+    const response = await fetch('/files');
+    return await response.json();
+  }
+  
+  async downloadFile(filename) {
+    const response = await fetch(`/download/${filename}`);
+    const blob = await response.blob();
+    
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+  
+  async deleteFile(filename) {
+    const response = await fetch(`/delete/${filename}`, {
+      method: 'DELETE'
+    });
+    
+    return await response.json();
+  }
+  
+  async getStatus() {
+    const response = await fetch('/api/status');
+    return await response.json();
+  }
+}
+
+// Usage
+const manager = new FileManager();
+
+// Upload
+await manager.uploadFile(fileInput.files[0]);
+
+// List
+const { files } = await manager.listFiles();
+files.forEach(f => console.log(f.name));
+
+// Download
+await manager.downloadFile('document.pdf');
+
+// Delete
+await manager.deleteFile('old-file.txt');
+
+// Status
+const status = await manager.getStatus();
+console.log(`Server version: ${status.version}`);
+```
+
+---
 
 <style>
 .api-hero {
   text-align: center;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1));
+  padding: 3rem 1.5rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
   border-radius: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 3rem;
 }
 
 .api-hero h2 {
-  margin: 0 0 12px 0;
-  font-size: 1.8rem;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
 }
 
-.api-hero p {
-  color: var(--vp-c-text-2);
-  font-size: 1.1rem;
-  margin: 0;
+.endpoint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
 }
 
 .endpoint-card {
-  background: var(--vp-c-bg-soft);
-  border: 1px solid var(--vp-c-divider);
-  border-left: 4px solid var(--vp-c-brand);
-  border-radius: 0 12px 12px 0;
-  padding: 20px;
-  margin: 16px 0;
-}
-
-.endpoint-card.highlight {
-  border-left-color: #f97316;
-  background: linear-gradient(135deg, var(--vp-c-bg-soft), rgba(249,115,22,0.05));
-}
-
-.api-footer {
-  text-align: center;
-  padding: 40px;
-  background: var(--vp-c-bg-soft);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 12px;
-  margin-top: 40px;
+  transition: all 0.3s ease;
+}
+
+.endpoint-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.method {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.method.get {
+  background: #3b82f6;
+  color: white;
+}
+
+.method.post {
+  background: #10b981;
+  color: white;
+}
+
+.method.delete {
+  background: #ef4444;
+  color: white;
+}
+
+.route {
+  font-family: 'Monaco', 'Courier New', monospace;
+  color: #10b981;
+  font-weight: 600;
+  flex: 1;
+}
+
+.desc {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.vp-doc h3 {
+  color: #10b981;
+  margin-top: 2rem;
+}
+
+.vp-doc code {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.vp-doc pre {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
 }
 </style>

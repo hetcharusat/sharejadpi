@@ -10,15 +10,15 @@
 <div class="status-banner">
   <div class="status-item">
     <span class="status-label">Version</span>
-    <span class="status-value">4.5.4</span>
+    <span class="status-value">4.5.4-dev</span>
   </div>
   <div class="status-item">
     <span class="status-label">Phase</span>
-    <span class="status-value">4 of 5</span>
+    <span class="status-value">2 of 5</span>
   </div>
   <div class="status-item">
     <span class="status-label">Progress</span>
-    <span class="status-value">85%</span>
+    <span class="status-value">40%</span>
   </div>
   <div class="status-item">
     <span class="status-label">Status</span>
@@ -43,24 +43,24 @@ gantt
     Web Interface            :done, 2024-02, 28d
     
     section 🎨 Phase 2
-    Modern UI Design         :done, p2, 2024-02, 2024-04
+    Modern UI Design         :active, p2, 2024-02, 2024-04
     Dark Theme               :done, 2024-02, 30d
-    Animations               :done, 2024-03, 30d
-    Responsive Layout        :done, 2024-03, 30d
+    Animations               :active, 2024-03, 30d
+    Responsive Layout        :active, 2024-03, 30d
     
     section 🔐 Phase 3
-    Security & Sharing       :done, p3, 2024-04, 2024-07
-    Token Auth               :done, 2024-04, 30d
-    Cloudflare Tunnel        :done, 2024-05, 45d
-    QR Code Generation       :done, 2024-06, 30d
-    Context Menu             :done, 2024-06, 30d
+    Security & Sharing       :p3, 2024-04, 2024-07
+    Token Auth               :2024-04, 30d
+    Cloudflare Tunnel        :2024-05, 45d
+    QR Code Generation       :2024-06, 30d
+    Context Menu             :2024-06, 30d
     
     section ⚡ Phase 4
-    Polish & Performance     :active, p4, 2024-07, 2024-10
-    Speed Test               :done, 2024-07, 30d
-    Settings Panel           :done, 2024-08, 30d
-    Documentation            :active, 2024-09, 60d
-    Testing                  :active, 2024-09, 60d
+    Polish & Performance     :p4, 2024-07, 2024-10
+    Speed Test               :2024-07, 30d
+    Settings Panel           :2024-08, 30d
+    Documentation            :2024-09, 60d
+    Testing                  :2024-09, 60d
     
     section 🚀 Phase 5
     Enterprise Features      :p5, 2024-11, 2025-02

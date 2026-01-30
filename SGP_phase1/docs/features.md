@@ -1,46 +1,37 @@
 # ✨ Features
 
 <div class="feature-hero">
-  <h2>Everything You Need for Seamless File Sharing</h2>
-  <p>ShareJadPi comes packed with powerful features designed to make file sharing effortless, secure, and beautiful.</p>
+  <h2>Development Server Features</h2>
+  <p>ShareJadPi Dev is designed for local development and testing with core file sharing functionality.</p>
 </div>
 
 ## 🎯 Feature Overview
 
 ```mermaid
 mindmap
-  root((ShareJadPi))
+  root((ShareJadPi Dev))
     📤 Upload
       Drag & Drop
-      Multi-file
-      Folder Upload
+      Multi-file Support
       Progress Tracking
       Auto-naming
     📥 Download
       Direct Links
-      Bulk Download
-      ZIP Packaging
-      Resume Support
-    🌐 Sharing
-      Local Network
-      Internet via Cloudflare
-      QR Codes
-      Token Links
+      File Streaming
+      MIME Detection
+    🗑️ Management
+      Delete Files
+      List Files
+      File Metadata
     🎨 Interface
       Dark Theme
-      Animations
-      Responsive
+      Smooth Animations
+      Responsive Design
       Toast Notifications
-    🔐 Security
-      Token Auth
-      Access Control
-      Auto Cleanup
-      Activity Logs
-    🛠️ Tools
-      Speed Test
-      Shared Clipboard
-      Settings Panel
-      Context Menu
+    🔧 Dev Tools
+      Status API
+      Network Discovery
+      Browser Auto-Launch
 ```
 
 ---
@@ -57,20 +48,20 @@ Upload files with zero friction. Just drag, drop, and you're done.
 sequenceDiagram
     participant 👤 as User
     participant 🌐 as Browser
-    participant ⚡ as Server
+    participant ⚡ as Dev Server
     participant 💾 as Storage
     
     👤->>🌐: Drag files onto drop zone
-    🌐->>🌐: Validate file types & sizes
+    🌐->>🌐: Validate files
     🌐->>⚡: POST /upload (FormData)
     
-    loop For each chunk
-        ⚡->>💾: Write chunk to disk
+    loop For each file
+        ⚡->>💾: Save to ~/ShareJadPi-Dev/uploads
+        💾-->>⚡: File saved
         ⚡-->>🌐: Progress update
         🌐-->>👤: Update progress bar
     end
     
-    💾-->>⚡: File saved
     ⚡-->>🌐: { success: true, files: [...] }
     🌐-->>👤: 🎉 Success notification!
 ```
@@ -82,482 +73,317 @@ sequenceDiagram
 | **Drag & Drop** | Simply drag files from your file explorer | ✅ |
 | **Click to Browse** | Traditional file picker dialog | ✅ |
 | **Multi-file** | Upload multiple files simultaneously | ✅ |
-| **Folder Upload** | Upload entire folders with structure | ✅ |
 | **Progress Bars** | Real-time upload progress with shimmer animation | ✅ |
 | **Auto-naming** | Automatically handles duplicate filenames | ✅ |
-| **Size Validation** | Configurable max file size (default 500MB) | ✅ |
-| **Type Filtering** | Optional file type restrictions | ✅ |
+| **Size Limit** | Configurable max file size (default 500MB) | ✅ |
+| **Storage Path** | Files saved to ~/ShareJadPi-Dev/uploads | ✅ |
 
 ### Technical Implementation
 
 ```python
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    """Handle file uploads from the web interface."""
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
     
     uploaded = []
     for file in request.files.getlist('file'):
-        if file.filename == '':
-            continue
-        
-        # Secure the filename
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        
-        # Handle duplicates intelligently
-        counter = 1
-        base, ext = os.path.splitext(filename)
-        while os.path.exists(filepath):
-            filename = f"{base}_{counter}{ext}"
+        if file.filename:
+            filename = secure_filename(file.filename)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
-            counter += 1
-        
-        file.save(filepath)
-        uploaded.append({'name': filename, 'size': os.path.getsize(filepath)})
+            file.save(filepath)
+            uploaded.append({
+                'name': filename,
+                'size': os.path.getsize(filepath)
+            })
     
-    return jsonify({'success': True, 'files': uploaded}), 200
+    return jsonify({
+        'success': True,
+        'files': uploaded
+    })
 ```
 
 </div>
 
 ---
 
-## 📥 Powerful Download Manager
+## 📥 Efficient Download System
 
 <div class="feature-section">
 
-### Download Anything, Anytime
+### Direct File Access
 
-One-click downloads with bulk selection and ZIP packaging.
+Download any file with a single click. No complicated links or expiration timers.
+
+```mermaid
+sequenceDiagram
+    participant 👤 as User
+    participant 🌐 as Browser
+    participant ⚡ as Dev Server
+    participant 💾 as Storage
+    
+    👤->>🌐: Click download button
+    🌐->>⚡: GET /download/filename
+    ⚡->>💾: Read file
+    💾-->>⚡: File data
+    ⚡-->>🌐: Send file stream
+    🌐-->>👤: Browser download starts
+```
 
 ### Download Features
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **Direct Download** | Click and download instantly | ✅ |
-| **Bulk Selection** | Select multiple files with checkboxes | ✅ |
-| **ZIP Packaging** | Compress selected files on-the-fly | ✅ |
-| **Resume Support** | Resume interrupted downloads | ✅ |
-| **Streaming** | Efficient chunked transfer for large files | ✅ |
+| **Direct Links** | Simple `/download/filename` URLs | ✅ |
+| **Streaming** | Efficient file streaming for large files | ✅ |
+| **MIME Detection** | Automatic content-type detection | ✅ |
+| **Download Headers** | Proper attachment headers for browser downloads | ✅ |
 
-```mermaid
-flowchart LR
-    subgraph Selection["📁 File Selection"]
-        Single["Single File"]
-        Multi["Multi-Select"]
-        All["Select All"]
-    end
-    
-    subgraph Actions["⚡ Actions"]
-        Download["Direct Download"]
-        Zip["ZIP & Download"]
-        Delete["Delete Selected"]
-    end
-    
-    subgraph Delivery["📤 Delivery"]
-        Stream["Chunked Stream"]
-        Progress["Progress Bar"]
-        Complete["✓ Complete"]
-    end
-    
-    Selection --> Actions --> Delivery
-    
-    style Selection fill:#1e40af,stroke:#3b82f6,color:#fff
-    style Actions fill:#065f46,stroke:#10b981,color:#fff
-    style Delivery fill:#7c2d12,stroke:#f97316,color:#fff
+### API Example
+
+```javascript
+// Download a file
+fetch('/download/myfile.pdf')
+  .then(response => response.blob())
+  .then(blob => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'myfile.pdf';
+    a.click();
+  });
 ```
 
 </div>
 
 ---
 
-## 🌐 Internet Sharing with Cloudflare
-
-<div class="feature-section highlight">
-
-### Share Files Globally - No Port Forwarding Required
-
-The killer feature that sets ShareJadPi apart. Share files securely over the internet using Cloudflare tunnels.
-
-```mermaid
-flowchart TB
-    subgraph Local["🏠 Your Network"]
-        Server["⚡ ShareJadPi"]
-        Files["📁 Your Files"]
-    end
-    
-    subgraph Cloudflare["☁️ Cloudflare Edge"]
-        Tunnel["🔒 Secure Tunnel"]
-        Edge["🌐 Edge Network"]
-    end
-    
-    subgraph Remote["🌍 Internet"]
-        Friend["👤 Friend"]
-        Phone["📱 Mobile"]
-        Anywhere["💻 Anywhere"]
-    end
-    
-    Files --> Server
-    Server <-->|"Encrypted Tunnel"| Tunnel
-    Tunnel <--> Edge
-    Edge <--> Friend
-    Edge <--> Phone
-    Edge <--> Anywhere
-    
-    style Local fill:#065f46,stroke:#10b981,color:#fff
-    style Cloudflare fill:#f97316,stroke:#fb923c,color:#000
-    style Remote fill:#1e40af,stroke:#3b82f6,color:#fff
-```
-
-### How It Works
-
-1. **Start Tunnel** - Click "Share Online" in ShareJadPi
-2. **Get URL** - Receive a unique public URL (e.g., `https://abc123.trycloudflare.com`)
-3. **Share** - Send the link + token to anyone
-4. **Access** - They can download from anywhere in the world
-5. **Auto-Cleanup** - Links expire automatically for security
-
-### Security Features
-
-| Feature | Description |
-|---------|-------------|
-| **Token Authentication** | Every share requires a unique token |
-| **Auto-Expiry** | Shares expire after configurable time |
-| **One-Time Downloads** | Optional single-download mode |
-| **Activity Monitoring** | Track who accessed your files |
-| **Instant Revocation** | Cancel any share immediately |
-
-</div>
-
----
-
-## 📱 QR Code Generation
+## 🗑️ File Management
 
 <div class="feature-section">
 
-### Scan and Connect in Seconds
+### Complete Control Over Your Files
 
-No typing URLs. Just scan the QR code and you're in.
+List, view, and delete files through a clean API interface.
 
-```mermaid
-flowchart LR
-    subgraph Generate["🖥️ Desktop"]
-        URL["Share URL"]
-        QR["QR Generator"]
-        Display["Display Code"]
-    end
-    
-    subgraph Scan["📱 Mobile"]
-        Camera["📷 Camera"]
-        Decode["Decode QR"]
-        Open["Open URL"]
-    end
-    
-    subgraph Access["🌐 Access"]
-        Auth["Verify Token"]
-        Download["📥 Download"]
-    end
-    
-    URL --> QR --> Display
-    Display -.->|"Scan"| Camera
-    Camera --> Decode --> Open
-    Open --> Auth --> Download
-    
-    style Generate fill:#581c87,stroke:#a855f7,color:#fff
-    style Scan fill:#1e40af,stroke:#3b82f6,color:#fff
-    style Access fill:#065f46,stroke:#10b981,color:#fff
-```
+### Management Features
 
-### QR Features
-
-- 📱 **Instant Access** - Scan with any phone camera
-- 🎨 **Branded Codes** - ShareJadPi styled QR codes
-- 📊 **Scan Tracking** - Know when codes are scanned
-- ⏱️ **Expiring Codes** - Auto-expire for security
-- 💾 **Save/Share** - Download QR images
-
-</div>
-
----
-
-## 📋 Shared Clipboard
-
-<div class="feature-section">
-
-### Universal Copy-Paste Across Devices
-
-Copy text on your computer, paste on your phone. It just works.
-
-```mermaid
-sequenceDiagram
-    participant 💻 as Computer
-    participant ⚡ as ShareJadPi
-    participant 📱 as Phone
-    
-    💻->>⚡: Copy "Hello World"
-    ⚡->>⚡: Store in clipboard
-    
-    📱->>⚡: GET /api/clipboard
-    ⚡-->>📱: "Hello World"
-    📱->>📱: Paste text
-    
-    Note over 💻,📱: Text synced across devices!
-```
-
-### Clipboard Features
-
-| Feature | Status |
-|---------|--------|
-| Cross-device sync | ✅ |
-| Rich text support | ✅ |
-| One-click copy | ✅ |
-| Auto-clear option | ✅ |
-| Local network only | ✅ |
-
-</div>
-
----
-
-## ⚡ Speed Test Utility
-
-<div class="feature-section">
-
-### Measure Your Network Performance
-
-Built-in speed testing to measure upload and download speeds on your local network.
-
-```mermaid
-flowchart LR
-    subgraph Test["🧪 Speed Test"]
-        Down["📥 Download Test"]
-        Up["📤 Upload Test"]
-    end
-    
-    subgraph Measure["📊 Metrics"]
-        Speed["Speed (Mbps)"]
-        Latency["Latency (ms)"]
-        Stability["Stability"]
-    end
-    
-    subgraph Results["📈 Results"]
-        Graph["Visual Graph"]
-        Stats["Statistics"]
-    end
-    
-    Test --> Measure --> Results
-    
-    style Test fill:#7c2d12,stroke:#f97316,color:#fff
-    style Measure fill:#1e40af,stroke:#3b82f6,color:#fff
-    style Results fill:#065f46,stroke:#10b981,color:#fff
-```
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **List Files** | Get all uploaded files with metadata | ✅ |
+| **File Metadata** | Name, size, and modification time | ✅ |
+| **Delete Files** | Remove files via DELETE endpoint | ✅ |
+| **Status API** | Check server status and version | ✅ |
 
 ### API Endpoints
 
-```python
-@app.route('/api/speedtest/down')
-def speedtest_download():
-    """Generate random data for download speed testing"""
-    size = 10 * 1024 * 1024  # 10MB
-    data = os.urandom(size)
-    return data, 200, {'Content-Type': 'application/octet-stream'}
+```bash
+# List all files
+curl http://localhost:5000/files
 
-@app.route('/api/speedtest/up', methods=['POST'])
-def speedtest_upload():
-    """Receive data for upload speed testing"""
-    data = request.get_data()
-    return jsonify({'received': len(data), 'success': True})
+# Delete a file
+curl -X DELETE http://localhost:5000/delete/filename
+
+# Check server status
+curl http://localhost:5000/api/status
 ```
 
-</div>
+### Response Format
 
----
-
-## 🖱️ Windows Context Menu
-
-<div class="feature-section">
-
-### Right-Click to Share
-
-Seamless Windows integration. Right-click any file and share instantly.
-
-```mermaid
-flowchart TB
-    A["🖱️ Right-click file"] --> B["📋 Context Menu"]
-    B --> C["Share with ShareJadPi"]
-    C --> D{Server Running?}
-    D -->|No| E["🚀 Start Server"]
-    D -->|Yes| F["📤 Upload File"]
-    E --> F
-    F --> G["📋 Copy Link"]
-    G --> H["🔔 Notification"]
-    
-    style A fill:#1e40af,stroke:#3b82f6,color:#fff
-    style C fill:#065f46,stroke:#10b981,color:#fff
-    style H fill:#7c2d12,stroke:#f97316,color:#fff
-```
-
-### How It Works
-
-1. **Install ShareJadPi** using the Windows installer
-2. **Right-click** any file in Explorer
-3. **Select** "Share with ShareJadPi"
-4. **Get link** copied to clipboard automatically
-5. **Share** the link with anyone!
-
-</div>
-
----
-
-## 🎨 Modern UI Design
-
-<div class="feature-section">
-
-### Beautiful, Responsive, and Fast
-
-Every pixel is crafted for the best user experience.
-
-### Design System
-
-```mermaid
-mindmap
-  root((UI Design))
-    Colors
-      Primary Green
-      Accent Blue
-      Purple Highlights
-      Dark Background
-    Typography
-      System Fonts
-      Clear Hierarchy
-      Readable Sizes
-    Components
-      Cards
-      Buttons
-      Progress Bars
-      Toasts
-    Animations
-      Smooth Transitions
-      Hover Effects
-      Loading States
-      Success Feedback
-```
-
-### CSS Variables
-
-```css
-:root {
-  /* Colors */
-  --bg: #0f1320;
-  --card: #14192b;
-  --text: #e7ecf3;
-  --muted: #9aa4b2;
-  --border: #233046;
-  --primary: #22c55e;
-  --blue: #3b82f6;
-  --purple: #a78bfa;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  
-  /* Shadows */
-  --shadow: 0 10px 30px rgba(0,0,0,.25);
-  
-  /* Animations */
-  --transition: all 0.3s ease;
+```json
+{
+  "success": true,
+  "files": [
+    {
+      "name": "document.pdf",
+      "size": 1048576,
+      "modified": "2024-01-31T10:30:00Z"
+    }
+  ]
 }
 ```
 
-### Responsive Design
+</div>
 
-| Breakpoint | Layout |
-|------------|--------|
-| Mobile (<640px) | Single column, touch-optimized |
-| Tablet (640-1024px) | Two columns, larger touch targets |
-| Desktop (>1024px) | Full layout, hover effects |
+---
+
+## 🎨 Beautiful User Interface
+
+<div class="feature-section">
+
+### Modern Dark Theme Design
+
+A stunning interface that developers love. Every detail crafted with care.
+
+### UI Features
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Dark Theme** | Eye-friendly dark color scheme | ✅ |
+| **Gradient Accents** | Green gradient highlights | ✅ |
+| **Smooth Animations** | Transitions and hover effects | ✅ |
+| **Responsive Layout** | Works on desktop, tablet, and mobile | ✅ |
+| **Toast Notifications** | Non-intrusive feedback messages | ✅ |
+| **Shimmer Effects** | Loading state animations | ✅ |
+| **Modern Typography** | Clean, readable fonts | ✅ |
+
+### Design System
+
+```css
+/* Color Palette */
+--bg-primary: #0a0a0a;
+--bg-secondary: #1a1a1a;
+--text-primary: #ffffff;
+--accent-green: #10b981;
+--gradient: linear-gradient(135deg, #10b981, #059669);
+```
 
 </div>
 
 ---
 
-## 📊 Feature Comparison
+## 🔧 Developer Experience
+
+<div class="feature-section">
+
+### Built for Development
+
+Clean code, simple APIs, and easy customization.
+
+### Dev Features
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Auto Browser Launch** | Automatically opens browser on start | ✅ |
+| **Network Discovery** | Shows all available network URLs | ✅ |
+| **Custom Port** | `--port` flag to change port | ✅ |
+| **No Browser Mode** | `--no-browser` flag for headless operation | ✅ |
+| **Clean Architecture** | Well-organized, readable code | ✅ |
+| **Minimal Dependencies** | Just Flask and Werkzeug | ✅ |
+
+### Command Line Usage
+
+```bash
+# Start on default port 5000
+python sharejadpi-dev.py
+
+# Use custom port
+python sharejadpi-dev.py --port 8080
+
+# Don't auto-open browser
+python sharejadpi-dev.py --no-browser
+
+# Combine flags
+python sharejadpi-dev.py --port 3000 --no-browser
+```
+
+</div>
+
+---
+
+## 📊 Comparison Matrix
 
 <div class="comparison-table">
 
-| Feature | ShareJadPi | Google Drive | WeTransfer | AirDrop |
-|---------|------------|--------------|------------|---------|
-| **Local Network** | ✅ | ❌ | ❌ | ✅ |
-| **Internet Sharing** | ✅ | ✅ | ✅ | ❌ |
-| **No Account Needed** | ✅ | ❌ | ✅ | ✅ |
-| **Cross-Platform** | ✅ | ✅ | ✅ | ❌ |
-| **Open Source** | ✅ | ❌ | ❌ | ❌ |
-| **Self-Hosted** | ✅ | ❌ | ❌ | ❌ |
-| **Free Forever** | ✅ | ⚠️ | ⚠️ | ✅ |
-| **QR Code Access** | ✅ | ❌ | ❌ | ❌ |
-| **Shared Clipboard** | ✅ | ❌ | ❌ | ✅ |
-| **Speed Test** | ✅ | ❌ | ❌ | ❌ |
-| **Dark Theme** | ✅ | ⚠️ | ❌ | ✅ |
+| Feature | ShareJadPi Dev | Google Drive | WeTransfer | AirDrop |
+|---------|----------------|--------------|-------------|---------|
+| **Offline Operation** | ✅ Full | ❌ No | ❌ No | ✅ Yes |
+| **File Size Limit** | ✅ 500MB+ | ⚠️ 15GB (free) | ⚠️ 2GB (free) | ✅ No limit |
+| **Speed** | ✅ LAN speed | ⚠️ Internet | ⚠️ Internet | ✅ Peer-to-peer |
+| **Privacy** | ✅ Local only | ❌ Cloud | ❌ Cloud | ✅ Private |
+| **Cross-platform** | ✅ Any browser | ✅ Web | ✅ Web | ❌ Apple only |
+| **No Account Needed** | ✅ Yes | ❌ Required | ❌ For 2GB+ | ❌ Apple ID |
+| **Open Source** | ✅ 100% | ❌ No | ❌ No | ❌ No |
+| **Self-hosted** | ✅ Yes | ❌ No | ❌ No | ❌ No |
+| **Cost** | ✅ Free | ⚠️ Freemium | ⚠️ Freemium | ✅ Free |
 
 </div>
 
 ---
 
-## 🚀 Coming Soon
+## 🚀 What's Next?
 
-<div class="coming-soon">
+### Phase 3: Advanced Features (Planned)
 
-### Phase 5 Features
+These features are planned for future development:
 
-- 👥 **User Management** - Multi-user support with permissions
-- 📊 **Analytics Dashboard** - Usage statistics and insights
-- 🔌 **Plugin System** - Extend functionality with plugins
-- 📱 **Mobile App** - Native iOS and Android apps
-- ☁️ **Cloud Sync** - Optional cloud backup integration
-- 🌍 **Multi-Language** - Internationalization support
+- 🔐 **Token Authentication** - Secure access with token-based auth
+- 🌐 **Cloudflare Tunnel** - Share files over the internet securely
+- 📱 **QR Code Generation** - Instant mobile access with QR codes
+- 📋 **Shared Clipboard** - Sync clipboard across devices
+- ⚡ **Speed Test Utility** - Test network speed
+- 🖱️ **Context Menu Integration** - Right-click to share on Windows
 
-</div>
+### Phase 4: Polish & Performance (Planned)
+
+- ⚙️ **Settings Panel** - Customizable configuration
+- 📊 **Activity Logs** - Track all file operations
+- 🎯 **Advanced Search** - Find files quickly
+- 🔄 **Auto Updates** - Built-in update mechanism
+
+### Phase 5: Enterprise Features (Planned)
+
+- 👥 **User Management** - Multi-user support
+- 📈 **Analytics Dashboard** - Usage statistics
+- 📱 **Mobile Apps** - Native iOS/Android apps
+- 🔌 **Plugin System** - Extend functionality
+
+---
 
 <style>
 .feature-hero {
   text-align: center;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1));
+  padding: 3rem 1.5rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
   border-radius: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 3rem;
 }
 
 .feature-hero h2 {
-  margin: 0 0 12px 0;
-  font-size: 1.8rem;
-}
-
-.feature-hero p {
-  color: var(--vp-c-text-2);
-  font-size: 1.1rem;
-  margin: 0;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
 }
 
 .feature-section {
-  background: var(--vp-c-bg-soft);
-  border: 1px solid var(--vp-c-divider);
+  margin: 3rem 0;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 12px;
-  padding: 24px;
-  margin: 24px 0;
+  border: 1px solid rgba(16, 185, 129, 0.1);
 }
 
-.feature-section.highlight {
-  border-color: var(--vp-c-brand);
-  background: linear-gradient(135deg, var(--vp-c-bg-soft), rgba(34,197,94,0.05));
+.feature-section h3 {
+  color: #10b981;
+  margin-bottom: 1rem;
 }
 
 .comparison-table {
+  margin: 2rem 0;
   overflow-x: auto;
 }
 
-.coming-soon {
-  background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(59,130,246,0.1));
-  border: 1px solid rgba(168,85,247,0.3);
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: 40px;
+.comparison-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparison-table th {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  padding: 12px;
+  text-align: left;
+}
+
+.comparison-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-table tr:hover {
+  background: rgba(16, 185, 129, 0.05);
 }
 </style>

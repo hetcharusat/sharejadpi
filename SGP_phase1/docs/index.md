@@ -26,20 +26,8 @@ features:
     details: Optimized for speed with chunked uploads, parallel processing, and minimal overhead. Share gigabytes in seconds.
   
   - icon: 🔐
-    title: Secure by Design
-    details: Token-based authentication, access control, and local-first architecture keeps your files private and protected.
-
-  - icon: 🌐
-    title: Internet Sharing
-    details: Built-in Cloudflare tunnel integration for secure sharing beyond your local network. No port forwarding needed.
-
-  - icon: 📱
-    title: QR Code Access
-    details: Instant mobile access with dynamic QR codes. Scan and connect in under 2 seconds.
-
-  - icon: 🖱️
-    title: Right-Click Magic
-    details: Windows context menu integration - right-click any file to share instantly. Zero friction workflow.
+    title: Local First
+    details: Your files stay on your device. Complete privacy with local-first architecture. No cloud services involved.
 ---
 
 <div class="vp-doc custom-home">
@@ -47,15 +35,15 @@ features:
 <!-- Hero Stats Section -->
 <div class="stats-section">
   <div class="stat-card">
-    <div class="stat-number">4.5.4</div>
+    <div class="stat-number">4.5.4-dev</div>
     <div class="stat-label">Latest Version</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number">39+</div>
+    <div class="stat-number">6</div>
     <div class="stat-label">API Endpoints</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number">3000+</div>
+    <div class="stat-number">813</div>
     <div class="stat-label">Lines of Code</div>
   </div>
   <div class="stat-card">
