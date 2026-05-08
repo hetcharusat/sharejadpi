@@ -1,10 +1,10 @@
 # Build ShareJadPi Executable
 # Run this from the project root
 
-Write-Host "Building ShareJadPi v4.5.0..." -ForegroundColor Cyan
+Write-Host "Building ShareJadPi v4.5.5..." -ForegroundColor Cyan
 
 # Use project venv Python if available
-$projectRoot = $PSScriptRoot
+$projectRoot = (Get-Item $PSScriptRoot).Parent.FullName
 $venvPython = Join-Path $projectRoot ".venv\Scripts\python.exe"
 if (Test-Path $venvPython) {
     $python = $venvPython
@@ -14,7 +14,7 @@ if (Test-Path $venvPython) {
 
 # Prepare output/work directories
 $distPath = Join-Path $projectRoot "dist"
-$workPath = Join-Path $projectRoot "build\pyinstaller\ShareJadPi-4.5.0"
+$workPath = Join-Path $projectRoot "build\pyinstaller\ShareJadPi-4.5.5"
 if (-not (Test-Path $distPath)) { New-Item -ItemType Directory -Path $distPath | Out-Null }
 if (-not (Test-Path $workPath)) { New-Item -ItemType Directory -Path $workPath | Out-Null }
 
@@ -30,17 +30,17 @@ Push-Location build_tools
 
 # Build
 Write-Host "Running PyInstaller..." -ForegroundColor Yellow
-& $python -m PyInstaller --clean --distpath "$distPath" --workpath "$workPath" ShareJadPi-4.5.0.spec
+& $python -m PyInstaller --clean --distpath "$distPath" --workpath "$workPath" ShareJadPi-4.5.5.spec
 
 # Return to root
 Pop-Location
 
 # Check result
-if (Test-Path "dist\ShareJadPi-4.5.0.exe") {
+if (Test-Path "dist\ShareJadPi-4.5.5.exe") {
     Write-Host ""
     Write-Host "Build successful!" -ForegroundColor Green
-    Write-Host "Output: dist\ShareJadPi-4.5.0.exe" -ForegroundColor Cyan
-    $size = (Get-Item "dist\ShareJadPi-4.5.0.exe").Length / 1MB
+    Write-Host "Output: dist\ShareJadPi-4.5.5.exe" -ForegroundColor Cyan
+    $size = (Get-Item "dist\ShareJadPi-4.5.5.exe").Length / 1MB
     Write-Host "Size: $([math]::Round($size, 2)) MB" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "NOTE: cloudflared.exe is bundled and extracted to sys._MEIPASS." -ForegroundColor Yellow

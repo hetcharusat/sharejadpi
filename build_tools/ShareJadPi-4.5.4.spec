@@ -6,17 +6,31 @@ added_files = [
     ('../assets/icon.ico', 'assets'),
     ('../static', 'static'),
     ('../templates', 'templates'),
-    ('../cloudflared.exe', '.'),
 ]
 
 hidden_imports = [
-    'qrcode', 'PIL', 'pystray', 'flask', 'winotify'
+    'qrcode',
+    'qrcode.image.pil',
+    'PIL',
+    'PIL.Image',
+    'PIL.ImageDraw',
+    'PIL.ImageFont',
+    'pystray',
+    'pystray._win32',
+    'flask',
+    'werkzeug',
+    'jinja2',
+    'click',
+    'itsdangerous',
+    'markupsafe',
+    'requests',
+    'winotify',
 ]
 
 a = Analysis(
     ['../sharejadpi.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('../cloudflared.exe', '.')],
     datas=added_files,
     hiddenimports=hidden_imports,
     hookspath=[],
@@ -39,7 +53,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    console=False,
+    upx=False,
+    console=True,
     icon='../assets/icon.ico',
 )

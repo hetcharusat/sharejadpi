@@ -1,182 +1,88 @@
-# Python# Python
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
 
-__pycache__/__pycache__/
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
 
-*.py[cod]*.py[cod]
+# IDE / OS
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
 
-*$py.class*$py.class
+# Runtime data
+uploads/
+shared_files/
+core_data/
+static/qr_code.png
+static/qr_online_*.png
+*.log
+*.tmp
+*.bak
+*.backup
+.~*
+tempCodeRunnerFile.py
 
-*.so*.so
+# Build artifacts and installers
+build/
+dist/
+installer_output/
+build_tools/build/
+build_tools/dist/
+*.exe
+!cloudflared.exe
+*.apk
+*.aab
+*.zip
+*.pkg
+*.pyz
+*.toc
 
-.Python.Python
-
-*.egg-info/*.egg-info/
-
-*.egg*.egg
-
-
-
-# Virtual Environment# Virtual Environment
-
-.venv/.venv/
-
-venv/venv/
-
-ENV/ENV/
-
-env/env/
-
-
-
-# IDE# IDE
-
-.vscode/.vscode/
-
-.idea/.idea/
-
-*.swp*.swp
-
-*.swo*.swo
-
-*~*~
-
-
-
-# OS# OS
-
-.DS_Store.DS_Store
-
-Thumbs.dbThumbs.db
-
-desktop.inidesktop.ini
-
-
-
-# ShareJadPi Runtime# ShareJadPi Runtime
-
-uploads/uploads/
-
-shared_files/shared_files/
-
-static/qr_code.pngstatic/qr_code.png
-
-core_data/core_data/
-
-
-
-# Logs# Logs
-
-*.log*.log
-
-
-
-# Temporary files# Temporary files
-
-*.tmp*.tmp
-
-*.bak*.bak
-
-*.backup*.backup
-
-.~*.~*
-
+# Generated test bundles
 test_bundle.pu
+test_bundle.spec
+tests/test_bundle.spec
 
-# Build artifacts & distributionstest_bundle.spec
+# Mobile app generated files
+mobile-app/node_modules/
+mobile-app/frontend/node_modules/
+mobile-app/frontend/dist/
+mobile-app/frontend/build.log
+mobile-app/android/.gradle/
+mobile-app/android/app/build/
+mobile-app/android/app/src/main/assets/
+mobile-app/android/app/src/main/res/xml/config.xml
+mobile-app/android/capacitor-cordova-android-plugins/
+mobile-app/android/local.properties
 
-dist/# Build artifacts & distributions
+# Generated reports / local-only project docs
+create_docx*.py
+PROJECT_REPORT.md
+report_sections/
+ITERATION_SUMMARY_*.md
+TEST_PLAN_*.md
 
-*.exedist/
-
-!cloudflared.exe*.exe
-
-*.zip!cloudflared.exe
-
-build/*.zip
-
-installer_output/build/
-
-
-
-# Old build scripts and specs (keep only v4.5.0)# Old build scripts and specs (keep only latest)
-
-build_tools/ShareJadPi-3.*.specShareJadPi-3.*.spec
-
-build_tools/ShareJadPi-4.0.*.specShareJadPi-4.0.*.spec
-
-build_tools/ShareJadPi-4.1.*.specShareJadPi-4.1.*.spec
-
-build_tools/ShareJadPi-4.2.*.specShareJadPi-Installer-3.*.iss
-
-build_tools/ShareJadPi-4.3.*.specShareJadPi-Installer-4.0.*.iss
-
-build_tools/ShareJadPi-4.4.*.specShareJadPi-Installer-4.1.*.iss
-
-build_tools/ShareJadPi-Installer-3.*.issbuild_v*.ps1
-
-build_tools/ShareJadPi-Installer-4.0.*.iss
-
-build_tools/ShareJadPi-Installer-4.1.*.isstest_bundle.pu
-
-build_tools/ShareJadPi-Installer-4.2.*.isstest_bundle.spec
-
-build_tools/ShareJadPi-Installer-4.3.*.iss
-
-build_tools/ShareJadPi-Installer-4.4.*.iss# Keep spec/installer config files tracked (do NOT ignore .spec/.iss)
-
-build_scripts/build_v*.ps1# ShareJadPi-*.spec
-
-# ShareJadPi-Installer-*.iss
-
-# Old release notes (keep only v4.5.0)# ShareJadPi-Installer.iss
-
-release_notes/RELEASE_NOTES_v3*.md
-
-release_notes/RELEASE_NOTES_v4.0*.md# Development/internal docs (not for users)
-
-release_notes/RELEASE_NOTES_v4.1*.mdBUILD_SUMMARY.md
-
-release_notes/RELEASE_NOTES_v4.2*.mdEXE_FIX_NOTES.md
-
-release_notes/RELEASE_NOTES_v4.3*.mdGITHUB_RELEASE_DRAFT.md
-
-release_notes/RELEASE_NOTES_v4.4*.mdINSTALLER_GUIDE.md
-
-release_notes/BUILD_SUMMARY_v3*.mdRELEASE_NOTES_v3.*.md
-
-release_notes/BUILD_SUMMARY_v4.0*.mdRELEASE_NOTES_v4.0.*.md
-
-release_notes/BUILD_SUMMARY_v4.1*.mdRELEASE_NOTES_v4.1.*.md
-
-release_notes/BUILD_SUMMARY_v4.2*.mdTROUBLESHOOTING.md
-
-release_notes/BUILD_SUMMARY_v4.3*.mdUSAGE_GUIDE.md
-
-release_notes/BUILD_SUMMARY_v4.4*.mdVIDEO_UPLOAD_GUIDE.md
-
-README.md.backup
-
-# Test filesCLOUDFLARE_*.md
-
-tests/test_bundle.*NGROK_*.md
-
-ONLINE_SHARING_*.md
-
-# Unwanted MD files (already cleaned up)IMPLEMENTATION_SUMMARY.md
-
+# Old/generated docs drafts
 BUILD_SUMMARY.md
-
-EXE_FIX_NOTES.md# Helper scripts (included in installer, not needed in repo)
-
-GITHUB_RELEASE_DRAFT.mdshow_connection_info.ps1
-
-INSTALLER_GUIDE.mdfix_firewall.ps1
-
-TROUBLESHOOTING.mdbuild_installer.ps1
-
+EXE_FIX_NOTES.md
+GITHUB_RELEASE_DRAFT.md
+INSTALLER_GUIDE.md
+TROUBLESHOOTING.md
 USAGE_GUIDE.md
 VIDEO_UPLOAD_GUIDE.md
-README.md.backup
 CLOUDFLARE_*.md
 NGROK_*.md
 ONLINE_SHARING_*.md
