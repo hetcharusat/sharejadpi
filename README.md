@@ -1,6 +1,6 @@
 # ShareJadPi v4.5.4
 
-Share files ANYWHERE with one click — Local WiFi AND Public Internet.
+Share files ANYWHERE with just one click — Local WiFi AND Public Internet.
 
 [![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)](https://github.com/hetcharusat/sharejadpi)
 [![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/)
