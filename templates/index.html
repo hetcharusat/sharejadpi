@@ -14,6 +14,8 @@
         :root {
 
             --bg: #0f1320;
+            --bg-shade: #1b2140;
+            --bg-accent: #191a2b;
             --card: #14192b;
             --text: #e7ecf3;
             --muted: #9aa4b2;
@@ -27,13 +29,72 @@
             --shadow: 0 10px 30px rgba(0,0,0,.25);
         }
         
+        .light-mode {
+            --bg: #f8fafc;
+            --bg-shade: #ffffff;
+            --bg-accent: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #d1d5db;
+            --primary: #22c55e;
+            --primary-600: #16a34a;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --blue: #2563eb;
+            --purple: #8b5cf6;
+            --shadow: 0 10px 30px rgba(15,23,42,.08);
+        }
+
+        .light-mode .header,
+        .light-mode .qr-section,
+        .light-mode .upload-section,
+        .light-mode .files-section,
+        .light-mode .clipboard-section,
+        .light-mode .speedtest-section,
+        .light-mode .toolbar {
+            background: var(--card);
+            border-color: var(--border);
+            box-shadow: 0 10px 28px rgba(15,23,42,.05);
+        }
+
+        .light-mode .icon-btn {
+            background: rgba(15,23,42,.06);
+            border-color: rgba(15,23,42,.14);
+            color: var(--text);
+        }
+
+        .light-mode .qr-container {
+            background: #ffffff;
+            box-shadow: 0 4px 18px rgba(15,23,42,.08);
+        }
+
+        .light-mode .drag-drop-zone {
+            background: #f8fafc;
+            border-color: var(--border);
+        }
+
+        .light-mode .progress-container,
+        .light-mode .speedtest-result,
+        .light-mode .file-item,
+        .light-mode .clipboard-textarea,
+        .light-mode .empty-state {
+            background: #ffffff;
+            border-color: var(--border);
+        }
+
+        .light-mode .file-icon {
+            background: rgba(34,197,94,.08);
+            border-color: rgba(34,197,94,.2);
+        }
+
         * { box-sizing: border-box; }
         
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: radial-gradient(1200px 800px at 20% -10%, #1b2140 0%, var(--bg) 40%),
-                        radial-gradient(1000px 600px at 100% 0%, #191a2b 0%, transparent 50%);
+            background: radial-gradient(1200px 800px at 20% -10%, var(--bg-shade) 0%, var(--bg) 40%),
+                        radial-gradient(1000px 600px at 100% 0%, var(--bg-accent) 0%, transparent 50%);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
@@ -41,8 +102,16 @@
         }
         
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(300px, 380px) minmax(420px, 1fr);
+            grid-template-areas:
+                "header header"
+                "qr files"
+                "upload clipboard"
+                "upload speed";
+            gap: 20px;
         }
         
         /* Authorization Banner */
@@ -53,8 +122,8 @@
             padding: 16px 20px;
             border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255,255,255,.2);
+            box-shadow: none;
+            border: 1px solid rgba(255,255,255,.16);
         }
         
         #authBanner.show {
@@ -81,18 +150,19 @@
         #authBanner code {
             background: rgba(0,0,0,.3);
             padding: 2px 6px;
-            border-radius: 4px;
+            border-radius: 8px;
             font-family: 'Courier New', monospace;
         }
         
         /* Header */
         .header {
-            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            grid-area: header;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
             padding: 16px 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            margin-bottom: 0;
+            box-shadow: none;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -102,11 +172,11 @@
         
         .header h1 {
             margin: 0;
-            font-size: clamp(20px, 4vw, 28px);
-            background: linear-gradient(135deg, var(--primary), var(--blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: clamp(22px, 3vw, 30px);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .header-right {
@@ -117,12 +187,13 @@
         
         /* QR Code Section - Top, Medium Size */
         .qr-section {
-            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            grid-area: qr;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            margin-bottom: 0;
+            box-shadow: none;
             text-align: center;
         }
         
@@ -137,8 +208,8 @@
             display: inline-block;
             padding: 16px;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,.3);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.16);
         }
         
         .qr-container img {
@@ -151,18 +222,22 @@
         .qr-refresh-btn {
             margin-top: 16px;
             padding: 10px 20px;
-            background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+            background: rgba(255,255,255,.05);
             border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--text);
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            transition: all 0.2s;
+            transition: background 0.2s ease, border-color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .qr-refresh-btn:hover {
-            background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
+            background: rgba(255,255,255,.1);
             border-color: var(--primary);
         }
         
@@ -176,9 +251,9 @@
         }
         
         .badge.connected {
-            background: linear-gradient(135deg, var(--primary), var(--primary-600));
+            background: var(--primary);
             color: #08140d;
-            box-shadow: 0 4px 12px rgba(34,197,94,.3);
+            box-shadow: none;
         }
         
         .badge.disconnected {
@@ -186,44 +261,81 @@
             color: #cbd5e1;
         }
         
+        .icon-inline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            color: currentColor;
+            flex-shrink: 0;
+        }
+        
+        .icon-inline svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+        
         .icon-btn {
-            background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
-            border: 1px solid rgba(255,255,255,.15);
+            background: rgba(255,255,255,.05);
+            border: 1px solid var(--border);
             color: var(--text);
             width: 40px;
             height: 40px;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            transition: all 0.2s;
+            font-size: 16px;
+            transition: background 0.2s ease;
         }
         
         .icon-btn:hover {
-            background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
-            transform: translateY(-2px);
+            background: rgba(255,255,255,.1);
+            transform: none;
+        }
+        
+        .icon-btn .icon-inline {
+            margin-right: 0;
         }
         
         /* Upload Section with Drag & Drop */
         .upload-section {
-            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            grid-area: upload;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            margin-bottom: 0;
+            box-shadow: none;
+            align-self: start;
+        }
+        
+        .files-section,
+        .clipboard-section,
+        .speedtest-section,
+        .qr-section {
+            align-self: start;
         }
         
         .drag-drop-zone {
             border: 2px dashed var(--border);
             border-radius: 12px;
-            padding: 40px 20px;
+            padding: 18px 20px;
+            min-height: 90px;
+            max-width: 100%;
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             transition: all 0.3s;
             cursor: pointer;
+            background: rgba(255,255,255,.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
         }
         
         .drag-drop-zone.drag-over {
@@ -246,40 +358,50 @@
         
         .upload-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr;
             gap: 12px;
             margin-bottom: 16px;
         }
         
         .upload-btn {
-            background: linear-gradient(180deg, var(--primary), var(--primary-600));
-            border: 1px solid rgba(255,255,255,.1);
+            background: var(--primary);
+            border: 1px solid rgba(255,255,255,.08);
             color: #08140d;
             padding: 12px 20px;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 700;
             font-size: 14px;
             text-align: center;
-            transition: all 0.2s;
-            box-shadow: 0 6px 18px rgba(34,197,94,.25);
+            transition: background 0.2s ease, opacity 0.2s ease;
+            box-shadow: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .upload-btn:hover {
-            filter: brightness(1.05);
-            transform: translateY(-2px);
+            background: var(--primary-600);
+            opacity: 0.95;
         }
         
         .upload-btn.secondary {
-            background: linear-gradient(180deg, var(--blue), #2563eb);
-            box-shadow: 0 6px 18px rgba(59,130,246,.25);
+            background: var(--blue);
             color: white;
         }
         
+        .upload-btn.secondary:hover {
+            background: #2563eb;
+        }
+        
         .upload-btn.danger {
-            background: linear-gradient(180deg, var(--danger), #dc2626);
-            box-shadow: 0 6px 18px rgba(239,68,68,.25);
+            background: var(--danger);
             color: white;
+        }
+        
+        .upload-btn.danger:hover {
+            background: #dc2626;
         }
         
         input[type="file"] {
@@ -362,13 +484,14 @@
         /* Multi-select Toolbar */
         .toolbar {
             display: none;
+            grid-column: 1 / -1;
             background: linear-gradient(135deg, var(--primary), var(--blue));
             border-radius: 12px;
-            padding: 14px 18px;
+            padding: 12px 16px;
             margin-bottom: 16px;
             align-items: center;
             justify-content: space-between;
-            box-shadow: var(--shadow);
+            box-shadow: none;
             animation: slideDown 0.3s ease-out;
         }
         
@@ -385,31 +508,37 @@
         .toolbar-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
         
         .toolbar-btn {
-            background: rgba(255,255,255,.2);
-            border: 1px solid rgba(255,255,255,.3);
+            background: rgba(255,255,255,.16);
+            border: 1px solid rgba(255,255,255,.18);
             color: white;
             padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 700;
             font-size: 13px;
-            transition: all 0.2s;
+            transition: background 0.2s ease, transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         
         .toolbar-btn:hover {
             background: rgba(255,255,255,.3);
+            transform: translateY(-1px);
         }
         
         /* Files Section */
         .files-section {
-            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            grid-area: files;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: var(--shadow);
+            box-shadow: 0 6px 24px rgba(0,0,0,.16);
         }
         
         .files-header {
@@ -432,14 +561,14 @@
         }
         
         .file-item {
-            background: rgba(255,255,255,.02);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 12px;
+            padding: 14px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
-            transition: all 0.2s;
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
         
         .file-item:hover {
@@ -456,14 +585,15 @@
         .file-icon {
             width: 42px;
             height: 42px;
-            background: linear-gradient(135deg, var(--primary), var(--blue));
-            border-radius: 8px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
             font-size: 14px;
-            color: white;
+            color: var(--primary);
             flex-shrink: 0;
         }
         
@@ -493,7 +623,7 @@
         
         .file-badge {
             padding: 3px 8px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 10px;
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -523,23 +653,24 @@
         .file-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
         
         .file-btn {
-            padding: 8px 14px;
-            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,.12);
             border-radius: 8px;
-            background: rgba(255,255,255,.05);
+            background: rgba(255,255,255,.06);
             color: var(--text);
             cursor: pointer;
             font-weight: 600;
             font-size: 13px;
-            transition: all 0.2s;
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
         
         .file-btn:hover {
-            background: rgba(255,255,255,.1);
-            border-color: rgba(255,255,255,.2);
+            background: rgba(255,255,255,.14);
+            border-color: rgba(255,255,255,.18);
         }
         
         .file-btn.pin {
@@ -552,15 +683,31 @@
         
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: var(--muted);
+            border: 1px dashed rgba(255,255,255,.16);
+            border-radius: 12px;
+            background: rgba(255,255,255,.02);
         }
         
         .empty-state svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 16px;
-            opacity: 0.4;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.7;
+            color: var(--primary);
+        }
+        
+        .empty-state h3 {
+            margin: 0 0 8px 0;
+            color: var(--text);
+            font-size: 16px;
+        }
+        
+        .empty-state p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
         }
         
         /* Loading skeleton */
@@ -608,12 +755,13 @@
         
         /* Clipboard Section */
         .clipboard-section {
-            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            grid-area: clipboard;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            margin-bottom: 0;
+            box-shadow: none;
         }
         
         .clipboard-header {
@@ -639,13 +787,13 @@
             min-height: 120px;
             padding: 12px;
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 8px;
             background: rgba(0,0,0,.3);
             color: var(--text);
             font-family: 'Courier New', monospace;
             font-size: 14px;
             resize: vertical;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         
         .clipboard-textarea:focus {
@@ -668,7 +816,7 @@
             cursor: pointer;
             font-weight: 600;
             font-size: 13px;
-            transition: all 0.2s;
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
         
         .clipboard-btn:hover {
@@ -677,25 +825,34 @@
         }
         
         .clipboard-btn.primary {
-            background: linear-gradient(180deg, var(--primary), var(--primary-600));
+            background: var(--primary);
             color: #08140d;
-            border-color: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.08);
+        }
+
+        .clipboard-btn.primary:hover {
+            background: var(--primary-600);
         }
 
         .clipboard-btn.danger {
-            background: linear-gradient(180deg, var(--danger), #dc2626);
+            background: var(--danger);
             color: white;
-            border-color: rgba(255,255,255,.1);
+            border-color: rgba(255,255,255,.08);
+        }
+
+        .clipboard-btn.danger:hover {
+            background: #dc2626;
         }
         
         /* Speed Test Section */
         .speedtest-section {
-            background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            grid-area: speed;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
             padding: 20px;
-            margin-top: 20px;
-            box-shadow: var(--shadow);
+            margin-bottom: 0;
+            box-shadow: none;
         }
         
         .speedtest-header {
@@ -722,7 +879,7 @@
             padding: 16px;
             background: rgba(255,255,255,.02);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 8px;
             text-align: center;
         }
         
@@ -750,18 +907,17 @@
             width: 100%;
             padding: 12px 20px;
             border: 1px solid var(--border);
-            border-radius: 10px;
-            background: linear-gradient(180deg, var(--blue), #2563eb);
+            border-radius: 8px;
+            background: var(--blue);
             color: white;
             cursor: pointer;
             font-weight: 700;
             font-size: 14px;
-            transition: all 0.2s;
+            transition: background 0.2s ease;
         }
         
         .speedtest-btn:hover {
-            filter: brightness(1.1);
-            transform: translateY(-2px);
+            background: #2563eb;
         }
         
         .speedtest-btn:disabled {
@@ -922,10 +1078,11 @@
         
         <!-- Header -->
         <div class="header">
-            <h1>📁 ShareJadPi</h1>
+            <h1><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H9l2 2h4.5A2.5 2.5 0 0 1 18 9.5v7A2.5 2.5 0 0 1 15.5 19h-9A2.5 2.5 0 0 1 4 16.5z"/></svg></span>ShareJadPi</h1>
             <div class="header-right">
                 <span id="connectedBadge" class="badge disconnected">•••</span>
-                <button class="icon-btn" id="settingsBtn" style="display: none;" onclick="window.location.href='/settings'" title="Settings">⚙️</button>
+                <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle theme"><span class="icon-inline" aria-hidden="true"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2"/><path d="M12 19v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="5"/></svg></span></button>
+                <button class="icon-btn" id="settingsBtn" style="display: none;" onclick="window.location.href='/settings'" title="Settings"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12.5a7.6 7.6 0 0 0-.1-1.1l1.9-1.5-2-3.4-2.3 1a8 8 0 0 0-1.9-1.1L14.2 3h-4.4l-.7 2.4a8 8 0 0 0-1.9 1.1l-2.3-1-2 3.4 1.9 1.5a7.6 7.6 0 0 0-.1 1.1 7.6 7.6 0 0 0 .1 1.1l-1.9 1.5 2 3.4 2.3-1a8 8 0 0 0 1.9 1.1l.7 2.4h4.4l.7-2.4a8 8 0 0 0 1.9-1.1l2.3 1 2-3.4-1.9-1.5c.1-.3.1-.7.1-1.1z"/></svg></span></button>
             </div>
         </div>
         
@@ -936,7 +1093,7 @@
                 <img id="qrTop" src="/qr" alt="QR Code" loading="lazy">
             </div>
             <div>
-                <button class="qr-refresh-btn" onclick="refreshQRTop()">🔄 Refresh QR</button>
+                <button class="qr-refresh-btn" onclick="refreshQRTop()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.4-2.6"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.4 2.6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg></span>Refresh QR</button>
             </div>
         </div>
 
@@ -948,14 +1105,14 @@
             </div>
             <div class="upload-grid">
                 <label class="upload-btn">
-                    📤 Upload File
+                    <span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>Upload File
                     <input type="file" id="fileInput" multiple>
                 </label>
                 <label class="upload-btn secondary">
-                    📂 Upload Folder
+                    <span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H9l2 2h4.5A2.5 2.5 0 0 1 18 9.5v7A2.5 2.5 0 0 1 15.5 19h-9A2.5 2.5 0 0 1 4 16.5z"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></span>Upload Folder
                     <input type="file" id="folderInput" webkitdirectory directory multiple>
                 </label>
-                <button class="upload-btn danger" onclick="clearAll()">🗑️ Clear All</button>
+                <button class="upload-btn danger" onclick="clearAll()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Clear All</button>
             </div>
             <div class="progress-container" id="progressContainer">
                 <div class="progress-header">
@@ -975,10 +1132,10 @@
                 <span id="selectedCount">0</span> selected
             </div>
             <div class="toolbar-actions">
-                <button class="toolbar-btn" onclick="pinSelected()">📌 Pin</button>
-                <button class="toolbar-btn" onclick="unpinSelected()">📌 Unpin</button>
-                <button class="toolbar-btn" onclick="zipSelected()">📦 Zip & Download</button>
-                <button class="toolbar-btn" onclick="deleteSelected()">🗑️ Delete</button>
+                <button class="toolbar-btn" onclick="pinSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4"/><path d="M12 7v4"/><path d="M16 3v4"/><path d="M4 7h16"/><path d="M7 7l1 10 3 2 3-2 1-10"/></svg></span>Pin</button>
+                <button class="toolbar-btn" onclick="unpinSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4"/><path d="M12 7v4"/><path d="M16 3v4"/><path d="M4 7h16"/><path d="M7 7l1 10 3 2 3-2 1-10"/></svg></span>Unpin</button>
+                <button class="toolbar-btn" onclick="zipSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l2 4v13H5V7z"/><path d="M9 3v4h6V3"/><path d="M8 11h8"/><path d="M8 15h5"/></svg></span>Zip & Download</button>
+                <button class="toolbar-btn" onclick="deleteSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Delete</button>
             </div>
         </div>
         
@@ -998,21 +1155,21 @@
         <!-- Clipboard Section (moved below files) -->
         <div class="clipboard-section">
             <div class="clipboard-header">
-                <h3>📋 Shared Clipboard</h3>
+                <h3><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg></span>Shared Clipboard</h3>
                 <span class="clipboard-status" id="clipboardStatus">Idle</span>
             </div>
             <textarea class="clipboard-textarea" id="clipboardText" placeholder="Type or paste text here to share across devices..."></textarea>
             <div class="clipboard-actions">
-                <button class="clipboard-btn primary" id="clipboardSaveBtn" onclick="saveClipboard()">💾 Save & Sync</button>
-                <button class="clipboard-btn" onclick="copyToClipboard()">📋 Copy</button>
-                <button class="clipboard-btn danger" onclick="clearClipboard()">🗑️ Clear</button>
+                <button class="clipboard-btn primary" id="clipboardSaveBtn" onclick="saveClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2z"/><path d="M9 8h6"/><path d="M9 12h6"/></svg></span>Save & Sync</button>
+                <button class="clipboard-btn" onclick="copyToClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="10" height="12" rx="2"/><path d="M5 7h8a2 2 0 0 1 2 2v10H7a2 2 0 0 1-2-2V7z"/></svg></span>Copy</button>
+                <button class="clipboard-btn danger" onclick="clearClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Clear</button>
             </div>
         </div>
         
         <!-- Speed Test Section -->
         <div class="speedtest-section">
             <div class="speedtest-header">
-                <h3>⚡ Network Speed Test</h3>
+                <h3><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 7 12h5l-1 10 6-10h-5l1-10z"/></svg></span>Network Speed Test</h3>
             </div>
             <div class="speedtest-results">
                 <div class="speedtest-result">
@@ -1030,7 +1187,7 @@
                     </div>
                 </div>
             </div>
-            <button class="speedtest-btn" id="speedtestBtn" onclick="runSpeedTest()">🚀 Run Speed Test (5 seconds)</button>
+            <button class="speedtest-btn" id="speedtestBtn" onclick="runSpeedTest()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/><path d="m5 5 7 7-7 7"/></svg></span>Run Speed Test (5 seconds)</button>
         </div>
     </div>
     
@@ -1077,6 +1234,38 @@
             }
             return originalFetch(url, options);
         };
+        
+        function setThemeMode(mode) {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            if (mode === 'light') {
+                body.classList.add('light-mode');
+                localStorage.setItem('sharejadpi-theme', 'light');
+                if (icon) {
+                    icon.innerHTML = '<path d="M12 3v2"/><path d="M12 19v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="5"/>';
+                }
+            } else {
+                body.classList.remove('light-mode');
+                localStorage.setItem('sharejadpi-theme', 'dark');
+                if (icon) {
+                    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+                }
+            }
+        }
+        
+        function toggleTheme() {
+            const isLight = document.body.classList.contains('light-mode');
+            setThemeMode(isLight ? 'dark' : 'light');
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('sharejadpi-theme');
+            if (savedTheme === 'light') {
+                setThemeMode('light');
+            } else {
+                setThemeMode('dark');
+            }
+        });
         
         let isHost = false;
         let isAuthorized = false;
