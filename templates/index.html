@@ -926,140 +926,64 @@
             transform: none;
         }
         
-        /* Responsive */
-        @media (max-width: 600px) {
+        /* Responsive: mobile-first adjustments */
+        @media (max-width: 760px) {
             body { padding: 8px; }
-            .header { padding: 12px 16px; }
-            .upload-section, .files-section, .clipboard-section, .speedtest-section, .qr-section { padding: 16px; }
-            .upload-grid { grid-template-columns: 1fr; }
-            
-            /* Progress bars mobile fix */
-            .progress-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 4px;
-            }
-            
-            .progress-title {
-                font-size: 13px;
-            }
-            
-            .progress-speed {
-                font-size: 12px;
-            }
-            
-            .progress-text {
-                font-size: 11px;
-            }
-            
-            /* File items mobile fix */
-            .file-item { 
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            .file-checkbox { 
-                order: 1; 
-                margin-right: 0;
-            }
-            .file-icon { 
-                order: 2;
-                width: 36px;
-                height: 36px;
-                font-size: 12px;
-            }
-            .file-info { 
-                order: 3; 
-                flex: 1 1 100%; 
-                min-width: 0;
-            }
-            .file-name { 
-                font-size: 14px; 
-                word-break: break-word;
-            }
-            .file-meta {
-                font-size: 11px;
-            }
-            .file-badges {
-                margin-top: 4px;
-            }
-            .file-badge {
-                font-size: 9px;
-                padding: 2px 6px;
-            }
-            .file-actions { 
-                order: 4; 
-                flex: 1 1 100%; 
-                flex-direction: row; 
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-            .file-btn { 
-                flex: 1; 
-                min-width: 80px; 
-                padding: 6px 10px; 
-                font-size: 12px; 
-                text-align: center; 
-            }
-            
-            /* Toolbar mobile fix */
-            .toolbar { 
-                flex-direction: column; 
-                align-items: stretch; 
-                gap: 10px;
-                padding: 12px 14px;
-            }
-            .toolbar-left {
-                font-size: 13px;
-            }
-            .toolbar-actions { 
-                width: 100%; 
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-            .toolbar-btn { 
-                flex: 1; 
-                text-align: center; 
-                min-width: 45%;
-                font-size: 12px;
-                padding: 7px 10px;
-            }
-            
-            /* QR section mobile */
-            .qr-section h3 {
-                font-size: 14px;
-            }
-            
-            .qr-container img {
-                width: 180px;
-                height: 180px;
-            }
-            
-            /* Drag-drop zone mobile */
-            .drag-drop-zone {
-                padding: 30px 15px;
-            }
-            
-            .drag-drop-zone h3 {
-                font-size: 16px;
-            }
-            
-            .drag-drop-zone p {
-                font-size: 12px;
-            }
-            
-            /* Speed test mobile */
-            .speedtest-results {
+            .container {
                 grid-template-columns: 1fr;
-                gap: 10px;
+                grid-template-areas:
+                    "header"
+                    "qr"
+                    "upload"
+                    "files"
+                    "clipboard"
+                    "speed";
+                gap: 14px;
             }
-            
-            .speedtest-result {
-                padding: 12px;
-            }
-            
-            .speedtest-result .value {
-                font-size: 20px;
-            }
+            .header { padding: 12px 14px; }
+            .upload-section, .files-section, .clipboard-section, .speedtest-section, .qr-section { padding: 14px; }
+            .upload-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+
+            /* Make upload buttons full width on mobile */
+            .upload-btn { width: 100%; padding: 10px 14px; border-radius: 12px; }
+
+            /* Progress bars mobile fix */
+            .progress-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .progress-title { font-size: 13px; }
+            .progress-speed { font-size: 12px; }
+            .progress-text { font-size: 11px; }
+
+            /* File items mobile fix */
+            .file-item { flex-wrap: wrap; gap: 8px; }
+            .file-checkbox { order: 1; margin-right: 0; }
+            .file-icon { order: 2; width: 36px; height: 36px; font-size: 12px; }
+            .file-info { order: 3; flex: 1 1 100%; min-width: 0; }
+            .file-name { font-size: 14px; }
+            .file-meta { font-size: 11px; }
+            .file-badges { margin-top: 6px; }
+            .file-badge { font-size: 10px; padding: 3px 6px; }
+            .file-actions { order: 4; flex: 1 1 100%; gap: 6px; }
+            .file-btn { flex: 1; min-width: 80px; padding: 8px 10px; font-size: 13px; }
+
+            /* Toolbar mobile fix */
+            .toolbar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+            .toolbar-left { font-size: 13px; }
+            .toolbar-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
+            .toolbar-btn { flex: 1; text-align: center; min-width: 45%; font-size: 12px; padding: 8px 10px; }
+
+            /* QR section mobile */
+            .qr-section h3 { font-size: 14px; }
+            .qr-container img { width: 140px; height: 140px; }
+
+            /* Drag-drop zone mobile */
+            .drag-drop-zone { padding: 14px 12px; min-height: 80px; }
+            .drag-drop-zone h3 { font-size: 16px; }
+            .drag-drop-zone p { font-size: 12px; }
+
+            /* Speed test mobile */
+            .speedtest-results { grid-template-columns: 1fr; gap: 10px; }
+            .speedtest-result { padding: 12px; }
+            .speedtest-result .value { font-size: 20px; }
         }
     </style>
 </head>
