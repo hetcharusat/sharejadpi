@@ -1888,6 +1888,8 @@ def download_entry(entry_id):
 
 @app.route('/delete/<entry_id>', methods=['POST'])
 def delete_entry(entry_id):
+    if not is_request_from_host():
+        return jsonify({'error': 'Forbidden', 'message': 'Admin actions are restricted to the host machine.'}), 403
     e = remove_entry(entry_id)
     if not e:
         return jsonify({'error': 'Not found'}), 404
@@ -1903,6 +1905,8 @@ def delete_entry(entry_id):
 
 @app.route('/api/clear', methods=['POST'])
 def clear_all():
+    if not is_request_from_host():
+        return jsonify({'error': 'Forbidden', 'message': 'Admin actions are restricted to the host machine.'}), 403
     ensure_core_dirs()
     before = _cache_status_dict()
     removed_ids = []
@@ -2045,6 +2049,8 @@ def api_files():
 
 @app.route('/delete_bulk', methods=['POST'])
 def delete_bulk():
+    if not is_request_from_host():
+        return jsonify({'error': 'Forbidden', 'message': 'Admin actions are restricted to the host machine.'}), 403
     try:
         data = request.get_json(silent=True) or {}
         ids = data.get('ids') or []
@@ -2243,28 +2249,48 @@ def api_cache_status():
 
 @app.route('/settings')
 def settings_page():
-    # Restrict full settings to host PC; remote shows a friendly notice
     if not is_request_from_host():
         return """<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>ShareJadPi Settings</title><style>body{margin:0;background:#0f1320;color:#e7ecf3;font-family:ui-sans-serif,system-ui;-webkit-font-smoothing:antialiased} .wrap{max-width:760px;margin:40px auto;padding:20px;background:#14192b;border:1px solid #233046;border-radius:14px} a{color:#a78bfa;text-decoration:none}</style></head>
-<body><div class='wrap'><h2>Settings available on host PC only</h2><p>Open this page on the computer running ShareJadPi to view and change settings.</p><p><a href='/'>â† Back to Share</a></p></div></body></html>"""
+<title>ShareJadPi Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body{margin:0;background:#0d111d;color:#e2e8f0;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+    .wrap{width:100%;max-width:540px;padding:32px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center}
+    h2{margin-top:0;font-size:22px;color:#f8fafc;font-weight:700}
+    p{color:#94a3b8;font-size:14px;line-height:1.6;margin:16px 0}
+    a{color:#818cf8;text-decoration:none;font-weight:600;transition:color 0.2s}
+    a:hover{color:#a5b4fc}
+</style></head>
+<body><div class='wrap'><h2>Settings Host-Only</h2><p>For security, configurations can only be viewed and modified on the host machine running ShareJadPi.</p><p><a href='/'>&larr; Back to Share</a></p></div></body></html>"""
     # simple inline page with expiry config and paths (host only)
     return """<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
 <title>ShareJadPi Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-    :root{--bg:#0f1320;--card:#14192b;--text:#e7ecf3;--muted:#9aa4b2;--border:#233046;--primary:#22c55e;--primary-600:#16a34a;--danger:#ef4444;--shadow:0 10px 30px rgba(0,0,0,.25)}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(1200px 800px at 20% -10%, #1b2140 0%, var(--bg) 40%),radial-gradient(1000px 600px at 100% 0%, #191a2b 0%, transparent 50%);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial;color:var(--text);padding:24px}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);max-width:900px;margin:0 auto;padding:20px}
-    h1{margin:6px 0 12px 0;font-size:clamp(20px,3.2vw,28px)}.status{margin:10px 0;font-weight:700;color:var(--muted)}
-    fieldset{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:14px;background:rgba(255,255,255,.02)}legend{padding:0 8px;font-weight:800;color:#cbd5e1}
-    button{background:linear-gradient(180deg,var(--primary),var(--primary-600));border:1px solid rgba(255,255,255,.1);color:#08140d;padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:800;font-size:14px;box-shadow:0 6px 18px rgba(34,197,94,.25)}
-    button.off{background:#475569;color:#e2e8f0;border-color:#334155}
-    button:hover{filter:brightness(1.05)}button:active{transform:translateY(1px)}
-    input[type=number]{width:130px;padding:8px;border:1px solid #2a3550;border-radius:10px;background:#0b0f1a;color:var(--text)}
-    .mono{font-family:Consolas,Menlo,monospace;word-break:break-all;background:#0b0f1a;padding:6px 8px;border-radius:8px;border:1px solid var(--border);color:#cbd5e1}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    a{color:#a78bfa;text-decoration:none}a:hover{text-decoration:underline}
-    @media (max-width:600px){body{padding:16px}.card{padding:14px}}
+    :root{--bg:#0d111d;--card:rgba(255,255,255,0.02);--text:#e2e8f0;--muted:#94a3b8;--border:rgba(255,255,255,0.06);--primary:#818cf8;--primary-hover:#4f46e5;--danger:#ef4444;--shadow:0 10px 30px rgba(0,0,0,.3)}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at top left, #1e1b4b 0%, var(--bg) 60%);font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);padding:32px 16px;min-height:100vh}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);max-width:800px;margin:0 auto;padding:32px;backdrop-filter:blur(8px)}
+    h1{margin:0 0 20px 0;font-size:28px;font-weight:800;color:#f8fafc}
+    .status{margin:8px 0;font-size:14px;color:var(--text)}
+    .status span{font-weight:700;color:#818cf8}
+    fieldset{border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:20px;background:rgba(255,255,255,0.01)}
+    legend{padding:0 12px;font-weight:700;font-size:14px;color:#cbd5e1;letter-spacing:0.5px;text-transform:uppercase}
+    button{background:#818cf8;border:none;color:#ffffff;padding:10px 18px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;transition:all 0.2s;outline:none}
+    button.off{background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border)}
+    button:hover:not(:disabled){background:var(--primary-hover);transform:translateY(-1px)}
+    button:disabled{opacity:0.4;cursor:not-allowed}
+    input[type=number]{width:120px;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(0,0,0,0.2);color:var(--text);font-family:inherit;font-size:14px}
+    .mono{font-family:Consolas,Menlo,monospace;word-break:break-all;background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:10px;border:1px solid var(--border);color:#e2e8f0;font-size:13px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:12px}
+    a{color:#818cf8;text-decoration:none;font-weight:600;transition:color 0.2s}
+    a:hover{color:#a5b4fc}
+    fieldset p{font-size:13px;color:var(--muted);margin:8px 0 0 0;line-height:1.5}
+    @media (max-width:600px){body{padding:16px}.card{padding:20px}}
 </style>
 <script>
 async function refresh(){
@@ -2367,19 +2393,19 @@ window.onload=refresh;
 </fieldset>
 <fieldset><legend>Automatic Expiry</legend>
     <div class='status'>Current: <span id='expState'>...</span></div>
-    <div class='row' style='align-items:center'>
+    <div class='row'>
         <label>Minutes (blank/0 = disable): <input type='number' id='expiryMinutes' min='0' step='1' placeholder='0'></label>
         <button onclick='applyExpiry()'>Apply</button>
     </div>
-    <p style='font-size:12px;color:#aab1bd;margin-top:8px'>When enabled, entries older than the specified minutes are automatically purged every minute. Copy/zip/upload files are deleted once expired.</p>
+    <p>When enabled, entries older than the specified minutes are automatically purged every minute. Copy/zip/upload files are deleted once expired.</p>
 </fieldset>
 <fieldset><legend>Data Folder (this PC)</legend>
-    <p id='pathsNote' style='font-size:12px;color:#aab1bd'>Open this page on the PC running ShareJadPi to see paths.</p>
+    <p id='pathsNote'>Open this page on the PC running ShareJadPi to see paths.</p>
     <div id='pathsBlock' style='display:none'>
         <div class='row'><strong>Core:</strong> <span id='coreDir' class='mono' style='flex:1'></span> <button id='coreDirBtn' onclick="copyText('coreDir')">Copy</button> <button onclick="openPath('core')">Open</button></div>
-        <div class='row' style='margin-top:6px'><strong>Shared:</strong> <span id='sharedDir' class='mono' style='flex:1'></span> <button id='sharedDirBtn' onclick="copyText('sharedDir')">Copy</button> <button onclick="openPath('shared')">Open</button></div>
-        <div class='row' style='margin-top:6px'><strong>Uploads:</strong> <span id='uploadsDir' class='mono' style='flex:1'></span> <button id='uploadsDirBtn' onclick="copyText('uploadsDir')">Copy</button> <button onclick="openPath('uploads')">Open</button></div>
-        <p style='font-size:12px;color:#aab1bd;margin-top:8px'>Tip: Press Win+R, paste a path, and press Enter to open it in Explorer.</p>
+        <div class='row' style='margin-top:12px'><strong>Shared:</strong> <span id='sharedDir' class='mono' style='flex:1'></span> <button id='sharedDirBtn' onclick="copyText('sharedDir')">Copy</button> <button onclick="openPath('shared')">Open</button></div>
+        <div class='row' style='margin-top:12px'><strong>Uploads:</strong> <span id='uploadsDir' class='mono' style='flex:1'></span> <button id='uploadsDirBtn' onclick="copyText('uploadsDir')">Copy</button> <button onclick="openPath('uploads')">Open</button></div>
+        <p>Tip: Press Win+R, paste a path, and press Enter to open it in Explorer.</p>
     </div>
 </fieldset>
 <fieldset id='cacheBlock' style='display:none'><legend>Cache Status</legend>
@@ -2392,9 +2418,9 @@ window.onload=refresh;
         <button onclick='recreateDirs()' title='Recreate missing folders'>Recreate Dirs</button>
         <button onclick='refresh()'>Rescan</button>
     </div>
-  <div id='cacheMsg' style='font-size:12px;color:#555;margin-top:8px'></div>
+  <div id='cacheMsg' style='font-size:12px;color:#ef4444;margin-top:8px'></div>
 </fieldset>
-<p style='margin-top:24px'><a href='/'>&larr; Back to Share Page</a></p></div></body></html>"""
+<p style='margin-top:32px'><a href='/'>&larr; Back to Share Page</a></p></div></body></html>"""
 
 @app.route('/api/share', methods=['POST'])
 def api_share():

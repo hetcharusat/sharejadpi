@@ -3,1116 +3,592 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f1320">
+    <meta name="theme-color" content="#0d111d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>ShareJadPi - Local File Sharing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap" rel="stylesheet">
     <style>
         :root {
-
-            --bg: #0f1320;
-            --bg-shade: #1b2140;
-            --bg-accent: #191a2b;
-            --card: #14192b;
-            --text: #e7ecf3;
-            --muted: #9aa4b2;
-            --border: #233046;
-            --primary: #22c55e;
-            --primary-600: #16a34a;
+            --bg: #0b0f19;
+            --bg-shade: #1e1b4b;
+            --card: #151b2c;
+            --card-hover: #1a2238;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: #232d45;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
             --danger: #ef4444;
             --warning: #f59e0b;
             --blue: #3b82f6;
-            --purple: #a78bfa;
-            --shadow: 0 10px 30px rgba(0,0,0,.25);
+            --shadow: 0 10px 30px rgba(0,0,0,.35);
+            --radius: 16px;
         }
         
         .light-mode {
             --bg: #f8fafc;
-            --bg-shade: #ffffff;
-            --bg-accent: #f1f5f9;
+            --bg-shade: #e0e7ff;
             --card: #ffffff;
+            --card-hover: #f1f5f9;
             --text: #0f172a;
             --muted: #64748b;
-            --border: #d1d5db;
-            --primary: #22c55e;
-            --primary-600: #16a34a;
+            --border: #e2e8f0;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
             --danger: #ef4444;
             --warning: #f59e0b;
             --blue: #2563eb;
-            --purple: #8b5cf6;
             --shadow: 0 10px 30px rgba(15,23,42,.08);
-        }
-
-        .light-mode .header,
-        .light-mode .qr-section,
-        .light-mode .upload-section,
-        .light-mode .files-section,
-        .light-mode .clipboard-section,
-        .light-mode .speedtest-section,
-        .light-mode .toolbar {
-            background: var(--card);
-            border-color: var(--border);
-            box-shadow: 0 10px 28px rgba(15,23,42,.05);
-        }
-
-        .light-mode .icon-btn {
-            background: rgba(15,23,42,.06);
-            border-color: rgba(15,23,42,.14);
-            color: var(--text);
-        }
-
-        .light-mode .qr-container {
-            background: #ffffff;
-            box-shadow: 0 4px 18px rgba(15,23,42,.08);
-        }
-
-        .light-mode .drag-drop-zone {
-            background: #f8fafc;
-            border-color: var(--border);
-        }
-
-        .light-mode .progress-container,
-        .light-mode .speedtest-result,
-        .light-mode .file-item,
-        .light-mode .clipboard-textarea,
-        .light-mode .empty-state {
-            background: #ffffff;
-            border-color: var(--border);
-        }
-
-        .light-mode .file-icon {
-            background: rgba(34,197,94,.08);
-            border-color: rgba(34,197,94,.2);
         }
 
         * { box-sizing: border-box; }
         
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: radial-gradient(1200px 800px at 20% -10%, var(--bg-shade) 0%, var(--bg) 40%),
-                        radial-gradient(1000px 600px at 100% 0%, var(--bg-accent) 0%, transparent 50%);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at top left, var(--bg-shade) 0%, var(--bg) 65%);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 12px;
+            padding: 24px 16px;
         }
-        
-        .container {
+
+        /* Admin-only hiding helper */
+        body.not-host .admin-only {
+            display: none !important;
+        }
+
+        .app-container {
             max-width: 1200px;
             margin: 0 auto;
-            display: grid;
-            grid-template-columns: minmax(300px, 380px) minmax(420px, 1fr);
-            grid-template-areas:
-                "header header"
-                "qr files"
-                "upload clipboard"
-                "upload speed";
+            display: flex;
+            flex-direction: column;
             gap: 20px;
         }
-        
+
         /* Authorization Banner */
         #authBanner {
             display: none;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
             padding: 16px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: none;
-            border: 1px solid rgba(255,255,255,.16);
+            border-radius: var(--radius);
         }
-        
-        #authBanner.show {
-            display: block;
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        #authBanner h3 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-        }
-        
-        #authBanner p {
-            margin: 4px 0;
-            font-size: 14px;
-            opacity: 0.95;
-        }
-        
-        #authBanner code {
-            background: rgba(0,0,0,.3);
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-        }
-        
+        #authBanner.show { display: block; }
+        #authBanner h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+        #authBanner p { margin: 4px 0; font-size: 13px; }
+
         /* Header */
         .header {
-            grid-area: header;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 0;
-            box-shadow: none;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
+            box-shadow: var(--shadow);
         }
-        
         .header h1 {
             margin: 0;
-            font-size: clamp(22px, 3vw, 30px);
-            color: var(--text);
+            font-size: 22px;
+            font-weight: 800;
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
         .header-right {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
         }
-        
-        /* QR Code Section - Top, Medium Size */
-        .qr-section {
-            grid-area: qr;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 0;
-            box-shadow: none;
-            text-align: center;
-        }
-        
-        .qr-section h3 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            color: var(--muted);
-            font-weight: 600;
-        }
-        
-        .qr-container {
-            display: inline-block;
-            padding: 16px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.16);
-        }
-        
-        .qr-container img {
-            display: block;
-            width: 200px;
-            height: 200px;
-            image-rendering: pixelated;
-        }
-        
-        .qr-refresh-btn {
-            margin-top: 16px;
-            padding: 10px 20px;
-            background: rgba(255,255,255,.05);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: background 0.2s ease, border-color 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .qr-refresh-btn:hover {
-            background: rgba(255,255,255,.1);
-            border-color: var(--primary);
-        }
-        
         .badge {
             padding: 6px 12px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
-        
         .badge.connected {
-            background: var(--primary);
-            color: #08140d;
-            box-shadow: none;
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.25);
         }
-        
         .badge.disconnected {
-            background: #475569;
-            color: #cbd5e1;
+            background: rgba(148, 163, 184, 0.12);
+            color: var(--muted);
+            border: 1px solid rgba(148, 163, 184, 0.25);
         }
-        
-        .icon-inline {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            margin-right: 8px;
-            color: currentColor;
-            flex-shrink: 0;
-        }
-        
-        .icon-inline svg {
-            width: 18px;
-            height: 18px;
-            display: block;
-        }
-        
         .icon-btn {
-            background: rgba(255,255,255,.05);
+            background: rgba(255,255,255,.04);
             border: 1px solid var(--border);
             color: var(--text);
             width: 40px;
             height: 40px;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            transition: background 0.2s ease;
+            transition: all 0.2s;
         }
-        
         .icon-btn:hover {
-            background: rgba(255,255,255,.1);
-            transform: none;
+            background: rgba(255,255,255,.08);
+            border-color: var(--primary);
         }
-        
-        .icon-btn .icon-inline {
-            margin-right: 0;
+
+        /* 2-Column Responsive Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            align-items: start;
         }
-        
-        /* Upload Section with Drag & Drop */
-        .upload-section {
-            grid-area: upload;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 0;
-            box-shadow: none;
-            align-self: start;
-        }
-        
-        .files-section,
-        .clipboard-section,
-        .speedtest-section,
-        .qr-section {
-            align-self: start;
-        }
-        
-        .drag-drop-zone {
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 18px 20px;
-            min-height: 90px;
-            max-width: 100%;
-            text-align: center;
-            margin-bottom: 14px;
-            transition: all 0.3s;
-            cursor: pointer;
-            background: rgba(255,255,255,.02);
+
+        .col-left, .col-right {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            gap: 6px;
+            gap: 20px;
         }
-        
+
+        /* Responsive Breakpoint: Mobile Flex Column Stacking */
+        @media (max-width: 900px) {
+            body { padding: 12px 8px; }
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .header { padding: 14px 16px; }
+            .header h1 { font-size: 18px; }
+        }
+
+        /* Cards Base */
+        .card-panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        /* QR Section */
+        .qr-section {
+            text-align: center;
+        }
+        .qr-section h3 {
+            margin: 0 0 14px;
+            font-size: 13px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+        .qr-container {
+            display: inline-block;
+            padding: 12px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+        }
+        .qr-container img {
+            display: block;
+            width: 170px;
+            height: 170px;
+            image-rendering: pixelated;
+        }
+        .qr-refresh-btn {
+            margin-top: 14px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .qr-refresh-btn:hover {
+            border-color: var(--primary);
+        }
+
+        /* Upload Section */
+        .drag-drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 14px;
+            cursor: pointer;
+            background: rgba(255,255,255,.01);
+            transition: all 0.2s;
+        }
         .drag-drop-zone.drag-over {
             border-color: var(--primary);
-            background: rgba(34,197,94,.1);
-            transform: scale(1.02);
+            background: rgba(99, 102, 241, 0.08);
         }
-        
-        .drag-drop-zone h3 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-            color: var(--text);
-        }
-        
-        .drag-drop-zone p {
-            margin: 0;
-            font-size: 14px;
-            color: var(--muted);
-        }
-        
+        .drag-drop-zone h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+        .drag-drop-zone p { margin: 0; font-size: 12px; color: var(--muted); }
+
         .upload-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        
         .upload-btn {
             background: var(--primary);
-            border: 1px solid rgba(255,255,255,.08);
-            color: #08140d;
-            padding: 12px 20px;
-            border-radius: 8px;
+            border: none;
+            color: #ffffff;
+            padding: 12px 16px;
+            border-radius: 10px;
             cursor: pointer;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13px;
             text-align: center;
-            transition: background 0.2s ease, opacity 0.2s ease;
-            box-shadow: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            transition: all 0.2s;
         }
-        
-        .upload-btn:hover {
-            background: var(--primary-600);
-            opacity: 0.95;
-        }
-        
+        .upload-btn:hover:not(:disabled) { background: var(--primary-hover); }
         .upload-btn.secondary {
-            background: var(--blue);
-            color: white;
-        }
-        
-        .upload-btn.secondary:hover {
-            background: #2563eb;
-        }
-        
-        .upload-btn.danger {
-            background: var(--danger);
-            color: white;
-        }
-        
-        .upload-btn.danger:hover {
-            background: #dc2626;
-        }
-        
-        input[type="file"] {
-            display: none;
-        }
-        
-        /* Upload/Download Progress with Speed */
-        .progress-container {
-            display: none;
-            margin-top: 16px;
-            padding: 16px;
-            background: rgba(255,255,255,.02);
-            border-radius: 10px;
+            background: rgba(255,255,255,.04);
             border: 1px solid var(--border);
-        }
-        
-        .progress-container.show {
-            display: block;
-        }
-        
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .progress-title {
-            font-size: 14px;
-            font-weight: 600;
             color: var(--text);
         }
-        
-        .progress-speed {
-            font-size: 13px;
-            color: var(--primary);
-            font-weight: 700;
+        .upload-btn.secondary:hover:not(:disabled) { border-color: var(--primary); }
+        .upload-btn.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
-        
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background: rgba(255,255,255,.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 8px;
+        .upload-btn.danger:hover:not(:disabled) { background: rgba(239, 68, 68, 0.2); }
+        input[type="file"] { display: none; }
+
+        /* Progress */
+        .progress-container {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 320px;
+            z-index: 9999;
+            padding: 16px;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
         }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--blue));
-            transition: width 0.3s;
-            width: 0%;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        .progress-text {
-            font-size: 12px;
-            color: var(--muted);
-            text-align: center;
-        }
-        
+        .progress-container.show { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .progress-title { font-size: 14px; font-weight: 700; color: var(--text); }
+        .progress-speed { font-size: 12px; color: var(--primary); font-weight: 700; }
+        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,.05); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+        .progress-fill { height: 100%; background: var(--primary); transition: width 0.2s ease; width: 0%; }
+        .progress-text { font-size: 12px; color: var(--muted); text-align: center; }
+
         /* Multi-select Toolbar */
         .toolbar {
             display: none;
-            grid-column: 1 / -1;
-            background: linear-gradient(135deg, var(--primary), var(--blue));
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
+            background: var(--card);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 12px 20px;
             align-items: center;
             justify-content: space-between;
-            box-shadow: none;
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        .toolbar.show {
-            display: flex;
-        }
-        
-        .toolbar-left {
-            color: white;
-            font-weight: 700;
-            font-size: 14px;
-        }
-        
-        .toolbar-actions {
-            display: flex;
-            gap: 8px;
             flex-wrap: wrap;
+            gap: 12px;
         }
-        
+        .toolbar.show { display: flex; }
+        .toolbar-left { font-weight: 700; font-size: 13px; }
+        .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .toolbar-btn {
-            background: rgba(255,255,255,.16);
-            border: 1px solid rgba(255,255,255,.18);
-            color: white;
-            padding: 8px 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-weight: 700;
-            font-size: 13px;
-            transition: background 0.2s ease, transform 0.2s ease;
+            font-weight: 600;
+            font-size: 12px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
-        
-        .toolbar-btn:hover {
-            background: rgba(255,255,255,.3);
-            transform: translateY(-1px);
-        }
-        
+        .toolbar-btn .icon-inline { margin-right: 0; }
+        .toolbar-btn:hover { border-color: var(--primary); }
+
         /* Files Section */
-        .files-section {
-            grid-area: files;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 6px 24px rgba(0,0,0,.16);
-        }
-        
-        .files-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .files-header h2 {
-            margin: 0;
-            font-size: 20px;
-        }
-        
-        .file-list {
-            display: grid;
-            gap: 10px;
-        }
-        
+        .files-header h2 { margin: 0; font-size: 18px; font-weight: 800; }
+        .file-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
         .file-item {
-            background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.08);
+            background: rgba(255,255,255,.02);
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 14px 16px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
-            transition: background 0.2s ease, border-color 0.2s ease;
         }
-        
-        .file-item:hover {
-            background: rgba(255,255,255,.05);
-            border-color: rgba(255,255,255,.15);
-        }
-        
-        .file-checkbox {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        
+        .file-item:hover { border-color: var(--primary); background: var(--card-hover); }
+        .file-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
         .file-icon {
-            width: 42px;
-            height: 42px;
-            background: rgba(255,255,255,.12);
-            border: 1px solid rgba(255,255,255,.12);
-            border-radius: 12px;
+            width: 38px;
+            height: 38px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 14px;
+            font-size: 11px;
             color: var(--primary);
             flex-shrink: 0;
         }
-        
-        .file-info {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .file-name {
-            font-weight: 600;
-            font-size: 15px;
-            margin-bottom: 4px;
-            word-break: break-word;
-        }
-        
-        .file-meta {
-            font-size: 12px;
-            color: var(--muted);
-        }
-        
-        .file-badges {
-            display: flex;
-            gap: 6px;
-            margin-top: 6px;
-            flex-wrap: wrap;
-        }
-        
-        .file-badge {
-            padding: 3px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-        
-        .file-badge.new {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-        }
-        
-        .file-badge.pinned {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-        }
-        
-        .file-badge.expiring {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-        }
-        
-        .file-badge.type {
-            background: rgba(255,255,255,.1);
-            color: var(--muted);
-        }
-        
-        .file-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; word-break: break-all; }
+        .file-meta { font-size: 11px; color: var(--muted); }
+        .file-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .file-badge { padding: 2px 6px; border-radius: 6px; font-size: 9px; font-weight: 700; }
+        .file-badge.new { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .file-badge.pinned { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .file-badge.expiring { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .file-badge.type { background: rgba(255,255,255,.05); color: var(--muted); }
+        .file-actions { display: flex; gap: 6px; flex-wrap: wrap; }
         .file-btn {
-            padding: 8px 12px;
-            border: 1px solid rgba(255,255,255,.12);
+            padding: 6px 12px;
+            border: 1px solid var(--border);
             border-radius: 8px;
-            background: rgba(255,255,255,.06);
+            background: rgba(255,255,255,.03);
             color: var(--text);
             cursor: pointer;
             font-weight: 600;
-            font-size: 13px;
-            transition: background 0.2s ease, border-color 0.2s ease;
-        }
-        
-        .file-btn:hover {
-            background: rgba(255,255,255,.14);
-            border-color: rgba(255,255,255,.18);
-        }
-        
-        .file-btn.pin {
-            color: var(--warning);
-        }
-        
-        .file-btn.danger {
-            color: var(--danger);
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
-            border: 1px dashed rgba(255,255,255,.16);
-            border-radius: 12px;
-            background: rgba(255,255,255,.02);
-        }
-        
-        .empty-state svg {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 12px;
-            opacity: 0.7;
-            color: var(--primary);
-        }
-        
-        .empty-state h3 {
-            margin: 0 0 8px 0;
-            color: var(--text);
-            font-size: 16px;
-        }
-        
-        .empty-state p {
-            margin: 0;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        
-        /* Loading skeleton */
-        .skeleton {
-            background: linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.1) 50%, rgba(255,255,255,.05) 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s infinite;
-            border-radius: 8px;
-        }
-        
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        
-        .skeleton-item {
-            height: 80px;
-            margin-bottom: 10px;
-        }
-        
-        /* Page loader - removed once JS runs */
-        #pageLoader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-            background-size: 50% 100%;
-            animation: loader-slide 1.5s infinite;
-            z-index: 9999;
-            opacity: 1;
-            transition: opacity 0.3s;
-        }
-        
-        #pageLoader.hide {
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        @keyframes loader-slide {
-            0% { background-position: -50% 0; }
-            100% { background-position: 150% 0; }
-        }
-        
-        /* Clipboard Section */
-        .clipboard-section {
-            grid-area: clipboard;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 0;
-            box-shadow: none;
-        }
-        
-        .clipboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .clipboard-header h3 {
-            margin: 0;
-            font-size: 18px;
-            color: var(--primary);
-        }
-
-        .clipboard-status {
             font-size: 12px;
-            color: var(--muted);
+            transition: all 0.2s;
         }
-        
+        .file-btn.icon-only {
+            padding: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+        }
+        .file-btn.icon-only svg { width: 14px; height: 14px; }
+        .file-btn:hover { border-color: var(--primary); background: rgba(99,102,241,.1); color: var(--primary); }
+        .file-btn.pin { color: var(--warning); }
+        .file-btn.pin:hover { background: rgba(245,158,11,.1); border-color: var(--warning); color: var(--warning); }
+        .file-btn.danger { color: var(--danger); }
+        .file-btn.danger:hover { background: rgba(239,68,68,.1); border-color: var(--danger); color: var(--danger); }
+
+        /* Clipboard */
+        .clipboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .clipboard-header h3 { margin: 0; font-size: 16px; color: var(--primary); font-weight: 800; }
+        .clipboard-status { font-size: 11px; color: var(--muted); }
         .clipboard-textarea {
             width: 100%;
-            min-height: 120px;
+            min-height: 100px;
             padding: 12px;
             border: 1px solid var(--border);
-            border-radius: 8px;
-            background: rgba(0,0,0,.3);
+            border-radius: 10px;
+            background: rgba(0,0,0,.2);
             color: var(--text);
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-family: monospace;
+            font-size: 13px;
             resize: vertical;
-            margin-bottom: 12px;
-        }
-        
-        .clipboard-textarea:focus {
+            margin-bottom: 10px;
             outline: none;
-            border-color: var(--primary);
         }
-        
-        .clipboard-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
+        .clipboard-textarea:focus { border-color: var(--primary); }
+        .clipboard-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .clipboard-btn {
-            padding: 8px 16px;
+            padding: 8px 14px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            background: rgba(255,255,255,.05);
+            background: rgba(255,255,255,.03);
             color: var(--text);
             cursor: pointer;
             font-weight: 600;
-            font-size: 13px;
-            transition: background 0.2s ease, border-color 0.2s ease;
-        }
-        
-        .clipboard-btn:hover {
-            background: rgba(255,255,255,.1);
-            border-color: rgba(255,255,255,.2);
-        }
-        
-        .clipboard-btn.primary {
-            background: var(--primary);
-            color: #08140d;
-            border-color: rgba(255,255,255,.08);
-        }
-
-        .clipboard-btn.primary:hover {
-            background: var(--primary-600);
-        }
-
-        .clipboard-btn.danger {
-            background: var(--danger);
-            color: white;
-            border-color: rgba(255,255,255,.08);
-        }
-
-        .clipboard-btn.danger:hover {
-            background: #dc2626;
-        }
-        
-        /* Speed Test Section */
-        .speedtest-section {
-            grid-area: speed;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 0;
-            box-shadow: none;
-        }
-        
-        .speedtest-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .speedtest-header h3 {
-            margin: 0;
-            font-size: 18px;
-            color: var(--blue);
-        }
-        
-        .speedtest-results {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        
-        .speedtest-result {
-            padding: 16px;
-            background: rgba(255,255,255,.02);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .speedtest-result .label {
             font-size: 12px;
-            color: var(--muted);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-        
-        .speedtest-result .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        
-        .speedtest-result .unit {
-            font-size: 14px;
-            color: var(--muted);
-            margin-left: 4px;
-        }
-        
+        .clipboard-btn.primary { background: var(--primary); color: #fff; border: none; }
+        .clipboard-btn.primary:hover { background: var(--primary-hover); }
+
+        /* Speedtest */
+        .speedtest-header h3 { margin: 0 0 12px; font-size: 16px; color: var(--blue); font-weight: 800; }
+        .speedtest-results { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .speedtest-result { padding: 12px; background: rgba(0,0,0,.15); border: 1px solid var(--border); border-radius: 10px; text-align: center; }
+        .speedtest-result .label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+        .speedtest-result .value { font-size: 18px; font-weight: 800; color: var(--primary); }
         .speedtest-btn {
             width: 100%;
-            padding: 12px 20px;
-            border: 1px solid var(--border);
+            padding: 10px;
+            border: none;
             border-radius: 8px;
-            background: var(--blue);
-            color: white;
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--primary);
             cursor: pointer;
             font-weight: 700;
-            font-size: 14px;
-            transition: background 0.2s ease;
+            font-size: 13px;
         }
-        
-        .speedtest-btn:hover {
-            background: #2563eb;
-        }
-        
-        .speedtest-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Responsive: mobile-first adjustments */
-        @media (max-width: 760px) {
-            body { padding: 8px; }
-            .container {
-                grid-template-columns: 1fr;
-                grid-template-areas:
-                    "header"
-                    "qr"
-                    "upload"
-                    "files"
-                    "clipboard"
-                    "speed";
-                gap: 14px;
-            }
-            .header { padding: 12px 14px; }
-            .upload-section, .files-section, .clipboard-section, .speedtest-section, .qr-section { padding: 14px; }
-            .upload-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+        .speedtest-btn:hover:not(:disabled) { background: rgba(99, 102, 241, 0.2); }
 
-            /* Make upload buttons full width on mobile */
-            .upload-btn { width: 100%; padding: 10px 14px; border-radius: 12px; }
+        .icon-inline { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 6px; vertical-align: middle; }
+        .icon-inline svg { width: 100%; height: 100%; }
 
-            /* Progress bars mobile fix */
-            .progress-header { flex-direction: column; align-items: flex-start; gap: 6px; }
-            .progress-title { font-size: 13px; }
-            .progress-speed { font-size: 12px; }
-            .progress-text { font-size: 11px; }
-
-            /* File items mobile fix */
-            .file-item { flex-wrap: wrap; gap: 8px; }
-            .file-checkbox { order: 1; margin-right: 0; }
-            .file-icon { order: 2; width: 36px; height: 36px; font-size: 12px; }
-            .file-info { order: 3; flex: 1 1 100%; min-width: 0; }
-            .file-name { font-size: 14px; }
-            .file-meta { font-size: 11px; }
-            .file-badges { margin-top: 6px; }
-            .file-badge { font-size: 10px; padding: 3px 6px; }
-            .file-actions { order: 4; flex: 1 1 100%; gap: 6px; }
-            .file-btn { flex: 1; min-width: 80px; padding: 8px 10px; font-size: 13px; }
-
-            /* Toolbar mobile fix */
-            .toolbar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
-            .toolbar-left { font-size: 13px; }
-            .toolbar-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
-            .toolbar-btn { flex: 1; text-align: center; min-width: 45%; font-size: 12px; padding: 8px 10px; }
-
-            /* QR section mobile */
-            .qr-section h3 { font-size: 14px; }
-            .qr-container img { width: 140px; height: 140px; }
-
-            /* Drag-drop zone mobile */
-            .drag-drop-zone { padding: 14px 12px; min-height: 80px; }
-            .drag-drop-zone h3 { font-size: 16px; }
-            .drag-drop-zone p { font-size: 12px; }
-
-            /* Speed test mobile */
-            .speedtest-results { grid-template-columns: 1fr; gap: 10px; }
-            .speedtest-result { padding: 12px; }
-            .speedtest-result .value { font-size: 20px; }
-        }
+        .empty-state { text-align: center; padding: 36px 16px; color: var(--muted); border: 1px dashed var(--border); border-radius: 12px; }
+        .empty-state svg { width: 40px; height: 40px; margin-bottom: 8px; opacity: 0.7; color: var(--primary); }
+        .empty-state h3 { margin: 0 0 4px; color: var(--text); font-size: 15px; }
+        .empty-state p { margin: 0; font-size: 13px; }
     </style>
 </head>
 <body>
-    <!-- Page loader - shows while initial content loads -->
     <div id="pageLoader"></div>
     
-    <div class="container">
-        <!-- Authorization Banner (shown when not authorized) -->
+    <div class="app-container">
+        <!-- Authorization Banner -->
         <div id="authBanner">
             <h3>⚠️ Not Authorized</h3>
             <p>To access this device, scan the QR code from the host PC or open the link with the token:</p>
             <p><code>http://YOUR_IP:5000/?k=YOUR_TOKEN</code></p>
-            <p style="margin-top: 12px; font-size: 13px;">On the host PC: Right-click tray icon → Show QR, or open <code>http://127.0.0.1:5000/popup</code></p>
         </div>
         
         <!-- Header -->
-        <div class="header">
+        <header class="header">
             <h1><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H9l2 2h4.5A2.5 2.5 0 0 1 18 9.5v7A2.5 2.5 0 0 1 15.5 19h-9A2.5 2.5 0 0 1 4 16.5z"/></svg></span>ShareJadPi</h1>
             <div class="header-right">
                 <span id="connectedBadge" class="badge disconnected">•••</span>
                 <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle theme"><span class="icon-inline" aria-hidden="true"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2"/><path d="M12 19v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="5"/></svg></span></button>
                 <button class="icon-btn" id="settingsBtn" style="display: none;" onclick="window.location.href='/settings'" title="Settings"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12.5a7.6 7.6 0 0 0-.1-1.1l1.9-1.5-2-3.4-2.3 1a8 8 0 0 0-1.9-1.1L14.2 3h-4.4l-.7 2.4a8 8 0 0 0-1.9 1.1l-2.3-1-2 3.4 1.9 1.5a7.6 7.6 0 0 0-.1 1.1 7.6 7.6 0 0 0 .1 1.1l-1.9 1.5 2 3.4 2.3-1a8 8 0 0 0 1.9 1.1l.7 2.4h4.4l.7-2.4a8 8 0 0 0 1.9-1.1l2.3 1 2-3.4-1.9-1.5c.1-.3.1-.7.1-1.1z"/></svg></span></button>
             </div>
-        </div>
-        
-        <!-- QR Top Section -->
-        <div class="qr-section" id="qrSection">
-            <h3>Scan this QR on your phone to connect</h3>
-            <div class="qr-container">
-                <img id="qrTop" src="/qr" alt="QR Code" loading="lazy">
-            </div>
-            <div>
-                <button class="qr-refresh-btn" onclick="refreshQRTop()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.4-2.6"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.4 2.6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg></span>Refresh QR</button>
-            </div>
-        </div>
+        </header>
 
-        <!-- Upload Section -->
-        <div class="upload-section">
-            <div id="dragDropZone" class="drag-drop-zone">
-                <h3>Drag & drop files here</h3>
-                <p>Or use the buttons below to choose files or a whole folder</p>
-            </div>
-            <div class="upload-grid">
-                <label class="upload-btn">
-                    <span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>Upload File
-                    <input type="file" id="fileInput" multiple>
-                </label>
-                <label class="upload-btn secondary">
-                    <span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H9l2 2h4.5A2.5 2.5 0 0 1 18 9.5v7A2.5 2.5 0 0 1 15.5 19h-9A2.5 2.5 0 0 1 4 16.5z"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></span>Upload Folder
-                    <input type="file" id="folderInput" webkitdirectory directory multiple>
-                </label>
-                <button class="upload-btn danger" onclick="clearAll()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Clear All</button>
-            </div>
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-header">
-                    <div class="progress-title" id="progressTitle">Uploading...</div>
-                    <div class="progress-speed" id="progressSpeed">0 MB/s</div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-text" id="progressText">Uploading...</div>
-            </div>
-        </div>
-        
         <!-- Multi-select Toolbar -->
         <div class="toolbar" id="toolbar">
             <div class="toolbar-left">
                 <span id="selectedCount">0</span> selected
             </div>
             <div class="toolbar-actions">
-                <button class="toolbar-btn" onclick="pinSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4"/><path d="M12 7v4"/><path d="M16 3v4"/><path d="M4 7h16"/><path d="M7 7l1 10 3 2 3-2 1-10"/></svg></span>Pin</button>
-                <button class="toolbar-btn" onclick="unpinSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4"/><path d="M12 7v4"/><path d="M16 3v4"/><path d="M4 7h16"/><path d="M7 7l1 10 3 2 3-2 1-10"/></svg></span>Unpin</button>
-                <button class="toolbar-btn" onclick="zipSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l2 4v13H5V7z"/><path d="M9 3v4h6V3"/><path d="M8 11h8"/><path d="M8 15h5"/></svg></span>Zip & Download</button>
-                <button class="toolbar-btn" onclick="deleteSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Delete</button>
-            </div>
-        </div>
-        
-        <!-- Files Section -->
-        <div class="files-section">
-            <div class="files-header">
-                <h2>Shared Files</h2>
-            </div>
-            <div class="file-list" id="fileList">
-                <!-- Initial loading skeleton for instant feedback -->
-                <div class="skeleton skeleton-item"></div>
-                <div class="skeleton skeleton-item"></div>
-                <div class="skeleton skeleton-item"></div>
+                <button class="toolbar-btn admin-only" onclick="pinSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 11.236V6a3 3 0 0 0-6 0v5.236a2 2 0 0 1-.61 1.316l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg></span>Pin</button>
+                <button class="toolbar-btn admin-only" onclick="unpinSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><line x1="12" y1="17" x2="12" y2="22"></line><path d="M9 9v2.236a2 2 0 0 1-.61 1.316l-1.78.9A2 2 0 0 0 5 15.24V17h11"></path><path d="M15 9.36V6a3 3 0 0 0-6 0v1"></path></svg></span>Unpin</button>
+                <button class="toolbar-btn" onclick="zipSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Zip & Download</button>
+                <button class="toolbar-btn admin-only" onclick="deleteSelected()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>Delete</button>
             </div>
         </div>
 
-        <!-- Clipboard Section (moved below files) -->
-        <div class="clipboard-section">
-            <div class="clipboard-header">
-                <h3><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg></span>Shared Clipboard</h3>
-                <span class="clipboard-status" id="clipboardStatus">Idle</span>
-            </div>
-            <textarea class="clipboard-textarea" id="clipboardText" placeholder="Type or paste text here to share across devices..."></textarea>
-            <div class="clipboard-actions">
-                <button class="clipboard-btn primary" id="clipboardSaveBtn" onclick="saveClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2z"/><path d="M9 8h6"/><path d="M9 12h6"/></svg></span>Save & Sync</button>
-                <button class="clipboard-btn" onclick="copyToClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="10" height="12" rx="2"/><path d="M5 7h8a2 2 0 0 1 2 2v10H7a2 2 0 0 1-2-2V7z"/></svg></span>Copy</button>
-                <button class="clipboard-btn danger" onclick="clearClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Clear</button>
-            </div>
-        </div>
-        
-        <!-- Speed Test Section -->
-        <div class="speedtest-section">
-            <div class="speedtest-header">
-                <h3><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 7 12h5l-1 10 6-10h-5l1-10z"/></svg></span>Network Speed Test</h3>
-            </div>
-            <div class="speedtest-results">
-                <div class="speedtest-result">
-                    <div class="label">Download</div>
-                    <div class="value">
-                        <span id="downloadSpeed">--</span>
-                        <span class="unit">Mbps</span>
+        <!-- Main Content 2-Column Grid / Flex Column Mobile -->
+        <main class="main-layout">
+            <div class="col-left">
+                <!-- QR Code (Host only) -->
+                <div class="card-panel qr-section admin-only" id="qrSection" style="padding-bottom: 12px;">
+                    <div class="qr-header" onclick="toggleQR()" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+                        <h3 style="margin: 0; color: var(--text);">Scan QR code to connect mobile</h3>
+                        <span id="qrToggleIcon" style="transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                    </div>
+                    <div id="qrContent" style="max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin-top 0.3s ease;">
+                        <div class="qr-container">
+                            <img id="qrTop" src="/qr" alt="QR Code" loading="lazy">
+                        </div>
+                        <div>
+                            <button class="qr-refresh-btn" onclick="refreshQRTop()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.4-2.6"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.4 2.6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg></span>Refresh QR</button>
+                        </div>
                     </div>
                 </div>
-                <div class="speedtest-result">
-                    <div class="label">Upload</div>
-                    <div class="value">
-                        <span id="uploadSpeed">--</span>
-                        <span class="unit">Mbps</span>
+
+                <!-- Upload Section -->
+                <div class="card-panel upload-section">
+                    <div id="dragDropZone" class="drag-drop-zone">
+                        <h3>Drag & drop files here</h3>
+                        <p>Or click below to upload files or folders</p>
+                    </div>
+                    <div class="upload-grid">
+                        <label class="upload-btn">
+                            <span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>Upload File
+                            <input type="file" id="fileInput" multiple>
+                        </label>
+                        <label class="upload-btn secondary">
+                            <span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H9l2 2h4.5A2.5 2.5 0 0 1 18 9.5v7A2.5 2.5 0 0 1 15.5 19h-9A2.5 2.5 0 0 1 4 16.5z"/><path d="M8 12h8"/><path d="M12 8v8"/></svg></span>Upload Folder
+                            <input type="file" id="folderInput" webkitdirectory directory multiple>
+                        </label>
+                        <button class="upload-btn danger admin-only" onclick="clearAll()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Clear All</button>
                     </div>
                 </div>
             </div>
-            <button class="speedtest-btn" id="speedtestBtn" onclick="runSpeedTest()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/><path d="m5 5 7 7-7 7"/></svg></span>Run Speed Test (5 seconds)</button>
+
+            <div class="col-right">
+                <!-- Shared Files -->
+                <div class="card-panel files-section">
+                    <div class="files-header">
+                        <h2>Shared Files</h2>
+                    </div>
+                    <div class="file-list" id="fileList">
+                        <div class="skeleton skeleton-item"></div>
+                        <div class="skeleton skeleton-item"></div>
+                    </div>
+                </div>
+
+                <!-- Shared Clipboard -->
+                <div class="card-panel clipboard-section">
+                    <div class="clipboard-header">
+                        <h3><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg></span>Shared Clipboard</h3>
+                        <span class="clipboard-status" id="clipboardStatus">Idle</span>
+                    </div>
+                    <textarea class="clipboard-textarea" id="clipboardText" placeholder="Type or paste text here to share across devices..."></textarea>
+                    <div class="clipboard-actions">
+                        <button class="clipboard-btn primary" id="clipboardSaveBtn" onclick="saveClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2z"/><path d="M9 8h6"/><path d="M9 12h6"/></svg></span>Save & Sync</button>
+                        <button class="clipboard-btn" onclick="copyToClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="10" height="12" rx="2"/><path d="M5 7h8a2 2 0 0 1 2 2v10H7a2 2 0 0 1-2-2V7z"/></svg></span>Copy</button>
+                        <button class="clipboard-btn danger" onclick="clearClipboard()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/><path d="M10 11v5"/><path d="M14 11v5"/></svg></span>Clear</button>
+                    </div>
+                </div>
+
+                <!-- Speed Test -->
+                <div class="card-panel speedtest-section">
+                    <div class="speedtest-header">
+                        <h3><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 7 12h5l-1 10 6-10h-5l1-10z"/></svg></span>Network Speed Test</h3>
+                    </div>
+                    <div class="speedtest-results">
+                        <div class="speedtest-result">
+                            <div class="label">Download</div>
+                            <div class="value">
+                                <span id="downloadSpeed">--</span>
+                                <span class="unit">Mbps</span>
+                            </div>
+                        </div>
+                        <div class="speedtest-result">
+                            <div class="label">Upload</div>
+                            <div class="value">
+                                <span id="uploadSpeed">--</span>
+                                <span class="unit">Mbps</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="speedtest-btn" id="speedtestBtn" onclick="runSpeedTest()"><span class="icon-inline" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/><path d="m5 5 7 7-7 7"/></svg></span>Run Speed Test (5 seconds)</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-header">
+            <div class="progress-title" id="progressTitle">Uploading...</div>
+            <div class="progress-speed" id="progressSpeed">0 MB/s</div>
         </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">0%</div>
     </div>
     
     <script>
@@ -1201,6 +677,10 @@
                 const data = await resp.json();
                 isHost = data.host || false;
                 isAuthorized = data.authorized || false;
+                
+                // Add host/remote classes to body
+                document.body.classList.add(isHost ? 'is-host' : 'not-host');
+                document.body.classList.remove(isHost ? 'not-host' : 'is-host');
                 
                 // Show/hide settings icon
                 if (isHost) {
@@ -1321,9 +801,15 @@
                                 <div class="file-badges">${badges.join('')}</div>
                             </div>
                             <div class="file-actions">
-                                <button class="file-btn" onclick="downloadFile('${f.id}', '${escapeHtml(f.name)}')">⬇️ Download</button>
-                                <button class="file-btn pin" onclick="togglePin('${f.id}', ${!f.pinned})">${f.pinned ? '📌 Unpin' : '📌 Pin'}</button>
-                                <button class="file-btn danger" onclick="deleteFile('${f.id}')">🗑️ Delete</button>
+                                <button class="file-btn icon-only" title="Download" onclick="downloadFile('${f.id}', '${escapeHtml(f.name)}')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                </button>
+                                <button class="file-btn icon-only pin admin-only" title="${f.pinned ? 'Unpin' : 'Pin'}" onclick="togglePin('${f.id}', ${!f.pinned})">
+                                    ${f.pinned ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><line x1="12" y1="17" x2="12" y2="22"></line><path d="M9 9v2.236a2 2 0 0 1-.61 1.316l-1.78.9A2 2 0 0 0 5 15.24V17h11"></path><path d="M15 9.36V6a3 3 0 0 0-6 0v1"></path></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 11.236V6a3 3 0 0 0-6 0v5.236a2 2 0 0 1-.61 1.316l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>'}
+                                </button>
+                                <button class="file-btn icon-only danger admin-only" title="Delete" onclick="deleteFile('${f.id}')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                </button>
                             </div>
                         </div>
                     `;
@@ -1566,66 +1052,12 @@
             timer = setInterval(update, 500);
         }
         
-        // Download file with progress + speed (stream to memory, then save)
+        // Download file natively
         async function downloadFile(id, name) {
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            const progressTitle = document.getElementById('progressTitle');
-            const progressSpeed = document.getElementById('progressSpeed');
-            try {
-                progressContainer.classList.add('show');
-                progressTitle.textContent = `Downloading ${name}`;
-                progressText.textContent = 'Starting…';
-                progressSpeed.textContent = '0 MB/s';
-
-                const resp = await fetch(`/download/${id}?dl=1`);
-                if (!resp.ok || !resp.body) throw new Error('Download failed');
-                const contentLength = parseInt(resp.headers.get('Content-Length') || '0', 10);
-                const reader = resp.body.getReader();
-                const chunks = [];
-                let received = 0;
-                let lastTime = Date.now();
-                let lastReceived = 0;
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                    received += value.byteLength;
-                    const now = Date.now();
-                    const dt = (now - lastTime) / 1000;
-                    if (dt > 0.2) {
-                        const db = received - lastReceived;
-                        progressSpeed.textContent = humanSpeed(db / dt);
-                        lastTime = now;
-                        lastReceived = received;
-                    }
-                    if (contentLength > 0) {
-                        const pct = Math.min(100, (received / contentLength) * 100);
-                        progressFill.style.width = pct + '%';
-                        progressText.textContent = `${humanSize(received)} / ${humanSize(contentLength)} (${pct.toFixed(0)}%)`;
-                    } else {
-                        progressText.textContent = `${humanSize(received)} downloaded`;
-                    }
-                }
-                const blob = new Blob(chunks);
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = name || 'download';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                progressText.textContent = 'Download complete!';
-                setTimeout(() => {
-                    progressContainer.classList.remove('show');
-                    progressFill.style.width = '0%';
-                }, 1500);
-            } catch (e) {
-                // Fallback to direct navigation if streaming fails
-                window.location.href = `/download/${id}?dl=1`;
-            }
+            // Using window.location.href navigates securely and prevents Chrome's
+            // "Insecure download" warning that occurs with programmatic anchor clicks.
+            // This also hands off entirely to the browser's native download manager.
+            window.location.href = `/download/${id}?dl=1`;
         }
         
         // Delete file
@@ -1745,6 +1177,22 @@
             const ids = getSelectedIds();
             if (ids.length === 0) return;
             
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressTitle = document.getElementById('progressTitle');
+            const progressSpeed = document.getElementById('progressSpeed');
+            
+            progressContainer.classList.add('show');
+            progressTitle.textContent = `Zipping ${ids.length} files`;
+            progressText.textContent = 'Please wait... (This may take a while for large files)';
+            progressSpeed.textContent = '';
+            
+            // Fake progress animation
+            progressFill.style.width = '0%';
+            progressFill.style.transition = 'width 15s cubic-bezier(0.1, 0.7, 0.1, 1)';
+            setTimeout(() => { progressFill.style.width = '85%'; }, 50);
+            
             try {
                 const resp = await fetch('/zip_selected', {
                     method: 'POST',
@@ -1754,21 +1202,28 @@
                 
                 if (resp.status === 401) {
                     alert('⚠️ Session expired. Please refresh the page.');
+                    progressContainer.classList.remove('show');
                 } else if (resp.ok) {
+                    progressFill.style.transition = 'width 0.3s ease-out';
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Zip created! Starting download...';
+                    
                     const data = await resp.json();
-                    // Direct download without awaiting downloadFile (which is async but doesn't need to block here)
                     downloadFile(data.id, data.name);
-                    // Clear selection and refresh
+                    
                     setTimeout(() => {
                         document.querySelectorAll('.file-checkbox:checked').forEach(cb => cb.checked = false);
                         updateToolbar();
                         loadFiles();
-                    }, 500);
+                        progressContainer.classList.remove('show');
+                    }, 1500);
                 } else {
                     alert('Failed to create zip');
+                    progressContainer.classList.remove('show');
                 }
             } catch (err) {
                 alert(`Error: ${err.message}`);
+                progressContainer.classList.remove('show');
             }
         }
         
@@ -1822,6 +1277,24 @@
                 }
             } catch (err) {
                 alert(`Error: ${err.message}`);
+            }
+        }
+        
+        function toggleQR(forceOpen = null) {
+            const c = document.getElementById('qrContent');
+            const i = document.getElementById('qrToggleIcon');
+            const isOpen = forceOpen !== null ? forceOpen : c.style.maxHeight === '0px' || c.style.maxHeight === '';
+            
+            if (isOpen) {
+                c.style.maxHeight = '300px';
+                c.style.opacity = '1';
+                c.style.marginTop = '16px';
+                i.style.transform = 'rotate(180deg)';
+            } else {
+                c.style.maxHeight = '0px';
+                c.style.opacity = '0';
+                c.style.marginTop = '0px';
+                i.style.transform = 'rotate(0deg)';
             }
         }
         
@@ -2246,6 +1719,11 @@
         
         // Initialize
         async function init() {
+            // Auto-expand QR code on large screens
+            if (window.innerWidth > 900) {
+                toggleQR(true);
+            }
+            
             // Run auth check first (required for other calls)
             await checkAuth();
             
