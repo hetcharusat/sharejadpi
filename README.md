@@ -14,7 +14,7 @@ Share files ANYWHERE with just one click — Local WiFi AND Public Internet.
   <img src="https://custom-icon-badges.demolab.com/badge/-Download%20v4.5.4%20Setup-0078D4?style=for-the-badge&logo=download&logoColor=white&labelColor=1a1a1a" alt="Download ShareJadPi" width="400"/>
  </a>
 
-<sub>Windows 10/11 (64‑bit) • One‑click installer • Firewall auto‑config</sub>
+<sub>Windows 10/11 (64‑bit) • One‑click installer. • Firewall auto‑config.</sub>
 
 </div>
 
